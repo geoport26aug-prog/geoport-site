@@ -2,8 +2,6 @@
 <html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GEOPORT | FA機器カタログ</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--black:#0b0d10;--dark:#11151a;--panel:#161b22;--border:#262e39;--accent:#e8a020;--accent2:#f4c552;--text:#e6edf3;--muted:#8a94a0;--green:#2ea043;--line:#0d1014}
@@ -50,7 +48,6 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .btn-pri{flex:1;background:var(--accent);color:#1a1205}.btn-pri:hover{background:var(--accent2)}
 .more{max-width:1180px;margin:0 auto 50px;padding:0 20px;text-align:center}
 .more button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:13px 36px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
-.more button:hover{border-color:var(--accent)}
 .state{max-width:1180px;margin:50px auto;text-align:center;color:var(--muted);padding:30px}
 .spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 16px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -65,7 +62,6 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .mbody{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .field input,.field textarea{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:14px}
-.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
 .row2{display:flex;gap:11px}.row2 .field{flex:1}
 .mfoot{padding:0 20px 20px}
 .sent{text-align:center;padding:30px 20px;color:var(--green);display:none}.sent.show{display:block}
@@ -75,7 +71,7 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 <header><div class="bar">
 <div class="logo"><span class="dot"></span>GEO<b>PORT</b></div>
 <div class="tag">産業用FA機器 / 正規調達</div><div class="spacer"></div>
-<div class="sync" id="sync"><span class="dotg"></span><span id="sync-t">接続中…</span></div>
+<div class="sync"><span class="dotg"></span><span id="sync-t">接続中…</span></div>
 </div></header>
 <div class="controls">
 <div class="search">
@@ -90,89 +86,91 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
 <div class="state err" id="error" style="display:none"></div>
 <div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
-<footer>GEOPORT株式会社 — オランダ JC Electronics 正規調達品 / 登録番号 T1290001098731<br>
-表示価格は税抜・送料込。価格はサーバー側で算出済み（仕入元値・利益率はブラウザに送信されません）。</footer>
+<footer>GEOPORT株式会社 — オランダ JC Electronics 正規調達品 / 登録番号 T1290001098731<br>表示価格は税抜・送料込。価格はサーバー側で算出済み。</footer>
 <div class="overlay" id="overlay"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
 <div class="mbody" id="m-form">
 <div class="field"><label>数量</label><input id="f-qty" type="number" value="1" min="1"></div>
-<div class="row2"><div class="field"><label>会社名</label><input id="f-co" type="text" placeholder="株式会社○○"></div>
-<div class="field"><label>ご担当者名</label><input id="f-name" type="text" placeholder="山田 太郎"></div></div>
-<div class="field"><label>メールアドレス</label><input id="f-mail" type="email" placeholder="you@example.co.jp"></div>
-<div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2" placeholder="納期希望など"></textarea></div></div>
+<div class="row2"><div class="field"><label>会社名</label><input id="f-co" type="text"></div>
+<div class="field"><label>ご担当者名</label><input id="f-name" type="text"></div></div>
+<div class="field"><label>メールアドレス</label><input id="f-mail" type="email"></div>
+<div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2"></textarea></div></div>
 <div class="mfoot" id="m-foot"><button class="btn btn-pri" style="width:100%;padding:13px" onclick="submitInquiry()">この内容で問い合わせる</button></div>
-<div class="sent" id="m-sent"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2ea043" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m8 12 3 3 5-6"></path></svg>
-<div style="font-weight:600;color:var(--text)">送信しました</div><div style="color:var(--muted);font-size:13px;margin-top:6px">担当より折り返しご連絡いたします。</div></div>
+<div class="sent" id="m-sent"><div style="font-weight:600;color:var(--text)">送信しました</div><div style="color:var(--muted);font-size:13px;margin-top:6px">担当より折り返しご連絡いたします。</div></div>
 </div></div>
 <script>
-const SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
-const SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
-const PAGE=48; let shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[];
-
-async function fetchAll(){
-  let all=[], offset=0, lim=1000;
-  while(true){
-    const url=`${SB_URL}/rest/v1/catalog?select=*&order=article&limit=${lim}&offset=${offset}`;
-    const res=await fetch(url,{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}});
-    if(!res.ok) throw new Error("HTTP "+res.status+" — "+(await res.text()).slice(0,200));
-    const rows=await res.json();
-    all=all.concat(rows);
-    if(rows.length<lim) break;
-    offset+=lim; if(offset>50000) break;
+var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
+var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
+var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[];
+function yen(n){return "¥"+Math.round(n).toLocaleString("ja-JP");}
+function esc(s){return (s||"").replace(/'/g,"\\'");}
+function fetchAll(){
+  var all=[], lim=1000;
+  function page(offset){
+    var url=SB_URL+"/rest/v1/catalog?select=*&order=article&limit="+lim+"&offset="+offset+"&apikey="+SB_KEY;
+    return fetch(url).then(function(res){
+      if(!res.ok){return res.text().then(function(t){throw new Error("HTTP "+res.status+" "+t.slice(0,120));});}
+      return res.json();
+    }).then(function(rows){
+      all=all.concat(rows);
+      if(rows.length<lim||offset>50000){return all;}
+      return page(offset+lim);
+    });
   }
-  return all;
+  return page(0);
 }
-const yen=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
 function buildBrands(){
-  BC={}; DATA.forEach(d=>{BC[d.brand]=(BC[d.brand]||0)+1});
-  BRANDS=Object.keys(BC).sort((a,b)=>BC[b]-BC[a]);
+  BC={}; DATA.forEach(function(d){BC[d.brand]=(BC[d.brand]||0)+1;});
+  BRANDS=Object.keys(BC).sort(function(a,b){return BC[b]-BC[a];});
 }
 function brandList(){
-  const top=BRANDS.slice(0,10);
-  document.getElementById("brands").innerHTML=
-   `<button class="chip ${activeBrand==='ALL'?'on':''}" onclick="setBrand('ALL')">すべて<small>${DATA.length.toLocaleString()}</small></button>`+
-   top.map(b=>`<button class="chip ${b===activeBrand?'on':''}" onclick="setBrand('${b.replace(/'/g,"\\'")}')">${b}<small>${(BC[b]||0).toLocaleString()}</small></button>`).join("");
+  var top=BRANDS.slice(0,10);
+  var html='<button class="chip '+(activeBrand==="ALL"?"on":"")+'" onclick="setBrand(\'ALL\')">すべて<small>'+DATA.length.toLocaleString()+'</small></button>';
+  top.forEach(function(b){html+='<button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'+b+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>';});
+  document.getElementById("brands").innerHTML=html;
 }
-function setBrand(b){activeBrand=b;brandList();apply()}
+function setBrand(b){activeBrand=b;brandList();apply();}
 function apply(){
-  const q=document.getElementById("q").value.trim().toLowerCase();
-  filtered=DATA.filter(d=>{
+  var q=document.getElementById("q").value.trim().toLowerCase();
+  filtered=DATA.filter(function(d){
     if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
-    if(q){const h=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(!h.includes(q))return false;}
-    return true;});
+    if(q){var h=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(h.indexOf(q)<0)return false;}
+    return true;
+  });
   shown=PAGE;render();
 }
 function render(){
-  const list=filtered.slice(0,shown);
+  var list=filtered.slice(0,shown);
   document.getElementById("count").textContent=filtered.length.toLocaleString();
   document.getElementById("empty").style.display=filtered.length?"none":"block";
   document.getElementById("more").style.display=filtered.length>shown?"block":"none";
-  document.getElementById("grid").innerHTML=list.map(d=>{
-    const img=d.image_url?`<img src="${d.image_url}" loading="lazy" onerror="this.style.display='none'">`:`<span class="pn">${d.brand||""}</span>`;
-    return `<div class="card"><div class="thumb"><span class="badge">● 在庫 ${d.stock}</span>${img}</div>
-    <div class="cbody"><div class="brand">${d.brand||""} · ${d.condition||"新品"}</div><div class="art">${d.article}</div>
-    <div class="desc">${d.description||""}</div>
-    <div class="specrow"><span>${d.family||"-"}</span><span>重量 <b>${d.weight_kg??"-"}kg</b></span></div>
-    <div class="priceline"><div class="price">${yen(d.price_jpy)}</div><div class="tax">税抜・送料込</div></div>
-    <div class="cact"><button class="btn btn-pri" onclick="openModal('${(d.article||'').replace(/'/g,"\\'")}')">見積・在庫確認</button></div>
-    </div></div>`;}).join("");
+  document.getElementById("grid").innerHTML=list.map(function(d){
+    var img=d.image_url?'<img src="'+d.image_url+'" loading="lazy" onerror="this.style.display=\'none\'">':'<span class="pn">'+(d.brand||"")+'</span>';
+    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+d.stock+'</span>'+img+'</div>'+
+    '<div class="cbody"><div class="brand">'+(d.brand||"")+' · '+(d.condition||"新品")+'</div><div class="art">'+d.article+'</div>'+
+    '<div class="desc">'+(d.description||"")+'</div>'+
+    '<div class="specrow"><span>'+(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":d.weight_kg)+'kg</b></span></div>'+
+    '<div class="priceline"><div class="price">'+yen(d.price_jpy)+'</div><div class="tax">税抜・送料込</div></div>'+
+    '<div class="cact"><button class="btn btn-pri" onclick="openModal(\''+esc(d.article)+'\')">見積・在庫確認</button></div>'+
+    '</div></div>';
+  }).join("");
 }
-function loadMore(){shown+=PAGE;render()}
-function openModal(art){document.getElementById("m-art").textContent=art;document.getElementById("m-form").style.display="flex";
- document.getElementById("m-foot").style.display="block";document.getElementById("m-sent").classList.remove("show");document.getElementById("overlay").classList.add("show")}
-function closeModal(){document.getElementById("overlay").classList.remove("show")}
-function submitInquiry(){document.getElementById("m-form").style.display="none";document.getElementById("m-foot").style.display="none";document.getElementById("m-sent").classList.add("show")}
-document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal()});
-let t;document.getElementById("q").addEventListener("input",()=>{clearTimeout(t);t=setTimeout(apply,150)});
-
-(async function init(){
-  try{
-    DATA=await fetchAll();
-    document.getElementById("loading").style.display="none";
-    document.getElementById("q").disabled=false;
-    buildBrands(); brandList(); apply();
-    let upd="";
-    for(const d of DATA){if(d.source_updated_at){upd=d.source_updated_at;break;}}
-    document.getElementById("sync-t").textContent = upd ? ("データ更新 "+new Date(upd).toLocaleString("ja-JP")) : "接続済み";
-  }catch(e){
-    document.getElementById("loading").style
+function loadMore(){shown+=PAGE;render();}
+function openModal(art){document.getElementById("m-art").textContent=art;document.getElementById("m-form").style.display="flex";document.getElementById("m-foot").style.display="block";document.getElementById("m-sent").classList.remove("show");document.getElementById("overlay").classList.add("show");}
+function closeModal(){document.getElementById("overlay").classList.remove("show");}
+function submitInquiry(){document.getElementById("m-form").style.display="none";document.getElementById("m-foot").style.display="none";document.getElementById("m-sent").classList.add("show");}
+document.getElementById("overlay").addEventListener("click",function(e){if(e.target.id==="overlay")closeModal();});
+document.getElementById("q").addEventListener("input",function(){apply();});
+fetchAll().then(function(rows){
+  DATA=rows;
+  document.getElementById("loading").style.display="none";
+  document.getElementById("q").disabled=false;
+  buildBrands();brandList();apply();
+  var upd="";for(var i=0;i<DATA.length;i++){if(DATA[i].source_updated_at){upd=DATA[i].source_updated_at;break;}}
+  document.getElementById("sync-t").textContent=upd?("データ更新 "+new Date(upd).toLocaleString("ja-JP")):"接続済み";
+}).catch(function(e){
+  document.getElementById("loading").style.display="none";
+  var el=document.getElementById("error");el.style.display="block";el.textContent="読み込みに失敗しました: "+e.message;
+  document.getElementById("sync-t").textContent="接続エラー";
+});
+</script></body></html>
