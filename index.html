@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEOPORT | FA機器カタログ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0b0d10;--dark:#11151a;--panel:#161b22;--border:#262e39;--accent:#e8a020;--accent2:#f4c552;--text:#e6edf3;--muted:#8a94a0;--green:#2ea043;--line:#0d1014}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+.bar{max-width:1180px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px;letter-spacing:2px;display:flex;align-items:center;gap:9px}
+.logo b{color:var(--accent)}.logo .dot{width:9px;height:9px;background:var(--accent);transform:rotate(45deg)}
+.tag{font-size:11px;color:var(--muted);letter-spacing:1px;border-left:1px solid var(--border);padding-left:14px}
+.spacer{flex:1}
+.sync{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync .dotg{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.controls{max-width:1180px;margin:0 auto;padding:18px 20px 0}
+.search{position:relative}
+.search input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:15px;padding:13px 14px 13px 42px;border-radius:10px;font-family:inherit}
+.search input:focus{outline:none;border-color:var(--accent)}
+.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
+.brands{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden}
+.chip{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;font-weight:600;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--text)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#1a1205}
+.chip small{opacity:.7;margin-left:5px;font-family:'Barlow',sans-serif}
+.meta{max-width:1180px;margin:0 auto;padding:16px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.meta b{color:var(--accent2);font-family:'Barlow',sans-serif}
+.grid{max-width:1180px;margin:0 auto;padding:8px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:.15s}
+.card:hover{border-color:#39434f;transform:translateY(-2px)}
+.thumb{height:120px;background:repeating-linear-gradient(45deg,#10151b,#10151b 10px,#0d1116 10px,#0d1116 20px);display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
+.thumb .pn{font-family:'Barlow Condensed',sans-serif;font-weight:600;color:#3c4754;font-size:15px}
+.badge{position:absolute;top:10px;left:10px;background:rgba(46,160,67,.15);color:var(--green);border:1px solid rgba(46,160,67,.4);font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;z-index:2}
+.cbody{padding:14px;display:flex;flex-direction:column;gap:5px;flex:1}
+.brand{font-size:11px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
+.art{font-family:'Barlow',sans-serif;font-weight:600;font-size:16px;word-break:break-all}
+.desc{font-size:12px;color:var(--muted);line-height:1.5;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.specrow{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:4px}
+.specrow span b{color:#b9c2cc;font-family:'Barlow',sans-serif}
+.priceline{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px;padding-top:11px;border-top:1px solid var(--border)}
+.price{font-family:'Barlow',sans-serif;font-weight:600;font-size:23px;color:var(--accent2)}
+.tax{font-size:10px;color:var(--muted)}
+.cact{display:flex;gap:8px;margin-top:12px}
+.btn{border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-pri{flex:1;background:var(--accent);color:#1a1205}.btn-pri:hover{background:var(--accent2)}
+.more{max-width:1180px;margin:0 auto 50px;padding:0 20px;text-align:center}
+.more button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:13px 36px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
+.more button:hover{border-color:var(--accent)}
+.state{max-width:1180px;margin:50px auto;text-align:center;color:var(--muted);padding:30px}
+.spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 16px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.state.err{color:#e5736b}
+.overlay{position:fixed;inset:0;background:rgba(3,5,8,.78);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:24px 16px;overflow-y:auto}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:460px;margin:auto}
+.mhead{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+.mhead h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:1px}
+.mhead .x{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer}
+.mhead .sub{font-size:12px;color:var(--accent);margin-top:3px;font-family:'Barlow',sans-serif}
+.mbody{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.field input,.field textarea{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:14px}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.row2{display:flex;gap:11px}.row2 .field{flex:1}
+.mfoot{padding:0 20px 20px}
+.sent{text-align:center;padding:30px 20px;color:var(--green);display:none}.sent.show{display:block}
+footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8}
+@media(max-width:560px){.bar{padding:12px 14px;gap:12px}.tag{display:none}.controls,.meta,.grid,.more{padding-left:14px;padding-right:14px}.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><div class="bar">
+<div class="logo"><span class="dot"></span>GEO<b>PORT</b></div>
+<div class="tag">産業用FA機器 / 正規調達</div><div class="spacer"></div>
+<div class="sync" id="sync"><span class="dotg"></span><span id="sync-t">接続中…</span></div>
+</div></header>
+<div class="controls">
+<div class="search">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
+<input id="q" type="text" placeholder="型番・メーカー・キーワードで検索（例: 6ES7 / inverter / Fanuc）" disabled>
+</div>
+<div class="brands" id="brands"></div>
+</div>
+<div class="meta"><div><b id="count">—</b> 件 / 新品・在庫あり</div><div>表示価格は税抜・送料込み（オランダ→日本）</div></div>
+<div class="grid" id="grid"></div>
+<div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
+<div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
+<div class="state err" id="error" style="display:none"></div>
+<div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
+<footer>GEOPORT株式会社 — オランダ JC Electronics 正規調達品 / 登録番号 T1290001098731<br>
+表示価格は税抜・送料込。価格はサーバー側で算出済み（仕入元値・利益率はブラウザに送信されません）。</footer>
+<div class="overlay" id="overlay"><div class="modal">
+<div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
+<div class="mbody" id="m-form">
+<div class="field"><label>数量</label><input id="f-qty" type="number" value="1" min="1"></div>
+<div class="row2"><div class="field"><label>会社名</label><input id="f-co" type="text" placeholder="株式会社○○"></div>
+<div class="field"><label>ご担当者名</label><input id="f-name" type="text" placeholder="山田 太郎"></div></div>
+<div class="field"><label>メールアドレス</label><input id="f-mail" type="email" placeholder="you@example.co.jp"></div>
+<div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2" placeholder="納期希望など"></textarea></div></div>
+<div class="mfoot" id="m-foot"><button class="btn btn-pri" style="width:100%;padding:13px" onclick="submitInquiry()">この内容で問い合わせる</button></div>
+<div class="sent" id="m-sent"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2ea043" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m8 12 3 3 5-6"></path></svg>
+<div style="font-weight:600;color:var(--text)">送信しました</div><div style="color:var(--muted);font-size:13px;margin-top:6px">担当より折り返しご連絡いたします。</div></div>
+</div></div>
+<script>
+const SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
+const SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
+const PAGE=48; let shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[];
+
+async function fetchAll(){
+  let all=[], offset=0, lim=1000;
+  while(true){
+    const url=`${SB_URL}/rest/v1/catalog?select=*&order=article&limit=${lim}&offset=${offset}`;
+    const res=await fetch(url,{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}});
+    if(!res.ok) throw new Error("HTTP "+res.status+" — "+(await res.text()).slice(0,200));
+    const rows=await res.json();
+    all=all.concat(rows);
+    if(rows.length<lim) break;
+    offset+=lim; if(offset>50000) break;
+  }
+  return all;
+}
+const yen=n=>"¥"+Math.round(n).toLocaleString("ja-JP");
+function buildBrands(){
+  BC={}; DATA.forEach(d=>{BC[d.brand]=(BC[d.brand]||0)+1});
+  BRANDS=Object.keys(BC).sort((a,b)=>BC[b]-BC[a]);
+}
+function brandList(){
+  const top=BRANDS.slice(0,10);
+  document.getElementById("brands").innerHTML=
+   `<button class="chip ${activeBrand==='ALL'?'on':''}" onclick="setBrand('ALL')">すべて<small>${DATA.length.toLocaleString()}</small></button>`+
+   top.map(b=>`<button class="chip ${b===activeBrand?'on':''}" onclick="setBrand('${b.replace(/'/g,"\\'")}')">${b}<small>${(BC[b]||0).toLocaleString()}</small></button>`).join("");
+}
+function setBrand(b){activeBrand=b;brandList();apply()}
+function apply(){
+  const q=document.getElementById("q").value.trim().toLowerCase();
+  filtered=DATA.filter(d=>{
+    if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
+    if(q){const h=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(!h.includes(q))return false;}
+    return true;});
+  shown=PAGE;render();
+}
+function render(){
+  const list=filtered.slice(0,shown);
+  document.getElementById("count").textContent=filtered.length.toLocaleString();
+  document.getElementById("empty").style.display=filtered.length?"none":"block";
+  document.getElementById("more").style.display=filtered.length>shown?"block":"none";
+  document.getElementById("grid").innerHTML=list.map(d=>{
+    const img=d.image_url?`<img src="${d.image_url}" loading="lazy" onerror="this.style.display='none'">`:`<span class="pn">${d.brand||""}</span>`;
+    return `<div class="card"><div class="thumb"><span class="badge">● 在庫 ${d.stock}</span>${img}</div>
+    <div class="cbody"><div class="brand">${d.brand||""} · ${d.condition||"新品"}</div><div class="art">${d.article}</div>
+    <div class="desc">${d.description||""}</div>
+    <div class="specrow"><span>${d.family||"-"}</span><span>重量 <b>${d.weight_kg??"-"}kg</b></span></div>
+    <div class="priceline"><div class="price">${yen(d.price_jpy)}</div><div class="tax">税抜・送料込</div></div>
+    <div class="cact"><button class="btn btn-pri" onclick="openModal('${(d.article||'').replace(/'/g,"\\'")}')">見積・在庫確認</button></div>
+    </div></div>`;}).join("");
+}
+function loadMore(){shown+=PAGE;render()}
+function openModal(art){document.getElementById("m-art").textContent=art;document.getElementById("m-form").style.display="flex";
+ document.getElementById("m-foot").style.display="block";document.getElementById("m-sent").classList.remove("show");document.getElementById("overlay").classList.add("show")}
+function closeModal(){document.getElementById("overlay").classList.remove("show")}
+function submitInquiry(){document.getElementById("m-form").style.display="none";document.getElementById("m-foot").style.display="none";document.getElementById("m-sent").classList.add("show")}
+document.getElementById("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")closeModal()});
+let t;document.getElementById("q").addEventListener("input",()=>{clearTimeout(t);t=setTimeout(apply,150)});
+
+(async function init(){
+  try{
+    DATA=await fetchAll();
+    document.getElementById("loading").style.display="none";
+    document.getElementById("q").disabled=false;
+    buildBrands(); brandList(); apply();
+    let upd="";
+    for(const d of DATA){if(d.source_updated_at){upd=d.source_updated_at;break;}}
+    document.getElementById("sync-t").textContent = upd ? ("データ更新 "+new Date(upd).toLocaleString("ja-JP")) : "接続済み";
+  }catch(e){
+    document.getElementById("loading").style
