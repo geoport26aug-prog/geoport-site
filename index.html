@@ -48,6 +48,7 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .cact{display:flex;gap:8px;margin-top:12px}
 .btn{border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
 .btn-pri{flex:1;background:var(--accent);color:#1a1205}.btn-pri:hover{background:var(--accent2)}
+.btn-pri:disabled{opacity:.6;cursor:not-allowed}
 .more{max-width:1180px;margin:0 auto 50px;padding:0 20px;text-align:center}
 .more button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:13px 36px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
 .state{max-width:1180px;margin:50px auto;text-align:center;color:var(--muted);padding:30px}
@@ -63,9 +64,12 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .mhead .sub{font-size:12px;color:var(--accent);margin-top:3px;font-family:'Barlow',sans-serif}
 .mbody{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.field .req{color:#e5736b}
 .field input,.field textarea{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:14px}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
 .row2{display:flex;gap:11px}.row2 .field{flex:1}
 .mnote{font-size:11px;color:var(--muted);background:var(--line);border-radius:8px;padding:10px 12px;line-height:1.5}
+.merr{font-size:12px;color:#e5736b;display:none}
 .mfoot{padding:0 20px 20px}
 .sent{text-align:center;padding:30px 20px;color:var(--green);display:none}.sent.show{display:block}
 footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8}
@@ -94,19 +98,21 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
 <div class="mbody" id="m-form">
 <div class="mnote">在庫状況・お見積り（価格）・納期を、担当より折り返しご連絡いたします。お支払いは銀行振込（前払い）にて承ります。</div>
-<div class="field"><label>数量</label><input id="f-qty" type="number" value="1" min="1"></div>
-<div class="row2"><div class="field"><label>会社名</label><input id="f-co" type="text"></div>
-<div class="field"><label>ご担当者名</label><input id="f-name" type="text"></div></div>
-<div class="field"><label>メールアドレス</label><input id="f-mail" type="email"></div>
-<div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2"></textarea></div></div>
-<div class="mfoot" id="m-foot"><button class="btn btn-pri" style="width:100%;padding:13px" onclick="submitInquiry()">この内容で問い合わせる</button></div>
+<div class="field"><label>数量 <span class="req">*</span></label><input id="f-qty" type="number" value="1" min="1"></div>
+<div class="row2"><div class="field"><label>会社名 <span class="req">*</span></label><input id="f-co" type="text"></div>
+<div class="field"><label>ご担当者名 <span class="req">*</span></label><input id="f-name" type="text"></div></div>
+<div class="field"><label>メールアドレス <span class="req">*</span></label><input id="f-mail" type="email"></div>
+<div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2"></textarea></div>
+<div class="merr" id="m-err"></div></div>
+<div class="mfoot" id="m-foot"><button class="btn btn-pri" id="m-submit" style="width:100%;padding:13px" onclick="submitInquiry()">この内容で問い合わせる</button></div>
 <div class="sent" id="m-sent"><div style="font-weight:600;color:var(--text)">送信しました</div><div style="color:var(--muted);font-size:13px;margin-top:6px">担当より折り返しご連絡いたします。</div></div>
 </div></div>
 <script>
 var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
 var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
+var W3F_KEY="4b0797d8-aee8-4b9d-b7c9-e2577d2c04f1";
 var IMG_BASE="https://www.jc-electronics.com/media/catalog/product/cache/6517c62f5899ad6aa0ba23ceb3eeff97/";
-var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[];
+var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[], curArt="";
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function imgCandidates(art){
   if(!art) return [];
@@ -174,9 +180,69 @@ function render(){
   }).join("");
 }
 function loadMore(){shown+=PAGE;render();}
-function openModal(art){document.getElementById("m-art").textContent=art;document.getElementById("m-form").style.display="flex";document.getElementById("m-foot").style.display="block";document.getElementById("m-sent").classList.remove("show");document.getElementById("overlay").classList.add("show");}
+function openModal(art){
+  curArt=art;
+  document.getElementById("m-art").textContent=art;
+  document.getElementById("m-form").style.display="flex";
+  document.getElementById("m-foot").style.display="block";
+  document.getElementById("m-sent").classList.remove("show");
+  document.getElementById("m-err").style.display="none";
+  document.getElementById("f-qty").value="1";
+  document.getElementById("f-co").value="";
+  document.getElementById("f-name").value="";
+  document.getElementById("f-mail").value="";
+  document.getElementById("f-note").value="";
+  document.getElementById("overlay").classList.add("show");
+}
 function closeModal(){document.getElementById("overlay").classList.remove("show");}
-function submitInquiry(){document.getElementById("m-form").style.display="none";document.getElementById("m-foot").style.display="none";document.getElementById("m-sent").classList.add("show");}
+function submitInquiry(){
+  var qty=document.getElementById("f-qty").value.trim();
+  var co=document.getElementById("f-co").value.trim();
+  var name=document.getElementById("f-name").value.trim();
+  var mail=document.getElementById("f-mail").value.trim();
+  var note=document.getElementById("f-note").value.trim();
+  var err=document.getElementById("m-err");
+  if(!co||!name||!mail||!qty){
+    err.textContent="会社名・ご担当者名・メールアドレス・数量は必須です。";
+    err.style.display="block"; return;
+  }
+  if(mail.indexOf("@")<0){
+    err.textContent="メールアドレスの形式をご確認ください。";
+    err.style.display="block"; return;
+  }
+  err.style.display="none";
+  var btn=document.getElementById("m-submit");
+  btn.disabled=true; btn.textContent="送信しています…";
+  var payload={
+    access_key:W3F_KEY,
+    subject:"【GEOPORT 見積依頼】"+curArt+" × "+qty,
+    from_name:"GEOPORTサイト 問い合わせ",
+    replyto:mail,
+    "型番":curArt,
+    "数量":qty,
+    "会社名":co,
+    "ご担当者名":name,
+    "メールアドレス":mail,
+    "備考":note||"（なし）"
+  };
+  fetch("https://api.web3forms.com/submit",{
+    method:"POST",
+    headers:{"Content-Type":"application/json",Accept:"application/json"},
+    body:JSON.stringify(payload)
+  }).then(function(r){return r.json();}).then(function(j){
+    if(j.success){
+      document.getElementById("m-form").style.display="none";
+      document.getElementById("m-foot").style.display="none";
+      document.getElementById("m-sent").classList.add("show");
+    }else{
+      throw new Error(j.message||"送信に失敗しました");
+    }
+  }).catch(function(e){
+    err.textContent="送信に失敗しました。時間をおいて再度お試しください。";
+    err.style.display="block";
+    btn.disabled=false; btn.textContent="この内容で問い合わせる";
+  });
+}
 document.getElementById("overlay").addEventListener("click",function(e){if(e.target.id==="overlay")closeModal();});
 document.getElementById("q").addEventListener("input",function(){apply();});
 fetchAll().then(function(rows){
