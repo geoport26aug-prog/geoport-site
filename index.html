@@ -33,18 +33,20 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .thumb{height:140px;background:#fff;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
 .thumb img{width:100%;height:100%;object-fit:contain;padding:8px}
 .thumb .pn{font-family:'Barlow Condensed',sans-serif;font-weight:600;color:#3c4754;font-size:15px;background:repeating-linear-gradient(45deg,#10151b,#10151b 10px,#0d1116 10px,#0d1116 20px);width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.badge{position:absolute;top:10px;left:10px;background:rgba(46,160,67,.15);color:var(--green);border:1px solid rgba(46,160,67,.4);font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;z-index:2}
+.badge{position:absolute;top:10px;left:10px;background:rgba(46,160,67,.15);color:var(--green);border:1px solid rgba(46,160,67,.4);font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;z-index:2}
 .cbody{padding:14px;display:flex;flex-direction:column;gap:5px;flex:1}
 .brand{font-size:11px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
 .art{font-family:'Barlow',sans-serif;font-weight:600;font-size:16px;word-break:break-all}
 .desc{font-size:12px;color:var(--muted);line-height:1.5;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .specrow{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:4px}
 .specrow span b{color:#b9c2cc;font-family:'Barlow',sans-serif}
-.priceline{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px;padding-top:11px;border-top:1px solid var(--border)}
-.price{font-family:'Barlow',sans-serif;font-weight:600;font-size:23px;color:var(--accent2)}
-.tax{font-size:10px;color:var(--muted)}
+.delivery{margin-top:10px;padding:9px 11px;background:rgba(46,160,67,.08);border:1px solid rgba(46,160,67,.25);border-radius:8px;display:flex;align-items:center;gap:8px}
+.delivery svg{stroke:var(--green);flex-shrink:0}
+.delivery .dtxt{font-size:12px;line-height:1.35}
+.delivery .dtxt b{color:var(--green);font-weight:700}
+.delivery .dtxt span{color:var(--muted);display:block;font-size:11px}
 .cact{display:flex;gap:8px;margin-top:12px}
-.btn{border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+.btn{border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
 .btn-pri{flex:1;background:var(--accent);color:#1a1205}.btn-pri:hover{background:var(--accent2)}
 .more{max-width:1180px;margin:0 auto 50px;padding:0 20px;text-align:center}
 .more button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:13px 36px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
@@ -63,6 +65,7 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .field input,.field textarea{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:14px}
 .row2{display:flex;gap:11px}.row2 .field{flex:1}
+.mnote{font-size:11px;color:var(--muted);background:var(--line);border-radius:8px;padding:10px 12px;line-height:1.5}
 .mfoot{padding:0 20px 20px}
 .sent{text-align:center;padding:30px 20px;color:var(--green);display:none}.sent.show{display:block}
 footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8}
@@ -70,7 +73,7 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 </style></head><body>
 <header><div class="bar">
 <div class="logo"><span class="dot"></span>GEO<b>PORT</b></div>
-<div class="tag">産業用FA機器 / 正規調達</div><div class="spacer"></div>
+<div class="tag">産業用FA機器 / 短納期供給</div><div class="spacer"></div>
 <div class="sync"><span class="dotg"></span><span id="sync-t">接続中…</span></div>
 </div></header>
 <div class="controls">
@@ -80,16 +83,17 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 </div>
 <div class="brands" id="brands"></div>
 </div>
-<div class="meta"><div><b id="count">—</b> 件 / 新品・在庫あり</div><div>表示価格は税抜・送料込み（オランダ→日本）</div></div>
+<div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div><div>生産終了品・長納期品も在庫からお届け</div></div>
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
 <div class="state err" id="error" style="display:none"></div>
 <div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
-<footer>GEOPORT株式会社 — オランダ JC Electronics 正規調達品 / 登録番号 T1290001098731<br>表示価格は税抜・送料込。価格はサーバー側で算出済み。</footer>
+<footer>GEOPORT株式会社 — 欧州 FA機器 短納期供給 / 登録番号 T1290001098731<br>生産終了品・メーカー長納期品を、在庫から通常10〜14日でお届けします。価格・お見積りはお問い合わせください。</footer>
 <div class="overlay" id="overlay"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
 <div class="mbody" id="m-form">
+<div class="mnote">在庫状況・お見積り（価格）・納期を、担当より折り返しご連絡いたします。お支払いは銀行振込（前払い）にて承ります。</div>
 <div class="field"><label>数量</label><input id="f-qty" type="number" value="1" min="1"></div>
 <div class="row2"><div class="field"><label>会社名</label><input id="f-co" type="text"></div>
 <div class="field"><label>ご担当者名</label><input id="f-name" type="text"></div></div>
@@ -103,7 +107,6 @@ var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
 var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
 var IMG_BASE="https://www.jc-electronics.com/media/catalog/product/cache/6517c62f5899ad6aa0ba23ceb3eeff97/";
 var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[];
-function yen(n){return "¥"+Math.round(n).toLocaleString("ja-JP");}
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function imgCandidates(art){
   if(!art) return [];
@@ -160,11 +163,12 @@ function render(){
     }else{
       img='<span class="pn">'+(d.brand||"")+'</span>';
     }
-    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+d.stock+'</span>'+img+'</div>'+
-    '<div class="cbody"><div class="brand">'+(d.brand||"")+' · '+(d.condition||"新品")+'</div><div class="art">'+d.article+'</div>'+
+    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+d.stock+' 点</span>'+img+'</div>'+
+    '<div class="cbody"><div class="brand">'+(d.brand||"")+' · '+(d.condition||"新古品")+'</div><div class="art">'+d.article+'</div>'+
     '<div class="desc">'+(d.description||"")+'</div>'+
     '<div class="specrow"><span>'+(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":d.weight_kg)+'kg</b></span></div>'+
-    '<div class="priceline"><div class="price">'+yen(d.price_jpy)+'</div><div class="tax">税抜・送料込</div></div>'+
+    '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+
+    '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b><span>生産終了品・長納期品もお任せください</span></div></div>'+
     '<div class="cact"><button class="btn btn-pri" onclick="openModal(\''+esc(d.article)+'\')">見積・在庫確認</button></div>'+
     '</div></div>';
   }).join("");
