@@ -112,6 +112,7 @@ var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
 var W3F_KEY="4b0797d8-aee8-4b9d-b7c9-e2577d2c04f1";
 var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[], curArt="";
 function esc(s){return (s||"").replace(/'/g,"\\'");}
+function h(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fetchAll(){
   var all=[], lim=1000;
   function page(offset){
@@ -134,7 +135,7 @@ function buildBrands(){
 function brandList(){
   var top=BRANDS.slice(0,10);
   var html='<button class="chip '+(activeBrand==="ALL"?"on":"")+'" onclick="setBrand(\'ALL\')">すべて<small>'+DATA.length.toLocaleString()+'</small></button>';
-  top.forEach(function(b){html+='<button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'+b+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>';});
+  top.forEach(function(b){html+='<button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'+h(b)+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>';});
   document.getElementById("brands").innerHTML=html;
 }
 function setBrand(b){activeBrand=b;brandList();apply();}
@@ -142,7 +143,7 @@ function apply(){
   var q=document.getElementById("q").value.trim().toLowerCase();
   filtered=DATA.filter(function(d){
     if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
-    if(q){var h=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(h.indexOf(q)<0)return false;}
+    if(q){var s=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(s.indexOf(q)<0)return false;}
     return true;
   });
   shown=PAGE;render();
@@ -153,10 +154,10 @@ function render(){
   document.getElementById("empty").style.display=filtered.length?"none":"block";
   document.getElementById("more").style.display=filtered.length>shown?"block":"none";
   document.getElementById("grid").innerHTML=list.map(function(d){
-    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+d.stock+' 点</span><span class="pn">'+(d.brand||"")+'</span></div>'+
-    '<div class="cbody"><div class="brand">'+(d.brand||"")+' · '+(d.condition||"新古品")+'</div><div class="art">'+d.article+'</div>'+
-    '<div class="desc">'+(d.description||"")+'</div>'+
-    '<div class="specrow"><span>'+(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":d.weight_kg)+'kg</b></span></div>'+
+    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+h(d.stock)+' 点</span><span class="pn">'+h(d.brand)+'</span></div>'+
+    '<div class="cbody"><div class="brand">'+h(d.brand)+' · '+h(d.condition||"新古品")+'</div><div class="art">'+h(d.article)+'</div>'+
+    '<div class="desc">'+h(d.description)+'</div>'+
+    '<div class="specrow"><span>'+h(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":h(d.weight_kg))+'kg</b></span></div>'+
     '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+
     '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b><span>生産終了品・長納期品もお任せください</span></div></div>'+
     '<div class="cact"><button class="btn btn-pri" onclick="openModal(\''+esc(d.article)+'\')">見積・在庫確認</button></div>'+
