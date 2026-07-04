@@ -30,9 +30,8 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .grid{max-width:1180px;margin:0 auto;padding:8px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:.15s}
 .card:hover{border-color:#39434f;transform:translateY(-2px)}
-.thumb{height:140px;background:#fff;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
-.thumb img{width:100%;height:100%;object-fit:contain;padding:8px}
-.thumb .pn{font-family:'Barlow Condensed',sans-serif;font-weight:600;color:#3c4754;font-size:15px;background:repeating-linear-gradient(45deg,#10151b,#10151b 10px,#0d1116 10px,#0d1116 20px);width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.thumb{height:96px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden;background:repeating-linear-gradient(45deg,#10151b,#10151b 10px,#0d1116 10px,#0d1116 20px)}
+.thumb .pn{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#4a5563;font-size:17px;letter-spacing:1px}
 .badge{position:absolute;top:10px;left:10px;background:rgba(46,160,67,.15);color:var(--green);border:1px solid rgba(46,160,67,.4);font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;z-index:2}
 .cbody{padding:14px;display:flex;flex-direction:column;gap:5px;flex:1}
 .brand{font-size:11px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
@@ -111,15 +110,8 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
 var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
 var W3F_KEY="4b0797d8-aee8-4b9d-b7c9-e2577d2c04f1";
-var IMG_BASE="https://www.jc-electronics.com/media/catalog/product/cache/6517c62f5899ad6aa0ba23ceb3eeff97/";
 var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[], curArt="";
 function esc(s){return (s||"").replace(/'/g,"\\'");}
-function imgCandidates(art){
-  if(!art) return [];
-  var u=art.toUpperCase().replace(/-/g,"_");
-  var p=u.charAt(0)+"/"+u.charAt(1)+"/";
-  return [IMG_BASE+p+u+".jpg", IMG_BASE+p+u+"_0.jpg"];
-}
 function fetchAll(){
   var all=[], lim=1000;
   function page(offset){
@@ -161,15 +153,7 @@ function render(){
   document.getElementById("empty").style.display=filtered.length?"none":"block";
   document.getElementById("more").style.display=filtered.length>shown?"block":"none";
   document.getElementById("grid").innerHTML=list.map(function(d){
-    var cands=imgCandidates(d.article);
-    var img;
-    if(cands.length){
-      img='<img src="'+cands[0]+'" data-alt="'+cands[1]+'" loading="lazy" '+
-          'onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt=\'\';}else{this.parentNode.innerHTML=\'<span class=&quot;pn&quot;>'+esc(d.brand||"")+'</span>\';}">';
-    }else{
-      img='<span class="pn">'+(d.brand||"")+'</span>';
-    }
-    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+d.stock+' 点</span>'+img+'</div>'+
+    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+d.stock+' 点</span><span class="pn">'+(d.brand||"")+'</span></div>'+
     '<div class="cbody"><div class="brand">'+(d.brand||"")+' · '+(d.condition||"新古品")+'</div><div class="art">'+d.article+'</div>'+
     '<div class="desc">'+(d.description||"")+'</div>'+
     '<div class="specrow"><span>'+(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":d.weight_kg)+'kg</b></span></div>'+
