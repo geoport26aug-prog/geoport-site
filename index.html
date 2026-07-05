@@ -109,7 +109,7 @@ footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;co
 <script>
 var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
 var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
-var W3F_KEY="4b0797d8-aee8-4b9d-b7c9-e2577d2c04f1";
+var RELAY_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co/functions/v1/quote-relay";
 var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[], curArt="";
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function h(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -199,20 +199,20 @@ function submitInquiry(){
   var btn=document.getElementById("m-submit");
   btn.disabled=true; btn.textContent="送信しています…";
   var payload={
-    access_key:W3F_KEY,
-    subject:"【GEOPORT 見積依頼】"+curArt+" × "+qty,
-    from_name:"GEOPORTサイト 問い合わせ",
-    replyto:mail,
-    "型番":curArt,
-    "数量":qty,
-    "会社名":co,
-    "ご担当者名":name,
-    "メールアドレス":mail,
-    "備考":note||"（なし）"
+    article:curArt,
+    qty:qty,
+    company:co,
+    person:name,
+    email:mail,
+    note:note
   };
-  fetch("https://api.web3forms.com/submit",{
+  fetch(RELAY_URL,{
     method:"POST",
-    headers:{"Content-Type":"application/json",Accept:"application/json"},
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+SB_KEY,
+      "apikey":SB_KEY
+    },
     body:JSON.stringify(payload)
   }).then(function(r){return r.json();}).then(function(j){
     if(j.success){
@@ -220,7 +220,7 @@ function submitInquiry(){
       document.getElementById("m-foot").style.display="none";
       document.getElementById("m-sent").classList.add("show");
     }else{
-      throw new Error(j.message||"送信に失敗しました");
+      throw new Error(j.error||"送信に失敗しました");
     }
   }).catch(function(e){
     err.textContent="送信に失敗しました。時間をおいて再度お試しください。";
