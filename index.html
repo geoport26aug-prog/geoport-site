@@ -29,7 +29,6 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .chip small{opacity:.7;margin-left:5px;font-family:'Barlow',sans-serif}
 .notice{max-width:1180px;margin:16px auto 0;padding:0 20px}
 .notice .box{background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.28);border-radius:10px;padding:11px 15px;font-size:12px;color:var(--muted);line-height:1.7}
-.notice .box b{color:var(--accent2);font-weight:600}
 .notice .box a{color:var(--accent);text-decoration:underline}
 .meta{max-width:1180px;margin:0 auto;padding:14px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .meta b{color:var(--accent2);font-family:'Barlow',sans-serif}
@@ -95,6 +94,7 @@ footer a{color:var(--accent);text-decoration:underline}
 <div class="brands" id="brands"></div>
 </div>
 <div class="notice"><div class="box">※ 当社は各メーカーの正規代理店ではなく、メーカー正規保証の対象外となります。保証は当社規定（初期不良・納品後2ヶ月）に基づきます。<a href="./info.html#warranty">商品の状態・保証について</a></div></div>
+<div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div><div>生産終了品・長納期品も在庫からお届け</div></div>
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
@@ -119,6 +119,7 @@ var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
 var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
 var RELAY_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co/functions/v1/quote-relay";
 var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[], curArt="";
+function $(id){return document.getElementById(id);}
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function h(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fetchAll(){
@@ -141,14 +142,15 @@ function buildBrands(){
   BRANDS=Object.keys(BC).sort(function(a,b){return BC[b]-BC[a];});
 }
 function brandList(){
+  var el=$("brands"); if(!el) return;
   var top=BRANDS.slice(0,10);
   var html='<button class="chip '+(activeBrand==="ALL"?"on":"")+'" onclick="setBrand(\'ALL\')">すべて<small>'+DATA.length.toLocaleString()+'</small></button>';
   top.forEach(function(b){html+='<button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'+h(b)+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>';});
-  document.getElementById("brands").innerHTML=html;
+  el.innerHTML=html;
 }
 function setBrand(b){activeBrand=b;brandList();apply();}
 function apply(){
-  var q=document.getElementById("q").value.trim().toLowerCase();
+  var qel=$("q"); var q=qel?qel.value.trim().toLowerCase():"";
   filtered=DATA.filter(function(d){
     if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
     if(q){var s=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(s.indexOf(q)<0)return false;}
@@ -158,10 +160,11 @@ function apply(){
 }
 function render(){
   var list=filtered.slice(0,shown);
-  document.getElementById("count").textContent=filtered.length.toLocaleString();
-  document.getElementById("empty").style.display=filtered.length?"none":"block";
-  document.getElementById("more").style.display=filtered.length>shown?"block":"none";
-  document.getElementById("grid").innerHTML=list.map(function(d){
+  var cEl=$("count"); if(cEl) cEl.textContent=filtered.length.toLocaleString();
+  var eEl=$("empty"); if(eEl) eEl.style.display=filtered.length?"none":"block";
+  var mEl=$("more"); if(mEl) mEl.style.display=filtered.length>shown?"block":"none";
+  var gEl=$("grid"); if(!gEl) return;
+  gEl.innerHTML=list.map(function(d){
     return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+h(d.stock)+' 点</span><span class="pn">'+h(d.brand)+'</span></div>'+
     '<div class="cbody"><div class="brand">'+h(d.brand)+' · 新古品</div><div class="art">'+h(d.article)+'</div>'+
     '<div class="desc">'+h(d.description)+'</div>'+
@@ -175,79 +178,53 @@ function render(){
 function loadMore(){shown+=PAGE;render();}
 function openModal(art){
   curArt=art;
-  document.getElementById("m-art").textContent=art;
-  document.getElementById("m-form").style.display="flex";
-  document.getElementById("m-foot").style.display="block";
-  document.getElementById("m-sent").classList.remove("show");
-  document.getElementById("m-err").style.display="none";
-  document.getElementById("f-qty").value="1";
-  document.getElementById("f-co").value="";
-  document.getElementById("f-name").value="";
-  document.getElementById("f-mail").value="";
-  document.getElementById("f-note").value="";
-  document.getElementById("overlay").classList.add("show");
+  var s=$("m-art"); if(s) s.textContent=art;
+  var f=$("m-form"); if(f) f.style.display="flex";
+  var ft=$("m-foot"); if(ft) ft.style.display="block";
+  var sent=$("m-sent"); if(sent) sent.classList.remove("show");
+  var er=$("m-err"); if(er) er.style.display="none";
+  ["f-qty","f-co","f-name","f-mail","f-note"].forEach(function(id){var e=$(id); if(e) e.value=(id==="f-qty"?"1":"");});
+  var ov=$("overlay"); if(ov) ov.classList.add("show");
 }
-function closeModal(){document.getElementById("overlay").classList.remove("show");}
+function closeModal(){var ov=$("overlay"); if(ov) ov.classList.remove("show");}
 function submitInquiry(){
-  var qty=document.getElementById("f-qty").value.trim();
-  var co=document.getElementById("f-co").value.trim();
-  var name=document.getElementById("f-name").value.trim();
-  var mail=document.getElementById("f-mail").value.trim();
-  var note=document.getElementById("f-note").value.trim();
-  var err=document.getElementById("m-err");
-  if(!co||!name||!mail||!qty){
-    err.textContent="会社名・ご担当者名・メールアドレス・数量は必須です。";
-    err.style.display="block"; return;
-  }
-  if(mail.indexOf("@")<0){
-    err.textContent="メールアドレスの形式をご確認ください。";
-    err.style.display="block"; return;
-  }
-  err.style.display="none";
-  var btn=document.getElementById("m-submit");
-  btn.disabled=true; btn.textContent="送信しています…";
-  var payload={
-    article:curArt,
-    qty:qty,
-    company:co,
-    person:name,
-    email:mail,
-    note:note
-  };
-  fetch(RELAY_URL,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+SB_KEY,
-      "apikey":SB_KEY
-    },
-    body:JSON.stringify(payload)
-  }).then(function(r){return r.json();}).then(function(j){
+  var qty=($("f-qty")||{}).value; qty=qty?qty.trim():"";
+  var co=($("f-co")||{}).value; co=co?co.trim():"";
+  var name=($("f-name")||{}).value; name=name?name.trim():"";
+  var mail=($("f-mail")||{}).value; mail=mail?mail.trim():"";
+  var note=($("f-note")||{}).value; note=note?note.trim():"";
+  var err=$("m-err");
+  if(!co||!name||!mail||!qty){ if(err){err.textContent="会社名・ご担当者名・メールアドレス・数量は必須です。";err.style.display="block";} return; }
+  if(mail.indexOf("@")<0){ if(err){err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";} return; }
+  if(err) err.style.display="none";
+  var btn=$("m-submit"); if(btn){btn.disabled=true;btn.textContent="送信しています…";}
+  var payload={article:curArt,qty:qty,company:co,person:name,email:mail,note:note};
+  fetch(RELAY_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY},body:JSON.stringify(payload)})
+  .then(function(r){return r.json();}).then(function(j){
     if(j.success){
-      document.getElementById("m-form").style.display="none";
-      document.getElementById("m-foot").style.display="none";
-      document.getElementById("m-sent").classList.add("show");
-    }else{
-      throw new Error(j.error||"送信に失敗しました");
-    }
+      var f=$("m-form"); if(f) f.style.display="none";
+      var ft=$("m-foot"); if(ft) ft.style.display="none";
+      var sent=$("m-sent"); if(sent) sent.classList.add("show");
+    }else{ throw new Error(j.error||"送信に失敗しました"); }
   }).catch(function(e){
-    err.textContent="送信に失敗しました。時間をおいて再度お試しください。";
-    err.style.display="block";
-    btn.disabled=false; btn.textContent="この内容で問い合わせる";
+    if(err){err.textContent="送信に失敗しました。時間をおいて再度お試しください。";err.style.display="block";}
+    if(btn){btn.disabled=false;btn.textContent="この内容で問い合わせる";}
   });
 }
-document.getElementById("overlay").addEventListener("click",function(e){if(e.target.id==="overlay")closeModal();});
-document.getElementById("q").addEventListener("input",function(){apply();});
+(function(){
+  var ov=$("overlay"); if(ov) ov.addEventListener("click",function(e){if(e.target.id==="overlay")closeModal();});
+  var qel=$("q"); if(qel) qel.addEventListener("input",function(){apply();});
+})();
 fetchAll().then(function(rows){
   DATA=rows;
-  document.getElementById("loading").style.display="none";
-  document.getElementById("q").disabled=false;
+  var ld=$("loading"); if(ld) ld.style.display="none";
+  var qel=$("q"); if(qel) qel.disabled=false;
   buildBrands();brandList();apply();
   var upd="";for(var i=0;i<DATA.length;i++){if(DATA[i].source_updated_at){upd=DATA[i].source_updated_at;break;}}
-  document.getElementById("sync-t").textContent=upd?("データ更新 "+new Date(upd).toLocaleString("ja-JP")):"接続済み";
+  var st=$("sync-t"); if(st) st.textContent=upd?("データ更新 "+new Date(upd).toLocaleString("ja-JP")):"接続済み";
 }).catch(function(e){
-  document.getElementById("loading").style.display="none";
-  var el=document.getElementById("error");el.style.display="block";el.textContent="読み込みに失敗しました: "+e.message;
-  document.getElementById("sync-t").textContent="接続エラー";
+  var ld=$("loading"); if(ld) ld.style.display="none";
+  var el=$("error"); if(el){el.style.display="block";el.textContent="読み込みに失敗しました: "+e.message;}
+  var st=$("sync-t"); if(st) st.textContent="接続エラー";
 });
 </script></body></html>
