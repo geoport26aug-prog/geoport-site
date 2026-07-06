@@ -1,230 +1,171 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GEOPORT | FA機器カタログ</title>
+<title>会社情報・ご利用案内 | GEOPORT</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--black:#0b0d10;--dark:#11151a;--panel:#161b22;--border:#262e39;--accent:#e8a020;--accent2:#f4c552;--text:#e6edf3;--muted:#8a94a0;--green:#2ea043;--line:#0d1014}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--black);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{background:var(--black);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.85;-webkit-font-smoothing:antialiased}
 header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
-.bar{max-width:1180px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.logo{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px;letter-spacing:2px;display:flex;align-items:center;gap:9px}
+.bar{max-width:900px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:18px}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;letter-spacing:2px;display:flex;align-items:center;gap:9px;color:var(--text);text-decoration:none}
 .logo b{color:var(--accent)}.logo .dot{width:9px;height:9px;background:var(--accent);transform:rotate(45deg)}
-.tag{font-size:11px;color:var(--muted);letter-spacing:1px;border-left:1px solid var(--border);padding-left:14px}
 .spacer{flex:1}
-.navlink{font-size:12px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:7px 13px;border-radius:8px;white-space:nowrap}
-.navlink:hover{border-color:var(--accent);color:var(--text)}
-.sync{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
-.sync .dotg{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
-.controls{max-width:1180px;margin:0 auto;padding:18px 20px 0}
-.search{position:relative}
-.search input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:15px;padding:13px 14px 13px 42px;border-radius:10px;font-family:inherit}
-.search input:focus{outline:none;border-color:var(--accent)}
-.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
-.brands{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden}
-.chip{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;font-weight:600;white-space:nowrap}
-.chip:hover{border-color:var(--accent);color:var(--text)}
-.chip.on{background:var(--accent);border-color:var(--accent);color:#1a1205}
-.chip small{opacity:.7;margin-left:5px;font-family:'Barlow',sans-serif}
-.notice{max-width:1180px;margin:16px auto 0;padding:0 20px}
-.notice .box{background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.28);border-radius:10px;padding:11px 15px;font-size:12px;color:var(--muted);line-height:1.7}
-.notice .box a{color:var(--accent);text-decoration:underline}
-.meta{max-width:1180px;margin:0 auto;padding:14px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
-.meta b{color:var(--accent2);font-family:'Barlow',sans-serif}
-.grid{max-width:1180px;margin:0 auto;padding:8px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:.15s}
-.card:hover{border-color:#39434f;transform:translateY(-2px)}
-.thumb{height:96px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden;background:repeating-linear-gradient(45deg,#10151b,#10151b 10px,#0d1116 10px,#0d1116 20px)}
-.thumb .pn{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#4a5563;font-size:17px;letter-spacing:1px}
-.badge{position:absolute;top:10px;left:10px;background:rgba(46,160,67,.15);color:var(--green);border:1px solid rgba(46,160,67,.4);font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;z-index:2}
-.cbody{padding:14px;display:flex;flex-direction:column;gap:5px;flex:1}
-.brand{font-size:11px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
-.art{font-family:'Barlow',sans-serif;font-weight:600;font-size:16px;word-break:break-all}
-.desc{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.specrow{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:4px}
-.specrow span b{color:#b9c2cc;font-family:'Barlow',sans-serif}
-.delivery{margin-top:10px;padding:9px 11px;background:rgba(46,160,67,.08);border:1px solid rgba(46,160,67,.25);border-radius:8px;display:flex;align-items:center;gap:8px}
-.delivery svg{stroke:var(--green);flex-shrink:0}
-.delivery .dtxt{font-size:12px;line-height:1.35}
-.delivery .dtxt b{color:var(--green);font-weight:700}
-.delivery .dtxt span{color:var(--muted);display:block;font-size:11px}
-.cact{display:flex;gap:8px;margin-top:12px}
-.btn{border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
-.btn-pri{flex:1;background:var(--accent);color:#1a1205}.btn-pri:hover{background:var(--accent2)}
-.btn-pri:disabled{opacity:.6;cursor:not-allowed}
-.more{max-width:1180px;margin:0 auto 50px;padding:0 20px;text-align:center}
-.more button{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:13px 36px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer}
-.state{max-width:1180px;margin:50px auto;text-align:center;color:var(--muted);padding:30px}
-.spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 16px}
-@keyframes sp{to{transform:rotate(360deg)}}
-.state.err{color:#e5736b}
-.overlay{position:fixed;inset:0;background:rgba(3,5,8,.78);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:24px 16px;overflow-y:auto}
-.overlay.show{display:flex}
-.modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:460px;margin:auto}
-.mhead{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
-.mhead h3{font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:1px}
-.mhead .x{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer}
-.mhead .sub{font-size:12px;color:var(--accent);margin-top:3px;font-family:'Barlow',sans-serif}
-.mbody{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
-.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
-.field .req{color:#e5736b}
-.field input,.field textarea{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:14px}
-.field input:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
-.row2{display:flex;gap:11px}.row2 .field{flex:1}
-.mnote{font-size:11px;color:var(--muted);background:var(--line);border-radius:8px;padding:10px 12px;line-height:1.5}
-.merr{font-size:12px;color:#e5736b;display:none}
-.mfoot{padding:0 20px 20px}
-.sent{text-align:center;padding:30px 20px;color:var(--green);display:none}.sent.show{display:block}
-footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8}
-footer a{color:var(--accent);text-decoration:underline}
-@media(max-width:560px){.bar{padding:12px 14px;gap:12px}.tag{display:none}.controls,.notice,.meta,.grid,.more{padding-left:14px;padding-right:14px}}
+.back{font-size:13px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:8px 16px;border-radius:8px}
+.back:hover{border-color:var(--accent);color:var(--text)}
+.hero{max-width:900px;margin:0 auto;padding:44px 20px 8px}
+.hero .ey{font-family:'Barlow Condensed',sans-serif;letter-spacing:3px;font-size:13px;color:var(--accent);font-weight:600}
+.hero h1{font-size:26px;font-weight:700;margin-top:8px;letter-spacing:1px}
+.hero p{color:var(--muted);font-size:13px;margin-top:10px;max-width:620px}
+main{max-width:900px;margin:0 auto;padding:20px 20px 60px}
+section{margin-top:40px;scroll-margin-top:80px}
+.sh{display:flex;align-items:baseline;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.sh .num{font-family:'Barlow',sans-serif;font-weight:600;font-size:13px;color:var(--accent)}
+.sh h2{font-size:18px;font-weight:700;letter-spacing:.5px}
+table.info{width:100%;border-collapse:collapse}
+table.info th,table.info td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--border);font-size:13.5px}
+table.info th{width:34%;color:var(--accent2);font-weight:500;background:rgba(255,255,255,.015)}
+table.info td{color:var(--text)}
+.note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7}
+.b2b{display:inline-block;background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.4);color:var(--accent2);font-size:12px;font-weight:600;padding:5px 12px;border-radius:6px;margin-bottom:18px}
+p.body{font-size:13.5px;color:var(--text);margin-bottom:12px}
+ol.terms{list-style:none;counter-reset:t}
+ol.terms>li{counter-increment:t;position:relative;padding:12px 0 12px 34px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+ol.terms>li::before{content:counter(t);position:absolute;left:0;top:12px;font-family:'Barlow',sans-serif;font-weight:600;color:var(--accent);font-size:13px;width:22px;height:22px;border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;line-height:1}
+h3.sub{font-size:14px;color:var(--accent2);margin:22px 0 8px;font-weight:600}
+footer{border-top:1px solid var(--border);padding:26px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
+footer a{color:var(--muted);text-decoration:underline}
+@media(max-width:560px){table.info th{width:40%}.hero{padding-top:32px}}
 </style></head><body>
 <header><div class="bar">
-<div class="logo"><span class="dot"></span>GEO<b>PORT</b></div>
-<div class="tag">産業用FA機器 / 短納期供給</div><div class="spacer"></div>
-<a class="navlink" href="./info.html">会社情報・ご利用案内</a>
-<div class="sync"><span class="dotg"></span><span id="sync-t">接続中…</span></div>
+<a class="logo" href="./index.html"><span class="dot"></span>GEO<b>PORT</b></a>
+<div class="spacer"></div>
+<a class="back" href="./index.html">← カタログへ戻る</a>
 </div></header>
-<div class="controls">
-<div class="search">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
-<input id="q" type="text" placeholder="型番・メーカー・キーワードで検索（例: 6ES7 / inverter / Fanuc）" disabled>
+
+<div class="hero">
+<div class="ey">COMPANY &amp; POLICY</div>
+<h1>会社情報・ご利用案内</h1>
+<p>GEOPORT株式会社は、欧州メーカーのFA（ファクトリーオートメーション）機器を、日本国内へ短納期でお届けする専門商社です。生産終了品やメーカー長納期品を、在庫からスピーディーにご提供します。</p>
 </div>
-<div class="brands" id="brands"></div>
-</div>
-<div class="notice"><div class="box">※ 当社は各メーカーの正規代理店ではなく、メーカー正規保証の対象外となります。保証は当社規定に基づきます。<a href="./info.html#warranty">商品の状態・保証について</a></div></div>
-<div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div><div>生産終了品・長納期品も在庫からお届け</div></div>
-<div class="grid" id="grid"></div>
-<div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
-<div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
-<div class="state err" id="error" style="display:none"></div>
-<div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
-<footer>GEOPORT株式会社 — 欧州 FA機器 短納期供給 / 登録番号 T1290001098731<br>生産終了品・メーカー長納期品を、在庫から通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br><a href="./info.html">会社情報・ご利用案内・特定商取引法に基づく表記・保証規定・プライバシーポリシー</a></footer>
-<div class="overlay" id="overlay"><div class="modal">
-<div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
-<div class="mbody" id="m-form">
-<div class="mnote">在庫状況・お見積り（価格）・納期を、担当より折り返しご連絡いたします。お支払いは銀行振込（前払い）にて承ります。</div>
-<div class="field"><label>数量 <span class="req">*</span></label><input id="f-qty" type="number" value="1" min="1"></div>
-<div class="row2"><div class="field"><label>会社名 <span class="req">*</span></label><input id="f-co" type="text"></div>
-<div class="field"><label>ご担当者名 <span class="req">*</span></label><input id="f-name" type="text"></div></div>
-<div class="field"><label>メールアドレス <span class="req">*</span></label><input id="f-mail" type="email"></div>
-<div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2"></textarea></div>
-<div class="merr" id="m-err"></div></div>
-<div class="mfoot" id="m-foot"><button class="btn btn-pri" id="m-submit" style="width:100%;padding:13px" onclick="submitInquiry()">この内容で問い合わせる</button></div>
-<div class="sent" id="m-sent"><div style="font-weight:600;color:var(--text)">送信しました</div><div style="color:var(--muted);font-size:13px;margin-top:6px">担当より折り返しご連絡いたします。</div></div>
-</div></div>
-<script>
-var SB_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co";
-var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
-var RELAY_URL="https://vprtbkkqqdfidzvfwhzo.supabase.co/functions/v1/quote-relay";
-var PAGE=48, shown=PAGE, filtered=[], DATA=[], activeBrand="ALL", BC={}, BRANDS=[], curArt="";
-function $(id){return document.getElementById(id);}
-function esc(s){return (s||"").replace(/'/g,"\\'");}
-function h(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function fetchAll(){
-  var all=[], lim=1000;
-  function page(offset){
-    var url=SB_URL+"/rest/v1/catalog?select=*&order=article&limit="+lim+"&offset="+offset+"&apikey="+SB_KEY;
-    return fetch(url).then(function(res){
-      if(!res.ok){return res.text().then(function(t){throw new Error("HTTP "+res.status+" "+t.slice(0,120));});}
-      return res.json();
-    }).then(function(rows){
-      all=all.concat(rows);
-      if(rows.length<lim||offset>50000){return all;}
-      return page(offset+lim);
-    });
-  }
-  return page(0);
-}
-function buildBrands(){
-  BC={}; DATA.forEach(function(d){BC[d.brand]=(BC[d.brand]||0)+1;});
-  BRANDS=Object.keys(BC).sort(function(a,b){return BC[b]-BC[a];});
-}
-function brandList(){
-  var el=$("brands"); if(!el) return;
-  var top=BRANDS.slice(0,10);
-  var html='<button class="chip '+(activeBrand==="ALL"?"on":"")+'" onclick="setBrand(\'ALL\')">すべて<small>'+DATA.length.toLocaleString()+'</small></button>';
-  top.forEach(function(b){html+='<button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'+h(b)+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>';});
-  el.innerHTML=html;
-}
-function setBrand(b){activeBrand=b;brandList();apply();}
-function apply(){
-  var qel=$("q"); var q=qel?qel.value.trim().toLowerCase():"";
-  filtered=DATA.filter(function(d){
-    if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
-    if(q){var s=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(s.indexOf(q)<0)return false;}
-    return true;
-  });
-  shown=PAGE;render();
-}
-function render(){
-  var list=filtered.slice(0,shown);
-  var cEl=$("count"); if(cEl) cEl.textContent=filtered.length.toLocaleString();
-  var eEl=$("empty"); if(eEl) eEl.style.display=filtered.length?"none":"block";
-  var mEl=$("more"); if(mEl) mEl.style.display=filtered.length>shown?"block":"none";
-  var gEl=$("grid"); if(!gEl) return;
-  gEl.innerHTML=list.map(function(d){
-    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+h(d.stock)+' 点</span><span class="pn">'+h(d.brand)+'</span></div>'+
-    '<div class="cbody"><div class="brand">'+h(d.brand)+' · 新古品</div><div class="art">'+h(d.article)+'</div>'+
-    '<div class="desc">'+h(d.description)+'</div>'+
-    '<div class="specrow"><span>'+h(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":h(d.weight_kg))+'kg</b></span></div>'+
-    '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+
-    '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b><span>生産終了品・長納期品もお任せください</span></div></div>'+
-    '<div class="cact"><button class="btn btn-pri" onclick="openModal(\''+esc(d.article)+'\')">見積・在庫確認</button></div>'+
-    '</div></div>';
-  }).join("");
-}
-function loadMore(){shown+=PAGE;render();}
-function openModal(art){
-  curArt=art;
-  var s=$("m-art"); if(s) s.textContent=art;
-  var f=$("m-form"); if(f) f.style.display="flex";
-  var ft=$("m-foot"); if(ft) ft.style.display="block";
-  var sent=$("m-sent"); if(sent) sent.classList.remove("show");
-  var er=$("m-err"); if(er) er.style.display="none";
-  ["f-qty","f-co","f-name","f-mail","f-note"].forEach(function(id){var e=$(id); if(e) e.value=(id==="f-qty"?"1":"");});
-  var ov=$("overlay"); if(ov) ov.classList.add("show");
-}
-function closeModal(){var ov=$("overlay"); if(ov) ov.classList.remove("show");}
-function submitInquiry(){
-  var qty=($("f-qty")||{}).value; qty=qty?qty.trim():"";
-  var co=($("f-co")||{}).value; co=co?co.trim():"";
-  var name=($("f-name")||{}).value; name=name?name.trim():"";
-  var mail=($("f-mail")||{}).value; mail=mail?mail.trim():"";
-  var note=($("f-note")||{}).value; note=note?note.trim():"";
-  var err=$("m-err");
-  if(!co||!name||!mail||!qty){ if(err){err.textContent="会社名・ご担当者名・メールアドレス・数量は必須です。";err.style.display="block";} return; }
-  if(mail.indexOf("@")<0){ if(err){err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";} return; }
-  if(err) err.style.display="none";
-  var btn=$("m-submit"); if(btn){btn.disabled=true;btn.textContent="送信しています…";}
-  var payload={article:curArt,qty:qty,company:co,person:name,email:mail,note:note};
-  fetch(RELAY_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY},body:JSON.stringify(payload)})
-  .then(function(r){return r.json();}).then(function(j){
-    if(j.success){
-      var f=$("m-form"); if(f) f.style.display="none";
-      var ft=$("m-foot"); if(ft) ft.style.display="none";
-      var sent=$("m-sent"); if(sent) sent.classList.add("show");
-    }else{ throw new Error(j.error||"送信に失敗しました"); }
-  }).catch(function(e){
-    if(err){err.textContent="送信に失敗しました。時間をおいて再度お試しください。";err.style.display="block";}
-    if(btn){btn.disabled=false;btn.textContent="この内容で問い合わせる";}
-  });
-}
-(function(){
-  var ov=$("overlay"); if(ov) ov.addEventListener("click",function(e){if(e.target.id==="overlay")closeModal();});
-  var qel=$("q"); if(qel) qel.addEventListener("input",function(){apply();});
-})();
-fetchAll().then(function(rows){
-  DATA=rows;
-  var ld=$("loading"); if(ld) ld.style.display="none";
-  var qel=$("q"); if(qel) qel.disabled=false;
-  buildBrands();brandList();apply();
-  var upd="";for(var i=0;i<DATA.length;i++){if(DATA[i].source_updated_at){upd=DATA[i].source_updated_at;break;}}
-  var st=$("sync-t"); if(st) st.textContent=upd?("データ更新 "+new Date(upd).toLocaleString("ja-JP")):"接続済み";
-}).catch(function(e){
-  var ld=$("loading"); if(ld) ld.style.display="none";
-  var el=$("error"); if(el){el.style.display="block";el.textContent="読み込みに失敗しました: "+e.message;}
-  var st=$("sync-t"); if(st) st.textContent="接続エラー";
-});
-</script></body></html>
+
+<main>
+
+<section>
+<div class="sh"><span class="num">01</span><h2>会社概要</h2></div>
+<span class="b2b">法人のお客様専用</span>
+<table class="info">
+<tr><th>商号</th><td>GEOPORT株式会社</td></tr>
+<tr><th>代表者</th><td>篠原 渉馬</td></tr>
+<tr><th>設立</th><td>2022年8月（令和4年8月）</td></tr>
+<tr><th>資本金</th><td>900万円</td></tr>
+<tr><th>所在地</th><td>〒811-1353 福岡県福岡市南区柏原6丁目62-6-1201</td></tr>
+<tr><th>事業内容</th><td>欧州メーカー製FA機器の輸入および販売</td></tr>
+<tr><th>取扱メーカー</th><td>Siemens／Schneider Electric／ABB／SEW-Eurodrive／B&amp;R／Lenze ほか</td></tr>
+<tr><th>適格請求書発行事業者<br>登録番号</th><td>T1290001098731</td></tr>
+<tr><th>古物商許可</th><td>福岡県公安委員会 第901071910028号</td></tr>
+<tr><th>お取引先</th><td>法人・事業者のお客様（商社・製造業ほか）</td></tr>
+<tr><th>お問い合わせ</th><td>各製品ページの「見積・在庫確認」フォームより承ります</td></tr>
+</table>
+<p class="note">当社は法人・事業者のお客様を対象としております。お電話でのご連絡先は、お取引・商談の際に個別にご案内いたします。</p>
+</section>
+
+<section>
+<div class="sh"><span class="num">02</span><h2>ご利用の流れ</h2></div>
+<p class="body">当サイトには販売価格を掲載しておりません。ご希望の製品について、以下の流れでお見積り・ご注文を承ります。</p>
+<table class="info">
+<tr><th>① お問い合わせ</th><td>製品ページの「見積・在庫確認」フォームより、型番・数量・貴社情報をお送りください。</td></tr>
+<tr><th>② お見積り</th><td>在庫状況・お見積り金額・納期を、担当より折り返しメールにてご連絡いたします。</td></tr>
+<tr><th>③ ご注文・お支払い</th><td>お見積り内容にご了承いただけましたら、銀行振込（前払い）にてお支払いをお願いいたします。</td></tr>
+<tr><th>④ 発送・お届け</th><td>ご入金確認後に発送いたします。納期はお見積り時に個別にご案内いたします。</td></tr>
+</table>
+</section>
+
+<section>
+<div class="sh"><span class="num">03</span><h2>特定商取引法に基づく表記</h2></div>
+<p class="note" style="margin-bottom:18px">当社は法人・事業者間のお取引を対象としております。参考として、取引条件を以下のとおり明示いたします。</p>
+<table class="info">
+<tr><th>販売事業者</th><td>GEOPORT株式会社</td></tr>
+<tr><th>販売責任者</th><td>篠原 渉馬</td></tr>
+<tr><th>古物商許可</th><td>福岡県公安委員会 第901071910028号</td></tr>
+<tr><th>所在地</th><td>〒811-1353 福岡県福岡市南区柏原6丁目62-6-1201</td></tr>
+<tr><th>連絡先</th><td>各製品ページのお問い合わせフォームより承ります（電話番号はお取引・商談時に個別にご案内いたします）</td></tr>
+<tr><th>販売価格</th><td>お見積りにて個別にご提示いたします（税抜・送料込。別途消費税を申し受けます）</td></tr>
+<tr><th>商品代金以外の<br>必要料金</th><td>振込手数料はお客様のご負担となります</td></tr>
+<tr><th>お支払方法</th><td>銀行振込（前払い）</td></tr>
+<tr><th>お支払時期</th><td>お見積りご了承後、発送前にお振込みをお願いいたします</td></tr>
+<tr><th>引渡し時期</th><td>ご入金確認後に発送いたします。具体的な納期はお見積り時に個別にご案内いたします</td></tr>
+<tr><th>返品・交換</th><td>保証規定に定める初期不良の場合を除き、お客様都合による返品・交換はお受けいたしかねます。詳細は下記「保証規定」をご確認ください</td></tr>
+</table>
+</section>
+
+<section id="warranty">
+<div class="sh"><span class="num">04</span><h2>保証規定</h2></div>
+<p class="body">当サイトで取り扱う製品は、メーカー生産完了品や長期在庫の未使用在庫品などを含む「新古品」が中心です。ご注文をもって、本保証規定にご同意いただいたものといたします。</p>
+
+<h3 class="sub">正規代理店・メーカー保証について</h3>
+<ol class="terms">
+<li>当社は各メーカーの正規代理店・特約店ではありません。取り扱う製品は独立した流通ルートで調達した在庫品であり、メーカー正規保証の対象外となります。</li>
+<li>保証は、メーカー保証に代わり、当社の本保証規定に基づいて提供いたします。</li>
+<li>掲載のメーカー名および商標は、各権利者に帰属します。</li>
+</ol>
+
+<h3 class="sub">保証対象・内容</h3>
+<ol class="terms">
+<li>本保証は、当社が新古品として販売した製品に適用されます。</li>
+<li>製品本来の欠陥による初期不良に限り、納品後2ヶ月以内を保証いたします。初期不良とは、正常な使用環境・接続・操作のもとで、製品本来の欠陥により正常に動作しないものをいいます。</li>
+</ol>
+
+<h3 class="sub">保証対象外</h3>
+<ol class="terms">
+<li>誤った配線・接続、規定外の電圧／電流での使用に起因する不具合。</li>
+<li>取扱説明書または仕様に反する使用に起因する不具合。</li>
+<li>静電気・落雷・水濡れ・過負荷など外的要因による不具合。</li>
+<li>お客様または第三者による分解・改造・修理跡がある場合。</li>
+<li>消耗部品の自然劣化。</li>
+</ol>
+
+<h3 class="sub">保証申請時の必須提出資料</h3>
+<p class="body">不具合の状況を正確に把握し、迅速に対応するため、保証申請の際は以下の資料のご提出をお願いしております。資料が確認できない場合、保証申請をお受けできないことがございます。</p>
+<ol class="terms">
+<li>製品の型番ラベル・シリアル番号が判読できる写真。</li>
+<li>配線・接続状態が分かる全体写真。</li>
+<li>電源投入から症状発生までの一連の動画（表示・エラー・異常挙動が映るもの）。</li>
+<li>エラーコードや異常表示部分のアップ写真。</li>
+</ol>
+
+<h3 class="sub">費用のご負担</h3>
+<ol class="terms">
+<li>調査の結果、当社の責によらない不具合（誤使用・外的要因等）と判明した場合、検査費用および返送を含む往復送料はお客様のご負担とさせていただきます。</li>
+</ol>
+
+<h3 class="sub" id="condition">商品の状態について</h3>
+<p class="body">新古品は未使用品ではございますが、製造後の経過期間や保管状況により、外箱の傷み、プラスチック部材の変色・経年、ラベルの色あせ等が生じている場合がございます。これらは製品の機能・性能に影響するものではなく、新古品の特性としてご理解いただいたうえでご購入をお願いいたします。外観状態を理由とした返品・交換はお受けいたしかねます。</p>
+</section>
+
+<section>
+<div class="sh"><span class="num">05</span><h2>プライバシーポリシー</h2></div>
+<p class="body">GEOPORT株式会社（以下「当社」）は、お客様の個人情報および事業者情報を適切に取り扱うため、以下の方針を定めます。</p>
+
+<h3 class="sub">取得する情報</h3>
+<p class="body">当社は、お問い合わせフォームを通じて、会社名・ご担当者名・メールアドレス・お問い合わせ内容を取得します。</p>
+
+<h3 class="sub">利用目的</h3>
+<p class="body">取得した情報は、お見積りの作成・ご連絡、ご注文への対応、その後のお取引およびアフターサポートのために利用します。これらの目的以外には利用いたしません。</p>
+
+<h3 class="sub">第三者提供</h3>
+<p class="body">当社は、法令に基づく場合を除き、お客様の同意なく取得した情報を第三者に提供いたしません。</p>
+
+<h3 class="sub">お問い合わせ</h3>
+<p class="body">取得した情報の開示・訂正・削除等をご希望の場合は、お問い合わせフォームよりご連絡ください。ご本人からのご請求であることを確認のうえ、適切に対応いたします。</p>
+</section>
+
+</main>
+
+<footer>
+GEOPORT株式会社 — 欧州 FA機器 短納期供給<br>
+適格請求書発行事業者 T1290001098731 ／ 古物商許可 福岡県公安委員会 第901071910028号<br>
+<a href="./index.html">製品カタログ</a> ｜ 法人・事業者のお客様専用
+</footer>
+</body></html>
