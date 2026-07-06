@@ -48,7 +48,6 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .delivery svg{stroke:var(--green);flex-shrink:0}
 .delivery .dtxt{font-size:12px;line-height:1.35}
 .delivery .dtxt b{color:var(--green);font-weight:700}
-.delivery .dtxt span{color:var(--muted);display:block;font-size:11px}
 .cact{display:flex;gap:8px;margin-top:12px}
 .btn{border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
 .btn-pri{flex:1;background:var(--accent);color:#1a1205}.btn-pri:hover{background:var(--accent2)}
@@ -93,14 +92,14 @@ footer a{color:var(--accent);text-decoration:underline}
 </div>
 <div class="brands" id="brands"></div>
 </div>
-<div class="notice"><div class="box">※ 当社は各メーカーの正規代理店ではなく、メーカー正規保証の対象外となります。保証は当社規定（初期不良・納品後2ヶ月）に基づきます。<a href="./info.html#warranty">商品の状態・保証について</a></div></div>
-<div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div><div>生産終了品・長納期品も在庫からお届け</div></div>
+<div class="notice"><div class="box">※ 当社は各メーカーの正規代理店ではなく、メーカー正規保証の対象外となります。保証は当社規定に基づきます。<a href="./info.html#warranty">商品の状態・保証について</a></div></div>
+<div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div><div>掲載の在庫品を短納期でお届け</div></div>
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
 <div class="state err" id="error" style="display:none"></div>
 <div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
-<footer>GEOPORT株式会社 — 欧州 FA機器 短納期供給 / 登録番号 T1290001098731<br>生産終了品・メーカー長納期品を、在庫から通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br><a href="./info.html">会社情報・ご利用案内・特定商取引法に基づく表記・保証規定・プライバシーポリシー</a></footer>
+<footer>GEOPORT株式会社 — 欧州 FA機器 短納期供給 / 登録番号 T1290001098731<br>掲載中の在庫品を、通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br><a href="./info.html">会社情報・ご利用案内・特定商取引法に基づく表記・保証規定・プライバシーポリシー</a></footer>
 <div class="overlay" id="overlay"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
 <div class="mbody" id="m-form">
@@ -170,7 +169,7 @@ function render(){
     '<div class="desc">'+h(d.description)+'</div>'+
     '<div class="specrow"><span>'+h(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":h(d.weight_kg))+'kg</b></span></div>'+
     '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+
-    '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b><span>生産終了品・長納期品もお任せください</span></div></div>'+
+    '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b></div></div>'+
     '<div class="cact"><button class="btn btn-pri" onclick="openModal(\''+esc(d.article)+'\')">見積・在庫確認</button></div>'+
     '</div></div>';
   }).join("");
