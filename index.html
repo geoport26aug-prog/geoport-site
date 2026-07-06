@@ -13,6 +13,8 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .logo b{color:var(--accent)}.logo .dot{width:9px;height:9px;background:var(--accent);transform:rotate(45deg)}
 .tag{font-size:11px;color:var(--muted);letter-spacing:1px;border-left:1px solid var(--border);padding-left:14px}
 .spacer{flex:1}
+.navlink{font-size:12px;color:var(--muted);text-decoration:none;border:1px solid var(--border);padding:7px 13px;border-radius:8px;white-space:nowrap}
+.navlink:hover{border-color:var(--accent);color:var(--text)}
 .sync{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .sync .dotg{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
 .controls{max-width:1180px;margin:0 auto;padding:18px 20px 0}
@@ -25,7 +27,11 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .chip:hover{border-color:var(--accent);color:var(--text)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#1a1205}
 .chip small{opacity:.7;margin-left:5px;font-family:'Barlow',sans-serif}
-.meta{max-width:1180px;margin:0 auto;padding:16px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.notice{max-width:1180px;margin:16px auto 0;padding:0 20px}
+.notice .box{background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.28);border-radius:10px;padding:11px 15px;font-size:12px;color:var(--muted);line-height:1.7}
+.notice .box b{color:var(--accent2);font-weight:600}
+.notice .box a{color:var(--accent);text-decoration:underline}
+.meta{max-width:1180px;margin:0 auto;padding:14px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .meta b{color:var(--accent2);font-family:'Barlow',sans-serif}
 .grid{max-width:1180px;margin:0 auto;padding:8px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:.15s}
@@ -73,11 +79,12 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .sent{text-align:center;padding:30px 20px;color:var(--green);display:none}.sent.show{display:block}
 footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.8}
 footer a{color:var(--accent);text-decoration:underline}
-@media(max-width:560px){.bar{padding:12px 14px;gap:12px}.tag{display:none}.controls,.meta,.grid,.more{padding-left:14px;padding-right:14px}}
+@media(max-width:560px){.bar{padding:12px 14px;gap:12px}.tag{display:none}.controls,.notice,.meta,.grid,.more{padding-left:14px;padding-right:14px}}
 </style></head><body>
 <header><div class="bar">
 <div class="logo"><span class="dot"></span>GEO<b>PORT</b></div>
 <div class="tag">産業用FA機器 / 短納期供給</div><div class="spacer"></div>
+<a class="navlink" href="./info.html">会社情報・ご利用案内</a>
 <div class="sync"><span class="dotg"></span><span id="sync-t">接続中…</span></div>
 </div></header>
 <div class="controls">
@@ -87,6 +94,7 @@ footer a{color:var(--accent);text-decoration:underline}
 </div>
 <div class="brands" id="brands"></div>
 </div>
+<div class="notice"><div class="box">※ 当サイトの取扱製品はすべて <b>新古品</b>（未使用の在庫保管品）です。当社は各メーカーの正規代理店ではなく、メーカー正規保証の対象外となります。保証は当社規定（初期不良・納品後2ヶ月）に基づきます。<a href="./info.html#condition">商品の状態・保証について</a></div></div>
 <div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div><div>生産終了品・長納期品も在庫からお届け</div></div>
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
@@ -156,7 +164,7 @@ function render(){
   document.getElementById("more").style.display=filtered.length>shown?"block":"none";
   document.getElementById("grid").innerHTML=list.map(function(d){
     return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+h(d.stock)+' 点</span><span class="pn">'+h(d.brand)+'</span></div>'+
-    '<div class="cbody"><div class="brand">'+h(d.brand)+' · '+h(d.condition||"新古品")+'</div><div class="art">'+h(d.article)+'</div>'+
+    '<div class="cbody"><div class="brand">'+h(d.brand)+' · 新古品</div><div class="art">'+h(d.article)+'</div>'+
     '<div class="desc">'+h(d.description)+'</div>'+
     '<div class="specrow"><span>'+h(d.family||"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":h(d.weight_kg))+'kg</b></span></div>'+
     '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+
