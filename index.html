@@ -196,6 +196,7 @@ function openModal(art){
   var ft=$("m-foot"); if(ft) ft.style.display="block";
   var sent=$("m-sent"); if(sent) sent.classList.remove("show");
   var er=$("m-err"); if(er) er.style.display="none";
+  var sb=$("m-submit"); if(sb){ sb.disabled=false; sb.textContent="この内容で問い合わせる"; }  // ★追加：送信ボタンを毎回リセット
   ["f-qty","f-co","f-name","f-mail","f-note"].forEach(function(id){var e=$(id); if(e) e.value=(id==="f-qty"?"1":"");});
   var ov=$("overlay"); if(ov) ov.classList.add("show");
 }
