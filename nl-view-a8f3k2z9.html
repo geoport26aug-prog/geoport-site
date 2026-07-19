@@ -10,16 +10,18 @@
     --bg:#f4f6f9;--surface:#fff;--surface-2:#eef1f6;--ink:#1a2230;--ink-soft:#55627a;
     --ink-faint:#8b96ab;--line:#dfe4ec;--accent:#1b3a6b;--accent-soft:#e7edf6;
     --good:#1f7a5a;--warn:#b26a00;--warn-soft:#fbeeda;--crit:#b3341f;--crit-soft:#fbe4de;
-    --star:#c98a12;--shadow:0 1px 2px rgba(26,34,48,.06),0 6px 20px rgba(26,34,48,.05);
+    --shadow:0 1px 2px rgba(26,34,48,.06),0 6px 20px rgba(26,34,48,.05);
+    --c1:#d63b2f;--c2:#2f6fd6;--c3:#1f9d57;--c4:#7d4fd6;--c5:#d6822f;--c0:#cfd6e2;
   }
   @media (prefers-color-scheme:dark){:root{
     --bg:#0e131c;--surface:#172030;--surface-2:#1e293b;--ink:#eaf0f8;--ink-soft:#a7b3c8;
     --ink-faint:#6f7d95;--line:#26324a;--accent:#7da3e0;--accent-soft:#1c2c44;
     --good:#57c79a;--warn:#e0a349;--warn-soft:#33280f;--crit:#f0806a;--crit-soft:#37201c;
-    --star:#e6b84e;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+    --c1:#f0806a;--c2:#6aa0f0;--c3:#4fc888;--c4:#a98af0;--c5:#e0a349;--c0:#3a465c;
   }}
-  :root[data-theme="light"]{--bg:#f4f6f9;--surface:#fff;--surface-2:#eef1f6;--ink:#1a2230;--ink-soft:#55627a;--ink-faint:#8b96ab;--line:#dfe4ec;--accent:#1b3a6b;--accent-soft:#e7edf6;--good:#1f7a5a;--warn:#b26a00;--warn-soft:#fbeeda;--crit:#b3341f;--crit-soft:#fbe4de;--star:#c98a12;--shadow:0 1px 2px rgba(26,34,48,.06),0 6px 20px rgba(26,34,48,.05);}
-  :root[data-theme="dark"]{--bg:#0e131c;--surface:#172030;--surface-2:#1e293b;--ink:#eaf0f8;--ink-soft:#a7b3c8;--ink-faint:#6f7d95;--line:#26324a;--accent:#7da3e0;--accent-soft:#1c2c44;--good:#57c79a;--warn:#e0a349;--warn-soft:#33280f;--crit:#f0806a;--crit-soft:#37201c;--star:#e6b84e;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);}
+  :root[data-theme="light"]{--bg:#f4f6f9;--surface:#fff;--surface-2:#eef1f6;--ink:#1a2230;--ink-soft:#55627a;--ink-faint:#8b96ab;--line:#dfe4ec;--accent:#1b3a6b;--accent-soft:#e7edf6;--good:#1f7a5a;--warn:#b26a00;--warn-soft:#fbeeda;--crit:#b3341f;--crit-soft:#fbe4de;--shadow:0 1px 2px rgba(26,34,48,.06),0 6px 20px rgba(26,34,48,.05);--c1:#d63b2f;--c2:#2f6fd6;--c3:#1f9d57;--c4:#7d4fd6;--c5:#d6822f;--c0:#cfd6e2;}
+  :root[data-theme="dark"]{--bg:#0e131c;--surface:#172030;--surface-2:#1e293b;--ink:#eaf0f8;--ink-soft:#a7b3c8;--ink-faint:#6f7d95;--line:#26324a;--accent:#7da3e0;--accent-soft:#1c2c44;--good:#57c79a;--warn:#e0a349;--warn-soft:#33280f;--crit:#f0806a;--crit-soft:#37201c;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);--c1:#f0806a;--c2:#6aa0f0;--c3:#4fc888;--c4:#a98af0;--c5:#e0a349;--c0:#3a465c;}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;}
@@ -52,10 +54,14 @@
   .kata{font-weight:700;font-size:14px;letter-spacing:-.01em;display:flex;align-items:center;gap:6px}
   .kata .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .meta{font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-top:1px}
+  .ql{font-weight:700;color:var(--ink-soft)}
   .sup{font-size:9px;line-height:1;color:var(--ink-faint);flex:none;opacity:.85}
-  .ship{color:var(--star);font-size:12px;line-height:1;flex:none}.ship.no{color:var(--line)}
-  .amt{text-align:right;font-weight:700;font-size:13.5px}
-  .amt small{display:block;font-size:11px;color:var(--ink-faint);font-weight:600}
+  .ship{font-size:12px;line-height:1;flex:none;color:var(--c0)}
+  .ship.c1{color:var(--c1)}.ship.c2{color:var(--c2)}.ship.c3{color:var(--c3)}.ship.c4{color:var(--c4)}.ship.c5{color:var(--c5)}
+  .trk{font-size:10.5px;color:var(--ink-faint);text-decoration:none;letter-spacing:.02em}
+  .trk:active{color:var(--accent)}
+  .qty{text-align:right;font-weight:700;font-size:15px}
+  .qty small{font-size:11px;color:var(--ink-faint);font-weight:600;margin-left:1px}
   .trend{padding:18px 18px 16px;margin-bottom:8px}
   .bars{display:flex;align-items:flex-end;gap:14px;height:130px;margin-top:8px}
   .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end}
@@ -154,15 +160,21 @@
     var L = document.getElementById('unList'); L.innerHTML='';
     d.unshipped.forEach(function(x){
       var di = dueInfo(x.days_left);
+      var starCls = x.shipped && x.color ? ('c'+x.color) : '';
+      // 追跡番号（あればFedExの追跡ページへ・小さく表示）
+      var trk = x.tracking_no
+        ? ' ・ <a class="trk" href="https://www.fedex.com/fedextrack/?trknbr='+encodeURIComponent(x.tracking_no)+'" target="_blank" rel="noopener">追跡 '+esc(x.tracking_no)+'</a>'
+        : '';
+      var ql = x.quality ? '<span class="ql">'+esc(x.quality)+'</span> ・ ' : '';
       var el = document.createElement('div'); el.className='item';
       el.innerHTML =
         '<div class="due '+di.cls+'">'+di.t+'<small>'+mmdd(x.due_date)+'</small></div>'+
         '<div class="mid"><div class="kata">'+
-          '<span class="ship'+(x.shipped?'':' no')+'">★</span>'+
+          '<span class="ship '+starCls+'">★</span>'+
           '<span class="sup">'+supMark(x.supplier)+'</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
-          '<div class="meta tnum">'+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+'</div></div>'+
-        '<div class="amt tnum">'+yen(x.remain_amount)+'<small>'+x.remain_qty+'点</small></div>';
+          '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+trk+'</div></div>'+
+        '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>';
       L.appendChild(el);
     });
 
