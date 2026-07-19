@@ -225,12 +225,20 @@
     });
   }
 
-  (function(){
+  // 覚えている合言葉で、そのとき最新のデータに更新する
+  function refresh(){
     var saved=''; try{ saved=localStorage.getItem('nlpass')||''; }catch(e){}
-    if(saved){
-      load(saved).then(function(d){ open(); render(d); }).catch(function(){});
-    }
-  })();
+    if(saved){ load(saved).then(function(d){ open(); render(d); }).catch(function(){}); }
+  }
+
+  // 最初に開いたとき
+  refresh();
+
+  // ★ホーム画面アプリを開き直した・別アプリから戻ったとき、自動で最新に更新する
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') refresh();
+  });
+  window.addEventListener('pageshow', function(e){ if(e.persisted) refresh(); });
 </script>
 </body>
 </html>
