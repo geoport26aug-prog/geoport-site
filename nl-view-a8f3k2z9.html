@@ -55,9 +55,10 @@
   .kata .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .meta{font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-top:1px}
   .ql{font-weight:700;color:var(--ink-soft)}
-  .sup{font-size:9px;line-height:1;color:var(--ink-faint);flex:none;opacity:.85}
+  .sup{font-size:10px;line-height:1;color:var(--ink-faint);flex:none;opacity:.9;font-weight:700}
   .ship{font-size:12px;line-height:1;flex:none;color:var(--c0)}
   .ship.c1{color:var(--c1)}.ship.c2{color:var(--c2)}.ship.c3{color:var(--c3)}.ship.c4{color:var(--c4)}.ship.c5{color:var(--c5)}
+  .ship.inc{color:var(--ink-soft)}
   .trk{font-size:10.5px;color:var(--ink-faint);text-decoration:none;letter-spacing:.02em}
   .trk:active{color:var(--accent)}
   .qty{text-align:right;font-weight:700;font-size:15px}
@@ -133,7 +134,7 @@
 
   var yen = function(n){ return '¥' + Number(n).toLocaleString('ja-JP'); };
   var plain = function(n){ return Number(n).toLocaleString('ja-JP'); };
-  var supMark = function(s){ return ({Dong:'●',eBay:'▲','ヤフオク':'■','その他':'◆'})[s] || '·'; };
+  var supMark = function(s){ return ({Dong:'●',eBay:'e','ヤフオク':'y','その他':'◆'})[s] || '·'; };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function mmdd(iso){ if(!iso) return ''; var p=iso.split('-'); return (+p[1])+'/'+(+p[2]); }
   function dueInfo(n){
@@ -160,10 +161,13 @@
     var L = document.getElementById('unList'); L.innerHTML='';
     d.unshipped.forEach(function(x){
       var di = dueInfo(x.days_left);
-      var starCls = x.shipped && x.color ? ('c'+x.color) : '';
-      // 追跡番号（あればFedExの追跡ページへ・小さく表示）
+      // ★の色：Dongの便は色スロット(c1-5)。eBay/ヤフオク等の色なし入荷中は 'inc'（濃いめ＝「入荷中」）。未出荷は既定の薄い★。
+      var starCls = x.shipped ? (x.color ? ('c'+x.color) : 'inc') : '';
+      // 追跡番号：Dong(色あり)はFedExの追跡ページへリンク。eBay/ヤフオク等は番号を文字表示のみ。
       var trk = x.tracking_no
-        ? ' ・ <a class="trk" href="https://www.fedex.com/fedextrack/?trknbr='+encodeURIComponent(x.tracking_no)+'" target="_blank" rel="noopener">追跡 '+esc(x.tracking_no)+'</a>'
+        ? (x.color
+            ? ' ・ <a class="trk" href="https://www.fedex.com/fedextrack/?trknbr='+encodeURIComponent(x.tracking_no)+'" target="_blank" rel="noopener">追跡 '+esc(x.tracking_no)+'</a>'
+            : ' ・ <span class="trk">追跡 '+esc(x.tracking_no)+'</span>')
         : '';
       var ql = x.quality ? '<span class="ql">'+esc(x.quality)+'</span> ・ ' : '';
       var el = document.createElement('div'); el.className='item';
