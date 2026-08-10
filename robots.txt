@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://geoport.co.jp/sitemap.xml
