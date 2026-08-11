@@ -155,6 +155,20 @@ function $(id){return document.getElementById(id);}
 function esc(s){return (s||"").replace(/'/g,"\\'");}
 function h(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function slugify(a){var s=(a||"").toLowerCase().replace(/[^a-z0-9._-]+/g,"-").replace(/^-+|-+$/g,"");return s||"item";}
+var _NOTE=/[（(]\s*※[^）)]*[）)]/g;
+var _REFUSAL=["申し訳","作成することができ","作成できま","作成できかね","判読することができ","情報が限られ","提供いただいた情報では"];
+var _HEDGEK=["不明","限られ","限定的","情報がな","情報が少な","判読","推測","断片"];
+function isRefusalJa(t){t=t||"";for(var i=0;i<_REFUSAL.length;i++){if(t.indexOf(_REFUSAL[i])>=0)return true;}return false;}
+function _isHedge(s){if(s.indexOf("控え")<0)return false;for(var i=0;i<_HEDGEK.length;i++){if(s.indexOf(_HEDGEK[i])>=0)return true;}return false;}
+function cleanDescJa(t){
+  t=(t||"").replace(_NOTE,"").replace(/\s+/g," ").trim();
+  var raw=t.split("。"),sents=[];
+  for(var i=0;i<raw.length;i++){var s=raw[i];if(i<raw.length-1)s+="。";if(s.replace(/\s/g,""))sents.push(s);}
+  while(sents.length&&_isHedge(sents[sents.length-1]))sents.pop();
+  t=sents.join("").replace(/、。/g,"。").replace(/\s+([。、])/g,"$1").replace(/[、\s]+$/,"").trim();
+  return t;
+}
+function cardDesc(d){var t=cleanDescJa(d.description_ja);if(!t||isRefusalJa(t))t=d.description||"";return t;}
 function fetchAll(){
   var all=[], lim=1000;
   function page(offset){
@@ -186,7 +200,7 @@ function apply(){
   var qel=$("q"); var q=qel?qel.value.trim().toLowerCase():"";
   filtered=DATA.filter(function(d){
     if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
-    if(q){var s=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")).toLowerCase();if(s.indexOf(q)<0)return false;}
+    if(q){var s=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")+" "+(d.description_ja||"")).toLowerCase();if(s.indexOf(q)<0)return false;}
     return true;
   });
   shown=PAGE;render();
@@ -200,7 +214,7 @@ function render(){
   gEl.innerHTML=list.map(function(d){
     return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+h(d.stock)+' 点</span><span class="pn">'+h(d.brand)+'</span></div>'+
     '<div class="cbody"><div class="brand">'+h(d.brand)+' · 新古品</div><div class="art"><a class="cardlink" href="p/'+slugify(d.article)+'.html">'+h(d.article)+'</a></div>'+
-    '<div class="desc">'+h(d.description)+'</div>'+
+    '<div class="desc">'+h(cardDesc(d))+'</div>'+
     '<div class="specrow"><span>'+h(d.family&&d.family!=="None"?d.family:"-")+'</span><span>重量 <b>'+(d.weight_kg==null?"-":h(d.weight_kg))+'kg</b></span></div>'+
     '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+
     '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b></div></div>'+
