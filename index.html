@@ -168,7 +168,26 @@ function cleanDescJa(t){
   t=sents.join("").replace(/、。/g,"。").replace(/\s+([。、])/g,"$1").replace(/[、\s]+$/,"").trim();
   return t;
 }
-function cardDesc(d){var t=cleanDescJa(d.description_ja);if(!t||isRefusalJa(t))t=d.description||"";return t;}
+function _esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function shortenCard(t,brand,article){
+  t=(t||"").replace(/^(本製品|本機|本品|当製品|当社製品|当機|これ)は、?\s*/,"");
+  var i=t.indexOf("は、");
+  if(i>=0)t=t.slice(i+2);
+  if(article){var a=_esc(article);
+    t=t.replace(new RegExp("[（(]?\\s*型番\\s*"+a+"\\s*[）)]?\\s*用?","g"),"");
+    t=t.replace(new RegExp("[（(]\\s*"+a+"\\s*[）)]","g"),"");
+    t=t.replace(new RegExp(a+"\\s*用?","g"),"");
+  }
+  var prev=null;
+  while(prev!==t){prev=t;
+    if(brand)t=t.replace(new RegExp("^\\s*"+_esc(brand)+"\\s*社?\\s*"),"");
+    t=t.replace(/^[\s　の、,・]+/,"");
+    t=t.replace(/^は、?\s*/,"");
+  }
+  t=t.replace(/です。?$/,"").replace(/[\s　、]+$/,"");
+  return t.replace(/^\s+|\s+$/g,"");
+}
+function cardDesc(d){var t=cleanDescJa(d.description_ja);if(!t||isRefusalJa(t))return d.description||"";return shortenCard(t,d.brand,d.article);}
 function fetchAll(){
   var all=[], lim=1000;
   function page(offset){
