@@ -1,0 +1,37 @@
+name: 型番ページ生成（公開）
+
+# 手動ボタンでのみ実行（まず動作確認するため）。
+# 問題なければ、下の schedule のコメントを外して 1日1回の自動に切り替える。
+on:
+  workflow_dispatch:
+#  schedule:
+#    - cron: '20 15 * * *'   # 毎日 00:20 JST（= 15:20 UTC）
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gen-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 型番ページと sitemap を生成
+        run: python3 gen_pages.py
+      - name: 変更があればコミット
+        run: |
+          git config user.name "geoport-bot"
+          git config user.email "info@geoport.co.jp"
+          git add -A p sitemap.xml
+          if git diff --cached --quiet; then
+            echo "変更なし（コミットしません）"
+          else
+            git commit -m "型番ページ自動更新 $(date -u +%Y-%m-%d)"
+            git push
+          fi
