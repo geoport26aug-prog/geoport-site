@@ -4,8 +4,8 @@ name: 型番ページ生成（公開）
 # 問題なければ、下の schedule のコメントを外して 1日1回の自動に切り替える。
 on:
   workflow_dispatch:
-#  schedule:
-#    - cron: '20 15 * * *'   # 毎日 00:20 JST（= 15:20 UTC）
+  schedule:
+    - cron: '20 15 * * *'   # 毎日 00:20 JST（= 15:20 UTC）
 
 permissions:
   contents: write
