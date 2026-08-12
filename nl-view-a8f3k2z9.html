@@ -156,7 +156,8 @@
     document.getElementById('bill').innerHTML = '<span class="yen">¥</span>' + plain(d.billing_forecast);
     document.getElementById('unCount').innerHTML = d.unshipped_count + '<span style="font-size:14px;color:var(--ink-soft)">件</span>';
     document.getElementById('unTotal').textContent = yen(d.unshipped_total) + ' 分';
-    document.getElementById('unBadge').textContent = '全' + d.unshipped_count + '件・納期順';
+    var repN = (d.replacements||[]).length;
+    document.getElementById('unBadge').textContent = '全' + d.unshipped_count + '件・納期順' + (repN ? '＋代替品'+repN+'件' : '');
 
     var L = document.getElementById('unList'); L.innerHTML='';
     d.unshipped.forEach(function(x){
@@ -179,6 +180,25 @@
           '<span class="name">'+esc(x.kata)+'</span></div>'+
           '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+trk+'</div></div>'+
         '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>';
+      L.appendChild(el);
+    });
+
+    // 代替品（⟲）：不具合の代わりにDongが送る品。便の色つきで検品リストに出す（金額・件数の集計には含めない）。
+    (d.replacements||[]).forEach(function(x){
+      var starCls = x.color ? ('c'+x.color) : 'inc';
+      var trk = x.tracking_no
+        ? (x.color
+            ? ' ・ <a class="trk" href="https://www.fedex.com/fedextrack/?trknbr='+encodeURIComponent(x.tracking_no)+'" target="_blank" rel="noopener">追跡 '+esc(x.tracking_no)+'</a>'
+            : ' ・ <span class="trk">追跡 '+esc(x.tracking_no)+'</span>')
+        : '';
+      var el = document.createElement('div'); el.className='item';
+      el.innerHTML =
+        '<div class="due n">代替</div>'+
+        '<div class="mid"><div class="kata">'+
+          '<span class="ship '+starCls+'">⟲</span>'+
+          '<span class="name">'+esc(x.kata)+'</span></div>'+
+          '<div class="meta tnum"><span class="ql">代替品</span>'+(x.note?' ・ '+esc(x.note):'')+trk+'</div></div>'+
+        '<div class="qty tnum">'+x.qty+'<small>点</small></div>';
       L.appendChild(el);
     });
 
