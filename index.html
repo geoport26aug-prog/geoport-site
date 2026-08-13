@@ -37,10 +37,11 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .homenav .ic svg{stroke:var(--accent)}
 .homenav .tx b{display:block;color:var(--text);font-size:14px;font-weight:600}
 .homenav .tx span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.slead{font-size:13px;color:var(--muted);margin-bottom:8px}
 .search{position:relative}
-.search input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:15px;padding:13px 14px 13px 42px;border-radius:10px;font-family:inherit}
+.search input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:16px;padding:16px 16px 16px 48px;border-radius:11px;font-family:inherit}
 .search input:focus{outline:none;border-color:var(--accent)}
-.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
+.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
 .brands{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden}
 .chip{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;font-weight:600;white-space:nowrap}
 .chip:hover{border-color:var(--accent);color:var(--text)}
@@ -127,8 +128,9 @@ header{background:#0f2f5c;border-color:#123354}
 <span class="tx"><b>会社情報</b><span>会社概要・特定商取引法・プライバシー</span></span>
 </a>
 </div>
+<div class="slead"><span id="slead-n">3,848</span>点の在庫からリアルタイムに絞り込み</div>
 <div class="search">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
 <input id="q" type="text" placeholder="型番・メーカー・キーワードで検索（例: 6ES7 / inverter / Fanuc）" disabled>
 </div>
 <div class="brands" id="brands"></div>
@@ -296,6 +298,7 @@ fetchAll().then(function(rows){
   DATA=rows;
   var ld=$("loading"); if(ld) ld.style.display="none";
   var qel=$("q"); if(qel) qel.disabled=false;
+  var sn=$("slead-n"); if(sn) sn.textContent=DATA.length.toLocaleString();
   buildBrands();brandList();apply();
   var upd="";for(var i=0;i<DATA.length;i++){if(DATA[i].source_updated_at){upd=DATA[i].source_updated_at;break;}}
   var st=$("sync-t"); if(st) st.textContent=upd?("データ更新 "+new Date(upd).toLocaleString("ja-JP")):"接続済み";
