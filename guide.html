@@ -56,6 +56,16 @@ header{background:#0f2f5c;border-color:#123354}
 .sync{color:#b9c9de}
 .back{color:#cdd9e8;border-color:#2c4d7d}
 .back:hover{color:#ffffff;border-color:#7fb0e8}
+.flead{font-size:14px;color:var(--text);margin-bottom:6px;font-weight:600}
+.fsub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.steps{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.step{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 18px 20px}
+.step .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.step .num{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Barlow',sans-serif;font-weight:600;font-size:15px;flex-shrink:0}
+.step .ic{width:34px;height:34px;border-radius:9px;background:rgba(28,95,176,.09);display:flex;align-items:center;justify-content:center;margin-left:auto}
+.step .ic svg{stroke:var(--accent)}
+.step h3{font-size:14.5px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.step p{font-size:12.5px;color:var(--muted);line-height:1.7}
 </style></head><body>
 <header><div class="bar">
 <a class="logo" href="./index.html"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
@@ -73,13 +83,14 @@ header{background:#0f2f5c;border-color:#123354}
 
 <section>
 <div class="sh"><h2>ご利用の流れ</h2></div>
-<p class="body">当サイトには販売価格を掲載しておりません。ご希望の製品について、以下の流れでお見積り・ご注文を承ります。</p>
-<table class="info">
-<tr><th>① お問い合わせ</th><td>製品ページの「見積・在庫確認」フォームより、型番・数量・貴社情報をお送りください。</td></tr>
-<tr><th>② お見積り</th><td>在庫状況・お見積り金額・納期を、担当より折り返しメールにてご連絡いたします。</td></tr>
-<tr><th>③ ご注文・お支払い</th><td>お見積り内容にご了承いただけましたら、銀行振込にてお支払いをお願いいたします。</td></tr>
-<tr><th>④ 発送・お届け</th><td>ご入金確認後に発送いたします。納期はお見積り時に個別にご案内いたします。</td></tr>
-</table>
+<p class="flead">型番が分かれば、あとはかんたん。4ステップでお届けまでご案内します。</p>
+<p class="fsub">お見積りは無料、1点からお気軽にどうぞ。</p>
+<div class="steps">
+<div class="step"><div class="top"><span class="num">1</span><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span></div><h3>お問い合わせ</h3><p>気になる製品の「見積・在庫確認」から、型番と数量をお送りください。1点からでもOKです。</p></div>
+<div class="step"><div class="top"><span class="num">2</span><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></span></div><h3>お見積り</h3><p>在庫・お見積り金額・納期を、担当がメールで折り返しご連絡します。</p></div>
+<div class="step"><div class="top"><span class="num">3</span><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span></div><h3>ご注文・お支払い</h3><p>メールにてご注文をお申し付けください。銀行振込でご注文完了。ご入金を確認しだい手配します。</p></div>
+<div class="step"><div class="top"><span class="num">4</span><span class="ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span></div><h3>発送・お届け</h3><p>通常10〜14日でお手元にお届け。到着まで担当がしっかりサポートします。</p></div>
+</div>
 </section>
 
 <section id="warranty">
