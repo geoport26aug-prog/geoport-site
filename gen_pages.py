@@ -160,11 +160,8 @@ def render(row, slug):
              f"型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
     ogt = f"{art} {brand}｜GEOPORT" if brand else title
     ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。新古品・初期不良1年保証。"
-    ld_desc = dj[:160] if dj else (" ".join(x for x in (brand, fam) if x) + " の新古品。").strip()
-    ld = {"@context": "https://schema.org", "@type": "Product", "name": art, "sku": art,
-          "mpn": art, "brand": {"@type": "Brand", "name": brand}, "description": ld_desc}
-    if fam:
-        ld["category"] = fam
+    # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
+    # Search Consoleで「商品スニペット」不備の警告になるため（見積制で価格非公開）。パンくずのみ残す。
     crumb = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "製品カタログ", "item": SITE + "/"},
         {"@type": "ListItem", "position": 2, "name": art, "item": canon}]}
@@ -187,9 +184,6 @@ def render(row, slug):
 <meta property="og:description" content="{e(ogd)}">
 <meta property="og:url" content="{e(canon)}">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">
-{json.dumps(ld, ensure_ascii=False)}
-</script>
 <script type="application/ld+json">
 {json.dumps(crumb, ensure_ascii=False)}
 </script>
