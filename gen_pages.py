@@ -149,7 +149,7 @@ def render(row, slug):
     if is_refusal(dj):                              # 丸ごと断り文なら定型文へ
         dj = ""
     stock = row.get("stock")
-    badge_txt = f"在庫 {stock} 点（新古品）" if isinstance(stock, int) and stock > 0 else "在庫あり（新古品）"
+    badge_txt = f"在庫 {stock} 点" if isinstance(stock, int) and stock > 0 else "在庫あり"
     sbkey_json = json.dumps(SB_KEY)
     relay_json = json.dumps(RELAY)
     art_json   = json.dumps(art)
