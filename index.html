@@ -43,6 +43,8 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .search input:focus{outline:none;border-color:var(--accent)}
 .search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
 .brands{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden}
+.filterbar{position:sticky;top:56px;z-index:20;background:var(--black);border-bottom:1px solid var(--border);box-shadow:0 5px 14px rgba(15,47,92,.06)}
+.fbinner{max-width:1180px;margin:0 auto;padding:12px 20px}
 .chip{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;font-weight:600;white-space:nowrap}
 .chip:hover{border-color:var(--accent);color:var(--text)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#ffffff}
@@ -129,12 +131,14 @@ header{background:#0f2f5c;border-color:#123354}
 </a>
 </div>
 <div class="slead"><span id="slead-n">3,848</span>点の在庫からリアルタイムに絞り込み</div>
+</div>
+<div class="filterbar"><div class="fbinner">
 <div class="search">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
 <input id="q" type="text" placeholder="型番・メーカー・キーワードで検索（例: 6ES7 / inverter / Fanuc）" disabled>
 </div>
 <div class="brands" id="brands"></div>
-</div><div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div></div>
+</div></div><div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div></div>
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
@@ -290,6 +294,8 @@ function submitInquiry(){
   var ov=$("overlay"); if(ov) ov.addEventListener("click",function(e){if(e.target.id==="overlay")closeModal();});
   var qel=$("q"); if(qel) qel.addEventListener("input",function(){apply();});
 })();
+function fitStick(){var h=document.querySelector("header"),fb=document.querySelector(".filterbar"); if(h&&fb) fb.style.top=h.offsetHeight+"px";}
+fitStick(); window.addEventListener("resize",fitStick); window.addEventListener("load",fitStick);
 (function(){
   var m=(location.search||"").match(/[?&]art=([^&]+)/);
   if(m){ var art; try{art=decodeURIComponent(m[1].replace(/\+/g," "));}catch(e){art=m[1];} if(art) openModal(art); }
