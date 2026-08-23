@@ -66,6 +66,14 @@ h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:bre
 .sec{margin-top:30px}
 .sec h2{font-family:'Barlow Condensed',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text);border-left:3px solid var(--accent);padding-left:10px;margin-bottom:10px}
 .sec p{color:#33475c;margin-bottom:10px}
+.specbox{margin-top:18px;border:1px solid var(--border);border-radius:10px;background:var(--panel);overflow:hidden}
+.specbox>summary{list-style:none;cursor:pointer;padding:13px 16px;font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:1px;color:var(--text);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.specbox>summary::-webkit-details-marker{display:none}
+.specbox>summary::after{content:"▾ 開く";color:var(--accent);font-size:12px;letter-spacing:0;font-family:'Noto Sans JP',sans-serif}
+.specbox[open]>summary::after{content:"▴ 閉じる"}
+.spec2{width:100%;border-collapse:collapse;margin:0}
+.spec2 th,.spec2 td{text-align:left;padding:9px 16px;border-top:1px solid var(--border);font-size:13px;vertical-align:top}
+.spec2 th{background:var(--dark);color:var(--muted);font-weight:500;white-space:nowrap;width:38%}
 .disc{background:rgba(28,95,176,.06);border:1px solid rgba(28,95,176,.25);border-radius:10px;padding:12px 15px;font-size:12px;color:var(--muted);margin-top:26px}
 footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9;margin-top:40px}
 footer a{color:var(--accent);text-decoration:underline}
@@ -108,8 +116,10 @@ header{background:#0f2f5c;border-color:#123354}
 
 <div class="sec">
   <h2>製品について</h2>
-  <p>Siemens Simatic 6AV8511-1FD21-2CA1は、IP20の保護等級を備えた220V AC駆動のカラーモニター（OM36/B3）です。</p>
+  <p>Siemens SIMATIC 6AV8511-1FD21-2CA1は、保護等級IP20のOM36/B3カラーモニタで、220V AC電源対応、画像リフレッシュレート15.5～38kHzの自動ライン周波数機能を備えており、VGA接続用ケーブル付属、ライトベージュ色です。</p>
 </div>
+
+<details class="specbox" open><summary>製品仕様</summary><table class="spec2"><tr><th>メーカー</th><td>Siemens</td></tr><tr><th>シリーズ</th><td>SIMATIC</td></tr><tr><th>型番</th><td>6AV8511-1FD21-2CA1</td></tr><tr><th>状態</th><td>新古品（未使用在庫品）</td></tr><tr><th>外形寸法 (W×D×H)</th><td>19 × 32.5 × 11 cm</td></tr><tr><th>質量</th><td>16.6 kg</td></tr></table></details>
 
 <div class="disc">※ 当社は各メーカーの正規代理店ではありません。取り扱う製品はメーカー保証の対象外となりますが、当社保証規定に基づき対応いたします。掲載のメーカー名および商標は各権利者に帰属します。詳細は<a href="../guide.html#warranty" style="color:var(--accent)">サービス案内・保証規定</a>をご確認ください。</div>
 </div>
