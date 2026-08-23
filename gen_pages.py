@@ -61,6 +61,14 @@ h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:bre
 .sec{margin-top:30px}
 .sec h2{font-family:'Barlow Condensed',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text);border-left:3px solid var(--accent);padding-left:10px;margin-bottom:10px}
 .sec p{color:#33475c;margin-bottom:10px}
+.specbox{margin-top:18px;border:1px solid var(--border);border-radius:10px;background:var(--panel);overflow:hidden}
+.specbox>summary{list-style:none;cursor:pointer;padding:13px 16px;font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:1px;color:var(--text);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.specbox>summary::-webkit-details-marker{display:none}
+.specbox>summary::after{content:"▾ 開く";color:var(--accent);font-size:12px;letter-spacing:0;font-family:'Noto Sans JP',sans-serif}
+.specbox[open]>summary::after{content:"▴ 閉じる"}
+.spec2{width:100%;border-collapse:collapse;margin:0}
+.spec2 th,.spec2 td{text-align:left;padding:9px 16px;border-top:1px solid var(--border);font-size:13px;vertical-align:top}
+.spec2 th{background:var(--dark);color:var(--muted);font-weight:500;white-space:nowrap;width:38%}
 .disc{background:rgba(28,95,176,.06);border:1px solid rgba(28,95,176,.25);border-radius:10px;padding:12px 15px;font-size:12px;color:var(--muted);margin-top:26px}
 footer{border-top:1px solid var(--border);padding:22px 20px;text-align:center;color:var(--muted);font-size:11px;line-height:1.9;margin-top:40px}
 footer a{color:var(--accent);text-decoration:underline}
@@ -71,14 +79,40 @@ header{background:#0f2f5c;border-color:#123354}
 
 def fetch_catalog():
     # description_ja がまだ公開ビューに無い場合(view更新前)は、その列を外して取得する
-    cols = "article,brand,family,condition,stock,description_ja"
+    cols = "article,brand,family,condition,stock,weight_kg,description_ja"
     try:
-        return _fetch(cols)
+        rows = _fetch(cols)
     except urllib.error.HTTPError as ex:
         if ex.code == 400 and "description_ja" in cols:
             print("note: description_ja 列が catalog に無いため、説明なしで生成します（view更新前）")
-            return _fetch("article,brand,family,condition,stock")
-        raise
+            rows = _fetch("article,brand,family,condition,stock,weight_kg")
+        else:
+            raise
+    _attach_dims(rows)
+    return rows
+
+def _attach_dims(rows):
+    # 外形寸法は別の公開ビュー product_dims から取得して型番で結合する。
+    # ビューが未作成でも落ちないようにする（寸法なしで継続）。
+    dims, off = {}, 0
+    try:
+        while True:
+            url = (SB_URL + "/rest/v1/product_dims?select=article,dimensions"
+                   "&order=article&limit=%d&offset=%d&apikey=%s" % (PAGE, off, SB_KEY))
+            req = urllib.request.Request(url, headers={"apikey": SB_KEY})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                batch = json.load(r)
+            for d in batch:
+                if d.get("dimensions"):
+                    dims[d.get("article")] = d.get("dimensions")
+            if len(batch) < PAGE:
+                break
+            off += PAGE
+        print(f"寸法: {len(dims)} 件を結合")
+    except Exception as ex:
+        print("note: product_dims ビュー未取得（寸法なしで継続）:", str(ex)[:100])
+    for row in rows:
+        row["dimensions"] = dims.get(row.get("article"), "")
 
 def _fetch(cols):
     rows, off = [], 0
@@ -175,6 +209,24 @@ def render(row, slug):
     brand_html  = f'<div class="brand">{e(brand)}</div>' if brand else ""
     brand_trow  = f"<tr><th>メーカー</th><td>{e(brand)}</td></tr>" if brand else ""
     fam_row     = f"<tr><th>シリーズ</th><td>{e(fam)}</td></tr>" if fam else ""
+    # 製品仕様（説明の下に折りたたみで表示）。フィードにある項目だけを出す（推測しない）。
+    dims = _clean_field(row.get("dimensions"))
+    wt   = row.get("weight_kg")
+    try:
+        wtxt = (("%g" % float(wt)) + " kg") if wt not in (None, "") and float(wt) > 0 else ""
+    except (TypeError, ValueError):
+        wtxt = ""
+    _srows = [
+        f"<tr><th>メーカー</th><td>{e(brand)}</td></tr>" if brand else "",
+        f"<tr><th>シリーズ</th><td>{e(fam)}</td></tr>" if fam else "",
+        f"<tr><th>型番</th><td>{e(art)}</td></tr>",
+        "<tr><th>状態</th><td>新古品（未使用在庫品）</td></tr>",
+        f"<tr><th>外形寸法 (W×D×H)</th><td>{e(dims)}</td></tr>" if dims else "",
+        f"<tr><th>質量</th><td>{e(wtxt)}</td></tr>" if wtxt else "",
+    ]
+    spec_extra = ('<details class="specbox" open><summary>製品仕様</summary>'
+                  '<table class="spec2">' + "".join(s for s in _srows if s) +
+                  '</table></details>')
     return f"""<!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -232,6 +284,8 @@ def render(row, slug):
   <h2>製品について</h2>
   {about}
 </div>
+
+{spec_extra}
 
 <div class="disc">※ 当社は各メーカーの正規代理店ではありません。取り扱う製品はメーカー保証の対象外となりますが、当社保証規定に基づき対応いたします。掲載のメーカー名および商標は各権利者に帰属します。詳細は<a href="../guide.html#warranty" style="color:var(--accent)">サービス案内・保証規定</a>をご確認ください。</div>
 </div>
