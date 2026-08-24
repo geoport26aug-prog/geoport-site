@@ -92,27 +92,30 @@ def fetch_catalog():
     return rows
 
 def _attach_dims(rows):
-    # 外形寸法は別の公開ビュー product_dims から取得して型番で結合する。
-    # ビューが未作成でも落ちないようにする（寸法なしで継続）。
-    dims, off = {}, 0
+    # 仕様(寸法/HSコード/EAN)は別の公開ビュー product_dims から取得して型番で結合する。
+    # ビューが未作成でも落ちないようにする（仕様なしで継続）。
+    specs, off = {}, 0
     try:
         while True:
-            url = (SB_URL + "/rest/v1/product_dims?select=article,dimensions"
+            url = (SB_URL + "/rest/v1/product_dims?select=article,dimensions,commodity_code,ean"
                    "&order=article&limit=%d&offset=%d&apikey=%s" % (PAGE, off, SB_KEY))
             req = urllib.request.Request(url, headers={"apikey": SB_KEY})
             with urllib.request.urlopen(req, timeout=60) as r:
                 batch = json.load(r)
             for d in batch:
-                if d.get("dimensions"):
-                    dims[d.get("article")] = d.get("dimensions")
+                specs[d.get("article")] = d
             if len(batch) < PAGE:
                 break
             off += PAGE
-        print(f"寸法: {len(dims)} 件を結合")
+        nd = sum(1 for d in specs.values() if d.get("dimensions"))
+        print(f"仕様(寸法/HS/EAN): {len(specs)} 件を結合（寸法 {nd} 件）")
     except Exception as ex:
-        print("note: product_dims ビュー未取得（寸法なしで継続）:", str(ex)[:100])
+        print("note: product_dims ビュー未取得（仕様なしで継続）:", str(ex)[:100])
     for row in rows:
-        row["dimensions"] = dims.get(row.get("article"), "")
+        d = specs.get(row.get("article")) or {}
+        row["dimensions"]     = d.get("dimensions") or ""
+        row["commodity_code"] = d.get("commodity_code") or ""
+        row["ean"]            = d.get("ean") or ""
 
 def _fetch(cols):
     rows, off = [], 0
@@ -211,6 +214,8 @@ def render(row, slug):
     fam_row     = f"<tr><th>シリーズ</th><td>{e(fam)}</td></tr>" if fam else ""
     # 製品仕様（説明の下に折りたたみで表示）。フィードにある項目だけを出す（推測しない）。
     dims = _clean_field(row.get("dimensions"))
+    hs   = _clean_field(row.get("commodity_code"))
+    ean  = _clean_field(row.get("ean"))
     wt   = row.get("weight_kg")
     try:
         wtxt = (("%g" % float(wt)) + " kg") if wt not in (None, "") and float(wt) > 0 else ""
@@ -223,6 +228,8 @@ def render(row, slug):
         "<tr><th>状態</th><td>新古品（未使用在庫品）</td></tr>",
         f"<tr><th>外形寸法 (W×D×H)</th><td>{e(dims)}</td></tr>" if dims else "",
         f"<tr><th>質量</th><td>{e(wtxt)}</td></tr>" if wtxt else "",
+        f"<tr><th>HSコード</th><td>{e(hs)}</td></tr>" if hs else "",
+        f"<tr><th>EAN</th><td>{e(ean)}</td></tr>" if ean else "",
     ]
     spec_extra = ('<details class="specbox" open><summary>製品仕様</summary>'
                   '<table class="spec2">' + "".join(s for s in _srows if s) +
