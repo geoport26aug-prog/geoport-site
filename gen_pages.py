@@ -10,7 +10,10 @@ SB_KEY = os.environ.get("SB_KEY", "sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGW
 SITE   = "https://geoport.co.jp"
 RELAY  = SB_URL + "/functions/v1/quote-relay"
 OUT    = "p"
-PAGE   = 1000
+PAGE   = 1000          # REST取得のページサイズ（PostgRESTの上限1000）
+LIST   = "list"        # 一覧（目次）ページの出力先
+LIST_PER = 150         # 一覧1ページあたりの型番数
+RELATED_N = 12         # 型番ページに出す「関連製品」の数
 
 CSS = """:root{--black:#f5f7fa;--dark:#eef2f7;--panel:#ffffff;--border:#e2e8f0;--accent:#1c5fb0;--accent2:#2b74cf;--text:#1a2634;--muted:#5b6b7d;--green:#15803d;--line:#f1f4f8}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -77,7 +80,25 @@ footer a{color:var(--accent);text-decoration:underline}
 header{background:#0f2f5c;border-color:#123354}
 .logo{color:#ffffff}.logo b{color:#7fb0e8}
 .back{color:#cdd9e8;border-color:#2c4d7d}
-.back:hover{color:#ffffff;border-color:#7fb0e8}"""
+.back:hover{color:#ffffff;border-color:#7fb0e8}
+.rel{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:9px;margin-top:4px}
+.rel a{display:block;background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:10px 13px;text-decoration:none;transition:.15s}
+.rel a:hover{border-color:var(--accent);transform:translateY(-1px)}
+.rel .a{font-family:'Barlow',sans-serif;font-weight:600;font-size:14px;color:var(--accent);word-break:break-all;display:block}
+.rel .b{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.relmore{font-size:12px;margin-top:11px}
+.relmore a{color:var(--accent)}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:6px}
+.lcard{display:block;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:13px 15px;text-decoration:none;transition:.15s}
+.lcard:hover{border-color:var(--accent);transform:translateY(-1px)}
+.lcard .a{font-family:'Barlow',sans-serif;font-weight:600;font-size:15px;color:var(--accent);word-break:break-all;display:block}
+.lcard .b{font-size:11px;color:var(--muted);display:block;margin-top:3px}
+.lcard .n{float:right;font-size:11px;color:var(--muted);font-weight:400}
+.pager{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:24px;font-size:13px}
+.pager a,.pager span{display:inline-block;padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--panel);text-decoration:none;color:var(--accent)}
+.pager .cur{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+.pager .gap{border:none;background:none;color:var(--muted);padding:7px 2px}
+.lead{color:#33475c;margin-bottom:6px}"""
 
 def fetch_catalog():
     # description_ja がまだ公開ビューに無い場合(view更新前)は、その列を外して取得する
@@ -184,7 +205,242 @@ def desc_paras(text):
     parts = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
     return "\n  ".join("<p>%s</p>" % e(p.replace("\n", " ")) for p in parts)
 
-def render(row, slug):
+OTHER = "その他"
+
+def gslug(name, fallback="other"):
+    s = re.sub(r"[^a-z0-9._-]+", "-", (name or "").lower()).strip("-")
+    return s or fallback
+
+def build_index(rows):
+    """メーカー → シリーズ → 型番 の目次を組み立てる（表示順とURLのslugをここで確定）。"""
+    brands = {}
+    for r in rows:
+        if not (r.get("article") or ""):
+            continue
+        b = _clean_field(r.get("brand")) or OTHER
+        f = _clean_field(r.get("family")) or OTHER
+        brands.setdefault(b, {}).setdefault(f, []).append(r)
+    used = set()
+    def uniq(base):
+        s, n = base, 2
+        while s in used:
+            s = "%s-%d" % (base, n)
+            n += 1
+        used.add(s)
+        return s
+    out = []
+    for bname, fams in brands.items():
+        bslug = uniq(gslug(bname))
+        groups = []
+        for fname, items in fams.items():
+            items.sort(key=lambda r: (r.get("article") or "").lower())
+            groups.append({"brand": bname, "bslug": bslug, "name": fname,
+                           "slug": uniq("%s-%s" % (bslug, gslug(fname))),
+                           "items": items})
+        # 在庫数の多い順。ただし「その他（シリーズ未設定）」は必ず最後
+        groups.sort(key=lambda g: (g["name"] == OTHER, -len(g["items"]), g["name"].lower()))
+        out.append({"name": bname, "slug": bslug, "groups": groups,
+                    "count": sum(len(g["items"]) for g in groups)})
+    out.sort(key=lambda b: (-b["count"], b["name"].lower()))
+    return out
+
+def group_label(g):
+    """一覧ページの見出し用ラベル。シリーズ未設定は「その他の型番」と表す。"""
+    return f"{g['brand']} {g['name']}" if g["name"] != OTHER else f"{g['brand']}（その他の型番）"
+
+def page_slug(g, i):
+    return g["slug"] if i == 0 else "%s-p%d" % (g["slug"], i + 1)
+
+def chunk(items, per=LIST_PER):
+    return [items[i:i + per] for i in range(0, len(items), per)] or [[]]
+
+def _shell(title, metad, canon, h1, crumb_html, body, jsonld, updir="../"):
+    """一覧ページ共通のガワ（型番ページと同じ見た目・同じCSS）。"""
+    return f"""<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>{e(title)}</title>
+<meta name="description" content="{e(metad)}">
+<link rel="canonical" href="{e(canon)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GEOPORT">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(metad)}">
+<meta property="og:url" content="{e(canon)}">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{json.dumps(jsonld, ensure_ascii=False)}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+{CSS}
+</style></head><body>
+<header><div class="bar">
+<a class="logo" href="{updir}index.html"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
+<a class="back" href="{updir}index.html">← 製品カタログへ戻る</a>
+</div></header>
+
+<div class="wrap">
+<div class="crumb">{crumb_html}</div>
+<h1 style="font-size:24px;margin-bottom:6px">{e(h1)}</h1>
+{body}
+</div>
+
+<footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
+掲載中の在庫品を、通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br>
+<a href="{updir}list/index.html">メーカー・シリーズ一覧</a> ｜ <a href="{updir}guide.html">サービス案内・保証規定</a> ｜ <a href="{updir}company.html">会社情報</a></footer>
+<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "1f55d2e30afe4d8a806863540932191d"}}'></script><!-- End Cloudflare Web Analytics -->
+</body></html>
+"""
+
+def _crumb_ld(items):
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList",
+            "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": u}
+                                for i, (n, u) in enumerate(items)]}
+
+def _pager(pages, cur, base_url_fn):
+    """ページ送り。前後2ページ＋先頭/末尾を出す。"""
+    if pages <= 1:
+        return ""
+    out = ['<div class="pager">']
+    if cur > 0:
+        out.append(f'<a href="{base_url_fn(cur - 1)}" rel="prev">← 前へ</a>')
+    shown = sorted(set([0, pages - 1] + list(range(max(0, cur - 2), min(pages, cur + 3)))))
+    prev = None
+    for i in shown:
+        if prev is not None and i - prev > 1:
+            out.append('<span class="gap">…</span>')
+        out.append(f'<span class="cur">{i + 1}</span>' if i == cur
+                   else f'<a href="{base_url_fn(i)}">{i + 1}</a>')
+        prev = i
+    if cur < pages - 1:
+        out.append(f'<a href="{base_url_fn(cur + 1)}" rel="next">次へ →</a>')
+    out.append("</div>")
+    return "".join(out)
+
+def render_list_top(brands):
+    total = sum(b["count"] for b in brands)
+    cards = []
+    for b in brands:
+        tops = "・".join(g["name"] for g in b["groups"][:3] if g["name"] != OTHER)
+        cards.append(f'<a class="lcard" href="{b["slug"]}.html"><span class="n">{b["count"]:,} 点</span>'
+                     f'<span class="a">{e(b["name"])}</span>'
+                     f'<span class="b">{e(tops) if tops else "在庫一覧"}</span></a>')
+    body = (f'<p class="lead">在庫としてお出しできる {total:,} 点を、メーカー別・シリーズ別に一覧にしています。'
+            f'型番をお探しの場合は、メーカーを選んでお進みください。</p>'
+            f'<div class="lgrid">{"".join(cards)}</div>')
+    return _shell("メーカー・シリーズ一覧｜在庫のあるFA機器を型番まで一覧｜GEOPORT",
+                  f"GEOPORTが取り扱う産業用FA機器 {total:,} 点の在庫を、メーカー別・シリーズ別に一覧できます。"
+                  f"Siemens・Schneider Electric・ABB・Fanuc ほか。型番から在庫確認・お見積りをご依頼いただけます。",
+                  f"{SITE}/{LIST}/", "メーカー・シリーズ一覧",
+                  '<a href="../index.html">製品カタログ</a> ／ メーカー・シリーズ一覧', body,
+                  _crumb_ld([("製品カタログ", SITE + "/"), ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/")]))
+
+_BL_RE = re.compile(r"(<!--BRANDLINKS-->)(.*?)(<!--/BRANDLINKS-->)", re.S)
+_BS_RE = re.compile(r"(<!--BRANDSERIES-->)(.*?)(<!--/BRANDSERIES-->)", re.S)
+
+def update_index_brandlinks(brands):
+    """トップページの2か所を、在庫の実態に合わせて自動更新する（目印の間だけ書き換え）。
+      ① フッターのメーカーリンク … Googleが辿れる“ふつうのリンク”（JavaScript不要）
+      ② シリーズ一覧のデータ    … メーカーボタンに重ねたとき出るポップの中身"""
+    try:
+        with open("index.html", encoding="utf-8") as f:
+            src = f.read()
+    except OSError:
+        print("note: index.html が読めないためトップページは更新しません")
+        return False
+    if not _BL_RE.search(src) or not _BS_RE.search(src):
+        print("note: index.html に目印(BRANDLINKS/BRANDSERIES)が無いため更新しません")
+        return False
+    links = "".join(f'<a href="./{LIST}/{b["slug"]}.html">{e(b["name"])}</a>' for b in brands)
+    data = {b["name"]: {"slug": b["slug"], "n": b["count"],
+                        "s": [[g["name"] if g["name"] != OTHER else "その他の型番",
+                               g["slug"], len(g["items"])] for g in b["groups"]]}
+            for b in brands}
+    payload = ('<script type="application/json" id="brandseries">'
+               + json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+               + "</script>")
+    out = _BL_RE.sub(lambda m: m.group(1) + links + m.group(3), src)
+    out = _BS_RE.sub(lambda m: m.group(1) + payload + m.group(3), out)
+    if out == src:
+        return False
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(out)
+    print("index.html を更新: メーカー %d 社 / シリーズ %d 組"
+          % (len(brands), sum(len(b["groups"]) for b in brands)))
+    return True
+
+def render_list_brand(b):
+    cards = []
+    for g in b["groups"]:
+        nm = g["name"] if g["name"] != OTHER else "その他の型番"
+        cards.append(f'<a class="lcard" href="{g["slug"]}.html"><span class="n">{len(g["items"]):,} 点</span>'
+                     f'<span class="a">{e(nm)}</span>'
+                     f'<span class="b">{e(b["name"])}</span></a>')
+    body = (f'<p class="lead">{e(b["name"])} の在庫 {b["count"]:,} 点を、シリーズ別に一覧にしています。'
+            f'すべて新古品（未使用在庫品）で、価格はお見積りにてご提示します。</p>'
+            f'<div class="lgrid">{"".join(cards)}</div>')
+    return _shell(f'{b["name"]} 在庫一覧（{b["count"]:,}点）｜GEOPORT',
+                  f'{b["name"]} の産業用FA機器 {b["count"]:,} 点の在庫一覧。シリーズ別に型番を確認できます。'
+                  f'新古品・初期不良は納品後1年以内保証。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
+                  f'{SITE}/{LIST}/{b["slug"]}.html', f'{b["name"]} 在庫一覧',
+                  f'<a href="../index.html">製品カタログ</a> ／ <a href="index.html">メーカー・シリーズ一覧</a> ／ {e(b["name"])}',
+                  body,
+                  _crumb_ld([("製品カタログ", SITE + "/"), ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/"),
+                             (b["name"], f'{SITE}/{LIST}/{b["slug"]}.html')]))
+
+def render_list_group(g, page_i, pages_total, items):
+    label = group_label(g)
+    n = len(g["items"])
+    cards = []
+    for r in items:
+        fam = _clean_field(r.get("family"))
+        sub = f'{g["brand"]}{"　" + fam if fam else ""}'
+        cards.append(f'<a class="lcard" href="../{OUT}/{r["_slug"]}.html">'
+                     f'<span class="a">{e(r.get("article") or "")}</span>'
+                     f'<span class="b">{e(sub)}</span></a>')
+    suffix = f'（{page_i + 1}/{pages_total}ページ）' if pages_total > 1 else ""
+    pager = _pager(pages_total, page_i, lambda i: f"{page_slug(g, i)}.html")
+    body = (f'<p class="lead">{e(label)} の在庫 {n:,} 点の型番一覧です{e(suffix)}。'
+            f'型番をクリックすると、仕様・在庫数の確認とお見積りのご依頼ができます。</p>'
+            f'<div class="lgrid">{"".join(cards)}</div>{pager}')
+    canon = f'{SITE}/{LIST}/{page_slug(g, page_i)}.html'
+    title = f'{label} 型番一覧（{n:,}点）{suffix}｜GEOPORT'
+    return _shell(title,
+                  f'{label} の在庫 {n:,} 点の型番一覧{suffix}。新古品・初期不良は納品後1年以内保証。'
+                  f'型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
+                  canon, f'{label} 型番一覧',
+                  f'<a href="../index.html">製品カタログ</a> ／ <a href="index.html">メーカー・シリーズ一覧</a>'
+                  f' ／ <a href="{g["bslug"]}.html">{e(g["brand"])}</a> ／ {e(g["name"] if g["name"] != OTHER else "その他の型番")}',
+                  body,
+                  _crumb_ld([("製品カタログ", SITE + "/"), ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/"),
+                             (g["brand"], f'{SITE}/{LIST}/{g["bslug"]}.html'),
+                             (g["name"] if g["name"] != OTHER else "その他の型番", canon)]))
+
+def related_html(g, pos):
+    """同じシリーズの近い型番（型番順で前後）を最大 RELATED_N 件。"""
+    items = g["items"]
+    n = len(items)
+    if n <= 1:
+        return ""
+    half = RELATED_N // 2
+    start = max(0, pos - half)
+    end = min(n, start + RELATED_N + 1)
+    start = max(0, end - RELATED_N - 1)
+    picked = [(i, it) for i, it in enumerate(items[start:end], start) if i != pos][:RELATED_N]
+    cards = []
+    for _, r in picked:
+        cards.append(f'<a href="{r["_slug"]}.html"><span class="a">{e(r.get("article") or "")}</span>'
+                     f'<span class="b">{e(g["brand"])}</span></a>')
+    label = group_label(g)
+    more = (f'<div class="relmore"><a href="../{LIST}/{g["slug"]}.html">'
+            f'{e(label)} の在庫 {n:,} 点をすべて見る →</a></div>')
+    return (f'<div class="sec"><h2>同じシリーズの製品</h2>'
+            f'<div class="rel">{"".join(cards)}</div>{more}</div>')
+
+def render(row, slug, g=None, pos=0):
     art   = row.get("article") or ""
     brand = _clean_field(row.get("brand"))
     fam   = _clean_field(row.get("family"))
@@ -205,9 +461,20 @@ def render(row, slug):
     ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。新古品・初期不良1年保証。"
     # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
     # Search Consoleで「商品スニペット」不備の警告になるため（見積制で価格非公開）。パンくずのみ残す。
-    crumb = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
-        {"@type": "ListItem", "position": 1, "name": "製品カタログ", "item": SITE + "/"},
-        {"@type": "ListItem", "position": 2, "name": art, "item": canon}]}
+    # パンくず＝製品カタログ／メーカー・シリーズ一覧／メーカー／シリーズ／型番（一覧ページへの内部リンクを兼ねる）
+    trail = [("製品カタログ", SITE + "/", "../index.html"),
+             ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/", f"../{LIST}/index.html")]
+    if g:
+        trail.append((g["brand"], f'{SITE}/{LIST}/{g["bslug"]}.html', f'../{LIST}/{g["bslug"]}.html'))
+        if g["name"] != OTHER:
+            # パンくずは「Siemens ／ Simatic S7」。メーカー名の重複は出さない
+            trail.append((g["name"], f'{SITE}/{LIST}/{g["slug"]}.html', f'../{LIST}/{g["slug"]}.html'))
+    crumb = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement":
+             [{"@type": "ListItem", "position": i + 1, "name": nm, "item": u}
+              for i, (nm, u, _) in enumerate(trail)] +
+             [{"@type": "ListItem", "position": len(trail) + 1, "name": art, "item": canon}]}
+    crumb_html = " ／ ".join(f'<a href="{href}">{e(nm)}</a>' for nm, _, href in trail) + f" ／ {e(art)}"
+    related = related_html(g, pos) if g else ""
     about = desc_paras(dj) or (f"<p>{e(art)} の新古品（未使用在庫品）です。詳しい仕様・在庫状況は、"
                                f"下のボタンよりお問い合わせください。</p>")
     series_html = f'<div class="series">{e(fam)} シリーズ</div>' if fam else ""
@@ -271,7 +538,7 @@ def render(row, slug):
 </div></header>
 
 <div class="wrap">
-<div class="crumb"><a href="../index.html">製品カタログ</a> ／ {e(art)}</div>
+<div class="crumb">{crumb_html}</div>
 
 <div class="top">
   {photo_html}
@@ -301,12 +568,14 @@ def render(row, slug):
 
 {spec_extra}
 
+{related}
+
 <div class="disc">※ 当社は各メーカーの正規代理店ではありません。取り扱う製品はメーカー保証の対象外となりますが、当社保証規定に基づき対応いたします。掲載のメーカー名および商標は各権利者に帰属します。詳細は<a href="../guide.html#warranty" style="color:var(--accent)">サービス案内・保証規定</a>をご確認ください。</div>
 </div>
 
 <footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
 掲載中の在庫品を、通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br>
-<a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
+<a href="../{LIST}/index.html">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
 
 <div class="overlay" id="ov"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub">{e(art)}</div></div><button class="x" type="button" onclick="closeQuote()">&times;</button></div>
@@ -353,27 +622,65 @@ function submitQuote(){{
 </body></html>
 """
 
-def write_sitemap(slugs, lastmod):
-    base = [("/", "daily", "1.0"), ("/company.html", "monthly", "0.5"),
-            ("/guide.html", "monthly", "0.5")]
-    out = ['<?xml version="1.0" encoding="UTF-8"?>',
-           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for loc, cf, pr in base:
-        out.append(f'  <url><loc>{SITE}{loc}</loc><lastmod>{lastmod}</lastmod>'
-                   f'<changefreq>{cf}</changefreq><priority>{pr}</priority></url>')
-    for slug in slugs:
-        out.append(f'  <url><loc>{SITE}/{OUT}/{slug}.html</loc><lastmod>{lastmod}</lastmod>'
-                   f'<changefreq>weekly</changefreq><priority>0.6</priority></url>')
-    out.append('</urlset>')
-    with open("sitemap.xml", "w", encoding="utf-8") as f:
-        f.write("\n".join(out) + "\n")
+_LOC_RE = re.compile(r"<loc>([^<]+)</loc>\s*<lastmod>([^<]+)</lastmod>")
+
+def read_old_lastmod():
+    """前回のsitemapから URL→最終更新日 を読む。中身が変わっていないページは日付を据え置く。"""
+    try:
+        with open("sitemap.xml", encoding="utf-8") as f:
+            return dict(_LOC_RE.findall(f.read()))
+    except (OSError, ValueError):
+        return {}
+
+class Writer:
+    """内容が変わったファイルだけ書き出し、sitemapのlastmodも実際に変わった日にする。"""
+    def __init__(self, today, old):
+        self.today, self.old = today, old
+        self.urls, self.changed, self.same = [], 0, 0
+
+    def put(self, path, content, url, changefreq, priority):
+        try:
+            with open(path, encoding="utf-8") as f:
+                prev = f.read()
+        except OSError:
+            prev = None
+        if prev == content:
+            lastmod = self.old.get(url) or self.today
+            self.same += 1
+        else:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            lastmod = self.today
+            self.changed += 1
+        self.urls.append((url, lastmod, changefreq, priority))
+
+    def write_sitemap(self):
+        out = ['<?xml version="1.0" encoding="UTF-8"?>',
+               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        for url, lm, cf, pr in sorted(self.urls):   # URL順に固定（毎回の差分を最小に）
+            out.append(f'  <url><loc>{url}</loc><lastmod>{lm}</lastmod>'
+                       f'<changefreq>{cf}</changefreq><priority>{pr}</priority></url>')
+        out.append('</urlset>')
+        body = "\n".join(out) + "\n"
+        try:
+            with open("sitemap.xml", encoding="utf-8") as f:
+                if f.read() == body:
+                    return False
+        except OSError:
+            pass
+        with open("sitemap.xml", "w", encoding="utf-8") as f:
+            f.write(body)
+        return True
 
 def main():
-    lastmod = os.environ.get("LASTMOD") or datetime.date.today().isoformat()
+    today = os.environ.get("LASTMOD") or datetime.date.today().isoformat()
     rows = fetch_catalog()
     print("catalog rows: %d" % len(rows))
     os.makedirs(OUT, exist_ok=True)
-    seen, slugs, wrote, no_desc = {}, [], 0, 0
+    os.makedirs(LIST, exist_ok=True)
+
+    # ① 型番ごとのURL(slug)を先に確定させる（一覧・関連製品からリンクするため）
+    seen, live = {}, []
     for row in rows:
         art = row.get("article") or ""
         if not art:
@@ -385,24 +692,68 @@ def main():
                 n += 1
             slug = f"{slug}-{n}"
         seen[slug] = art
-        slugs.append(slug)
-        _dj = clean_desc(row.get("description_ja"))
-        if not _dj or is_refusal(_dj):
-            no_desc += 1
-        with open(os.path.join(OUT, slug + ".html"), "w", encoding="utf-8") as f:
-            f.write(render(row, slug))
-        wrote += 1
-    keep = set(s + ".html" for s in slugs)
+        row["_slug"] = slug
+        live.append(row)
+
+    # ② メーカー→シリーズ の目次を組み立てる
+    brands = build_index(live)
+    ngroups = sum(len(b["groups"]) for b in brands)
+    print("目次: メーカー %d 社 / シリーズ %d 組" % (len(brands), ngroups))
+
+    # トップページのメーカーリンク行を在庫の実態に合わせる
+    idx_changed = update_index_brandlinks(brands)
+
+    w = Writer(today, read_old_lastmod())
+    # 固定ページ（会社情報・サービス案内）はこの生成の対象外なので日付を据え置く
+    for loc, cf, pr in [("/", "daily", "1.0"), ("/company.html", "monthly", "0.5"),
+                        ("/guide.html", "monthly", "0.5")]:
+        lm = today if (loc == "/" and idx_changed) else (w.old.get(SITE + loc) or today)
+        w.urls.append((SITE + loc, lm, cf, pr))
+
+    # ③ 型番ページ（パンくず＋同じシリーズの関連製品つき）
+    no_desc = 0
+    for b in brands:
+        for g in b["groups"]:
+            for pos, row in enumerate(g["items"]):
+                _dj = clean_desc(row.get("description_ja"))
+                if not _dj or is_refusal(_dj):
+                    no_desc += 1
+                slug = row["_slug"]
+                w.put(os.path.join(OUT, slug + ".html"), render(row, slug, g, pos),
+                      f"{SITE}/{OUT}/{slug}.html", "weekly", "0.6")
+
+    # ④ 一覧（目次）ページ
+    w.put(os.path.join(LIST, "index.html"), render_list_top(brands),
+          f"{SITE}/{LIST}/", "weekly", "0.8")
+    list_files = ["index.html"]
+    for b in brands:
+        fn = b["slug"] + ".html"
+        list_files.append(fn)
+        w.put(os.path.join(LIST, fn), render_list_brand(b),
+              f"{SITE}/{LIST}/{fn}", "weekly", "0.7")
+        for g in b["groups"]:
+            pages = chunk(g["items"])
+            for i, items in enumerate(pages):
+                fn = page_slug(g, i) + ".html"
+                list_files.append(fn)
+                w.put(os.path.join(LIST, fn), render_list_group(g, i, len(pages), items),
+                      f"{SITE}/{LIST}/{fn}", "weekly", "0.6")
+
+    # ⑤ 在庫から消えた型番ページ・使わなくなった一覧ページを削除
     removed = 0
-    if os.path.isdir(OUT):
-        for fn in os.listdir(OUT):
+    for d, keep in ((OUT, set(r["_slug"] + ".html" for r in live)), (LIST, set(list_files))):
+        if not os.path.isdir(d):
+            continue
+        for fn in os.listdir(d):
             if fn.endswith(".html") and fn not in keep:
-                os.remove(os.path.join(OUT, fn))
+                os.remove(os.path.join(d, fn))
                 removed += 1
-    slugs.sort()
-    write_sitemap(slugs, lastmod)
-    print("wrote: %d / removed(stale): %d / no description_ja(fallback used): %d"
-          % (wrote, removed, no_desc))
+
+    sm = w.write_sitemap()
+    print("型番ページ %d 件 / 一覧ページ %d 件" % (len(live), len(list_files)))
+    print("更新: %d / 変更なし(据え置き): %d / 削除: %d / sitemap: %s"
+          % (w.changed, w.same, removed, "更新" if sm else "変更なし"))
+    print("no description_ja(fallback used): %d" % no_desc)
 
 if __name__ == "__main__":
     main()

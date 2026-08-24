@@ -28,7 +28,7 @@ jobs:
         run: |
           git config user.name "geoport-bot"
           git config user.email "info@geoport.co.jp"
-          git add -A p sitemap.xml
+          git add -A p list sitemap.xml index.html
           if git diff --cached --quiet; then
             echo "変更なし（コミットしません）"
           else

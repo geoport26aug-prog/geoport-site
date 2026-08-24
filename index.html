@@ -42,16 +42,39 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .search input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:16px;padding:16px 16px 16px 48px;border-radius:11px;font-family:inherit}
 .search input:focus{outline:none;border-color:var(--accent)}
 .search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
-.brands{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden}
+.brands{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden}
+/* マウスのある端末では、ボタンから出るポップが切れないように枠の制限を外し、
+   余った横幅はボタンで均等に埋める（1行に満遍なく並ぶ） */
+@media (hover:hover){
+  .brands{max-height:none;overflow:visible}
+  .brands .bi{flex:1 1 auto}
+  .brands .bi .chip{width:100%}
+}
 .filterbar{position:sticky;top:56px;z-index:20;background:var(--black);border-bottom:1px solid var(--border);box-shadow:0 5px 14px rgba(15,47,92,.06)}
 .fbinner{max-width:1180px;margin:0 auto;padding:12px 20px}
-.chip{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px 13px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;font-weight:600;white-space:nowrap}
+.chip{background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px 11px;border-radius:20px;font-size:13px;cursor:pointer;transition:.15s;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;font-weight:600;white-space:nowrap}
 .chip:hover{border-color:var(--accent);color:var(--text)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#ffffff}
+/* 選択中のボタンだけ「✕」を出す＝もう一度押せば絞り込みを解除できると分かるように */
+.chip.on::after{content:" ✕";font-size:11px;opacity:.85;margin-left:3px}
 .chip small{opacity:.7;margin-left:5px;font-family:'Barlow',sans-serif}
 .notice{max-width:1180px;margin:16px auto 0;padding:0 20px}
 .notice .box{background:rgba(28,95,176,.07);border:1px solid rgba(28,95,176,.28);border-radius:10px;padding:11px 15px;font-size:12px;color:var(--muted);line-height:1.7}
 .notice .box a{color:var(--accent);text-decoration:underline}
+.bi{position:relative;display:inline-block}
+/* ポップは「隙間なし＋消えるまで少し待つ」。カーソルを下ろす途中で閉じないようにする */
+.bipop{position:absolute;left:0;top:100%;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 14px 32px rgba(15,47,92,.18);padding:10px 12px 12px;width:max-content;max-width:92vw;visibility:hidden;opacity:0;transition:visibility 0s linear .3s,opacity .12s linear .3s}
+.bipop::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px}
+.bi:hover .bipop,.bi:focus-within .bipop{visibility:visible;opacity:1;transition-delay:0s,0s}
+.bipop .ph{display:block;font-size:11px;color:var(--muted);padding:2px 8px 8px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.bpg{display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--rows,10),auto);gap:1px 18px;justify-content:start}
+.bipop a{display:flex;justify-content:space-between;gap:16px;padding:5px 8px;border-radius:6px;border-bottom:none;text-decoration:none;color:var(--text);font-size:12px;white-space:nowrap;line-height:1.6}
+.bipop a:hover{background:var(--line);color:var(--accent)}
+.bipop a i{color:var(--muted);font-style:normal;font-family:'Barlow',sans-serif}
+@media (hover:none){.bipop{display:none!important}}
+.fbrands{display:block;margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid var(--border);line-height:2}
+.fbrands a{margin:0 7px;text-decoration:none;color:var(--muted)}
+.fbrands a:hover{color:var(--accent);text-decoration:underline}
 .meta{max-width:1180px;margin:0 auto;padding:14px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .meta b{color:var(--accent2);font-family:'Barlow',sans-serif}
 .grid{max-width:1180px;margin:0 auto;padding:8px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:stretch}
@@ -137,16 +160,18 @@ header{background:#0f2f5c;border-color:#123354}
 <div class="filterbar"><div class="fbinner">
 <div class="search">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>
-<input id="q" type="text" placeholder="型番・メーカー・キーワードで検索（例: 6ES7 / inverter / Fanuc）" disabled>
+<input id="q" type="text" placeholder="型番・メーカー・用途で検索（例: 6ES7952 / 電源ユニット / Fanuc）" disabled>
 </div>
 <div class="brands" id="brands"></div>
-</div></div><div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div></div>
+</div></div>
+<!--BRANDSERIES--><script type="application/json" id="brandseries">{"Siemens":{"slug":"siemens","n":3252,"s":[["Simatic S7","siemens-simatic-s7",546],["Simatic S5","siemens-simatic-s5",404],["Simatic ET200","siemens-simatic-et200",333],["SIMATIC","siemens-simatic",312],["Sinamics","siemens-sinamics",312],["Sirius","siemens-sirius",145],["SIMATIC HMI","siemens-simatic-hmi",136],["Sitop","siemens-sitop",83],["Micromaster","siemens-micromaster",73],["SINUMERIK","siemens-sinumerik",57],["SCALANCE","siemens-scalance",56],["Sicomp","siemens-sicomp",46],["SIMOVERT","siemens-simovert",46],["Teleperm","siemens-teleperm",45],["Siwarex","siemens-siwarex",44],["LOGO!","siemens-logo",43],["Simadyn","siemens-simadyn",42],["Siplus","siemens-siplus",42],["Simoreg","siemens-simoreg",37],["Sentron","siemens-sentron",34],["Moby","siemens-moby",30],["Simodrive","siemens-simodrive",29],["Siplus S7","siemens-siplus-s7",26],["SIPROTEC","siemens-siprotec",20],["Sitrans","siemens-sitrans",20],["Sinaut","siemens-sinaut",19],["Sipart","siemens-sipart",19],["Simotion","siemens-simotion",12],["Simatic Box PC","siemens-simatic-box-pc",9],["SIMEAS","siemens-simeas",6],["Simocode","siemens-simocode",6],["Simatic Panel PC","siemens-simatic-panel-pc",5],["ALPHA","siemens-alpha",3],["Simatic C7","siemens-simatic-c7",3],["Sinec","siemens-sinec",3],["ISKAMATIC","siemens-iskamatic",2],["Sivacon","siemens-sivacon",2],["WS series","siemens-ws-series",2],["Midimaster","siemens-midimaster",1],["Sicam","siemens-sicam",1],["Simatic Rack PC","siemens-simatic-rack-pc",1],["Siplus HMI","siemens-siplus-hmi",1],["Ultra","siemens-ultra",1],["その他の型番","siemens-other",195]]},"Schneider Electric":{"slug":"schneider-electric","n":365,"s":[["Altivar","schneider-electric-altivar",132],["Modicon X80","schneider-electric-modicon-x80",41],["MODICON TM3","schneider-electric-modicon-tm3",17],["Modicon Quantum","schneider-electric-modicon-quantum",14],["Modicon Premium","schneider-electric-modicon-premium",13],["Lexium","schneider-electric-lexium",10],["Modicon M340","schneider-electric-modicon-m340",10],["MODICON M580","schneider-electric-modicon-m580",9],["Modicon","schneider-electric-modicon",8],["MODICON M241","schneider-electric-modicon-m241",8],["OsiSense","schneider-electric-osisense",7],["Harmony","schneider-electric-harmony",6],["HARMONY GTO","schneider-electric-harmony-gto",6],["Harmony SCU","schneider-electric-harmony-scu",6],["TSX","schneider-electric-tsx",6],["MODICON M221","schneider-electric-modicon-m221",5],["Modicon TM5","schneider-electric-modicon-tm5",5],["TSX serie 17","schneider-electric-tsx-serie-17",5],["Tesys D","schneider-electric-tesys-d",4],["Harmony GTU","schneider-electric-harmony-gtu",3],["Modicon Momentum","schneider-electric-modicon-momentum",3],["Modicon STB","schneider-electric-modicon-stb",3],["Modicon TSX Micro","schneider-electric-modicon-tsx-micro",3],["PacDrive","schneider-electric-pacdrive",3],["Acti9","schneider-electric-acti9",2],["Advantys Telefast","schneider-electric-advantys-telefast",2],["HARMONY STO & STU","schneider-electric-harmony-sto-stu",2],["MODICON M251","schneider-electric-modicon-m251",2],["Zelio","schneider-electric-zelio",2],["Harmony K","schneider-electric-harmony-k",1],["Magelis XBT","schneider-electric-magelis-xbt",1],["Magelis XBT H","schneider-electric-magelis-xbt-h",1],["Magelis XBTN","schneider-electric-magelis-xbtn",1],["Magelis XBTR","schneider-electric-magelis-xbtr",1],["Magelis XBTRT","schneider-electric-magelis-xbtrt",1],["Modicon ABE7","schneider-electric-modicon-abe7",1],["Modicon LMC058","schneider-electric-modicon-lmc058",1],["MODICON M258","schneider-electric-modicon-m258",1],["Modicon TSX NANO","schneider-electric-modicon-tsx-nano",1],["Multi 9","schneider-electric-multi-9",1],["PowerLogic","schneider-electric-powerlogic",1],["TeSys","schneider-electric-tesys",1],["その他の型番","schneider-electric-other",15]]},"ABB":{"slug":"abb","n":121,"s":[["ACS","abb-acs",53],["Advant S800 I/O","abb-advant-s800-i-o",14],["Advant AC500","abb-advant-ac500",12],["Advant Controller 31","abb-advant-controller-31",3],["SACE Tmax","abb-sace-tmax",3],["Advant AC 800M","abb-advant-ac-800m",2],["Procontic","abb-procontic",2],["ACH","abb-ach",1],["Advant Controller 250","abb-advant-controller-250",1],["Advant S200 I/O","abb-advant-s200-i-o",1],["DCS","abb-dcs",1],["H&B freelance 2000","abb-h-b-freelance-2000",1],["その他の型番","abb-other",27]]},"Fanuc":{"slug":"fanuc","n":112,"s":[["ALPHA I series","fanuc-alpha-i-series",10],["ALPHA series","fanuc-alpha-series",9],["Velocity","fanuc-velocity",2],["BETA I series","fanuc-beta-i-series",1],["C serie","fanuc-c-serie",1],["S serie","fanuc-s-serie",1],["Series 90-30","fanuc-series-90-30",1],["その他の型番","fanuc-other",87]]},"SEW-Eurodrive":{"slug":"sew-eurodrive","n":47,"s":[["Movidrive","sew-eurodrive-movidrive",27],["Movitrac","sew-eurodrive-movitrac",11],["Movitrac 31","sew-eurodrive-movitrac-31",1],["その他の型番","sew-eurodrive-other",8]]},"B&R":{"slug":"b-r","n":45,"s":[["X20 systems","b-r-x20-systems",33],["ACOPOS","b-r-acopos",3],["Power Panel","b-r-power-panel",2],["System 2003","b-r-system-2003",2],["System 2005","b-r-system-2005",2],["ACOPOSmulti","b-r-acoposmulti",1],["Automation Panel","b-r-automation-panel",1],["PC 720","b-r-pc-720",1]]},"Lenze":{"slug":"lenze","n":45,"s":[["8400-series","lenze-8400-series",31],["9400-series","lenze-9400-series",7],["8200-series","lenze-8200-series",5],["9300-Series","lenze-9300-series",1],["ECS","lenze-ecs",1]]},"Allen-Bradley":{"slug":"allen-bradley","n":42,"s":[["1734-series","allen-bradley-1734-series",20],["Controllogix","allen-bradley-controllogix",8],["Compactlogix","allen-bradley-compactlogix",6],["Kinetix","allen-bradley-kinetix",2],["Powerflex","allen-bradley-powerflex",2],["Micrologix","allen-bradley-micrologix",1],["SLC","allen-bradley-slc",1],["Stratix","allen-bradley-stratix",1],["その他の型番","allen-bradley-other",1]]},"Control Techniques":{"slug":"control-techniques","n":12,"s":[["Mentor MP","control-techniques-mentor-mp",4],["Unidrive SP","control-techniques-unidrive-sp",2],["Maxi Maestro","control-techniques-maxi-maestro",1],["Unidrive M200","control-techniques-unidrive-m200",1],["その他の型番","control-techniques-other",4]]},"Indramat":{"slug":"indramat","n":1,"s":[["DIAX02","indramat-diax02",1]]},"その他":{"slug":"other","n":1,"s":[["その他の型番","other-other",1]]}}</script><!--/BRANDSERIES-->
+<div class="meta"><div><b id="count">—</b> 件 / 在庫あり・即納可能</div></div>
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
 <div class="state err" id="error" style="display:none"></div>
 <div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
-<footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>掲載中の在庫品を、通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br><a href="./guide.html">サービス案内・保証規定</a> ｜ <a href="./company.html">会社情報</a></footer>
+<footer><span class="fbrands"><!--BRANDLINKS--><a href="./list/siemens.html">Siemens</a><a href="./list/schneider-electric.html">Schneider Electric</a><a href="./list/abb.html">ABB</a><a href="./list/fanuc.html">Fanuc</a><a href="./list/sew-eurodrive.html">SEW-Eurodrive</a><a href="./list/b-r.html">B&amp;R</a><a href="./list/lenze.html">Lenze</a><a href="./list/allen-bradley.html">Allen-Bradley</a><a href="./list/control-techniques.html">Control Techniques</a><a href="./list/indramat.html">Indramat</a><a href="./list/other.html">その他</a><!--/BRANDLINKS--></span>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>掲載中の在庫品を、通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br><a href="./list/index.html">メーカー・シリーズ一覧</a> ｜ <a href="./guide.html">サービス案内・保証規定</a> ｜ <a href="./company.html">会社情報</a></footer>
 <div class="overlay" id="overlay"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub" id="m-art"></div></div><button class="x" onclick="closeModal()">&times;</button></div>
 <div class="mbody" id="m-form">
@@ -217,23 +242,96 @@ function fetchAll(){
   }
   return page(0);
 }
+/* メーカーごとのシリーズ一覧（gen_pages.py が毎日書き出す。ポップの中身に使う） */
+var BSERIES={};
+try{BSERIES=JSON.parse((document.getElementById("brandseries")||{}).textContent||"{}");}catch(e){BSERIES={};}
 function buildBrands(){
-  BC={}; DATA.forEach(function(d){BC[d.brand]=(BC[d.brand]||0)+1;});
+  BC={}; DATA.forEach(function(d){var b=(d.brand||"").trim(); if(b)BC[b]=(BC[b]||0)+1;});
   BRANDS=Object.keys(BC).sort(function(a,b){return BC[b]-BC[a];});
+}
+/* メーカーボタンに重ねると出るシリーズ一覧。スクロール不要な段組みにする */
+function popHtml(b){
+  var d=BSERIES[b]; if(!d||!d.s||!d.s.length) return "";
+  var n=d.s.length, cols=n<=10?1:(n<=24?2:(n<=36?3:4)), rows=Math.ceil(n/cols), s="", i;
+  for(i=0;i<n;i++){s+='<a href="./list/'+d.s[i][1]+'.html">'+h(d.s[i][0])+'<i>'+(d.s[i][2]||0).toLocaleString()+'</i></a>';}
+  return '<span class="bipop"><span class="ph">'+h(b)+' のシリーズ（'+(d.n||0).toLocaleString()+'点）</span>'
+       + '<span class="bpg" style="--rows:'+rows+'">'+s+'</span></span>';
 }
 function brandList(){
   var el=$("brands"); if(!el) return;
-  var top=BRANDS.slice(0,10);
-  var html='<button class="chip '+(activeBrand==="ALL"?"on":"")+'" onclick="setBrand(\'ALL\')">すべて<small>'+DATA.length.toLocaleString()+'</small></button>';
-  top.forEach(function(b){html+='<button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'+h(b)+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>';});
+  var html='';
+  BRANDS.forEach(function(b){
+    html+='<span class="bi"><button class="chip '+(b===activeBrand?"on":"")+'" onclick="setBrand(\''+esc(b)+'\')">'
+        + h(b)+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>'+popHtml(b)+'</span>';
+  });
   el.innerHTML=html;
 }
-function setBrand(b){activeBrand=b;brandList();apply();}
+function setBrand(b){activeBrand=(b===activeBrand?"ALL":b);brandList();apply();}
+/* --- 検索の言葉のゆれを吸収する ---------------------------------------
+   説明文はAIが「プログラマブルロジックコントローラ」等と書くため、お客様が
+   使う言い方（シーケンサ 等）では出ないことがある。入力語を候補に広げて拾う。 */
+var SYN={
+  "シーケンサ":["plc","プログラマブル","ロジックコントローラ","logix"],
+  "シーケンサー":["plc","プログラマブル","ロジックコントローラ","logix"],
+  "プログラマブルコントローラ":["plc","プログラマブル"],
+  "plc":["plc","プログラマブル"],
+  "タッチパネル":["hmi","表示器","オペレータ","操作パネル"],
+  "表示器":["hmi","タッチパネル","表示"],
+  "hmi":["hmi","タッチパネル","表示器"],
+  "インバータ":["インバータ","inverter","周波数変換"],
+  "サーボアンプ":["サーボ","servo"],
+  "サーボモータ":["サーボ","servo","モータ"],
+  "電磁接触器":["コンタクタ","contactor","接触器"],
+  "コンタクタ":["コンタクタ","contactor","電磁接触"],
+  "電源ユニット":["電源"],
+  "スイッチング電源":["電源"],
+  "入出力":["入力","出力","i/o"],
+  "io":["i/o","入力","出力"],
+  "エンコーダ":["エンコーダ","encoder"],
+  "センサ":["センサ","sensor"],
+  "ブレーカ":["ブレーカ","breaker","遮断"],
+  "ギヤ":["ギヤ","ギア","gear"],
+  "ギア":["ギア","ギヤ","gear"],
+  "減速機":["ギヤ","ギア","gear","減速"],
+  "産業用pc":["pc","ipc","パネルpc"],
+  "安全":["安全","safety","セーフティ"]
+};
+function zen2han(s){return s.replace(/[！-～]/g,function(c){return String.fromCharCode(c.charCodeAt(0)-0xFEE0);}).replace(/　/g," ");}
+function qTerms(q){
+  q=zen2han(q).toLowerCase().trim();
+  if(!q)return [];
+  var t=[q], i;
+  /* カタカナ末尾の長音のゆれ（インバーター ⇔ インバータ／モーター ⇔ モータ） */
+  if(/[ァ-ヶ]$/.test(q))t.push(q+"ー");
+  if(/ー$/.test(q)&&/[ァ-ヶ]/.test(q.slice(-2,-1)))t.push(q.slice(0,-1));
+  /* 型番のハイフン・空白のゆれ（6ES7952-1AM00 ⇔ 6ES79521AM00） */
+  var bare=q.replace(/[-\s]/g,"");
+  if(bare&&bare!==q)t.push(bare);
+  /* 同義語 */
+  var keys=[q]; if(bare!==q)keys.push(bare);
+  for(i=0;i<keys.length;i++){var s=SYN[keys[i]]; if(s)t=t.concat(s);}
+  /* 重複を除く */
+  var seen={},out=[];
+  for(i=0;i<t.length;i++){if(t[i]&&!seen[t[i]]){seen[t[i]]=1;out.push(t[i]);}}
+  return out;
+}
+function haystack(d){
+  if(d._s)return d._s;
+  var art=(d.article||"");
+  var s=(art+" "+art.replace(/[-\s]/g,"")+" "+(d.brand||"")+" "+(d.family||"")+" "
+        +(d.description||"")+" "+(d.description_ja||""));
+  d._s=zen2han(s).toLowerCase();
+  return d._s;
+}
 function apply(){
-  var qel=$("q"); var q=qel?qel.value.trim().toLowerCase():"";
+  var qel=$("q"); var terms=qTerms(qel?qel.value:"");
   filtered=DATA.filter(function(d){
     if(activeBrand!=="ALL"&&d.brand!==activeBrand)return false;
-    if(q){var s=((d.article||"")+" "+(d.brand||"")+" "+(d.family||"")+" "+(d.description||"")+" "+(d.description_ja||"")).toLowerCase();if(s.indexOf(q)<0)return false;}
+    if(terms.length){
+      var s=haystack(d),ok=false;
+      for(var i=0;i<terms.length;i++){if(s.indexOf(terms[i])>=0){ok=true;break;}}
+      if(!ok)return false;
+    }
     return true;
   });
   shown=PAGE;render();
@@ -297,12 +395,44 @@ function submitInquiry(){
   var qel=$("q"); if(qel) qel.addEventListener("input",function(){apply();});
 })();
 function fitStick(){var h=document.querySelector("header"),fb=document.querySelector(".filterbar"); if(h&&fb) fb.style.top=h.offsetHeight+"px";}
+/* メーカーのポップが画面右にはみ出すときだけ、左へずらして全体が見えるようにする */
+function fitPop(bi){
+  var pop=bi.querySelector(".bipop"); if(!pop) return;
+  pop.style.left="0px";
+  var over=pop.getBoundingClientRect().right-(document.documentElement.clientWidth-12);
+  if(over>0) pop.style.left=(-Math.ceil(over))+"px";
+}
+/* 別のメーカーへ移ったときは、前のポップを待たずに即座に消す（残像を防ぐ）。
+   ボタンからポップへ下ろす途中（どのメーカーにも乗っていない状態）は、
+   CSSの0.3秒の猶予をそのまま活かすので、ここでは何もしない。 */
+var lastBi=null;
+document.addEventListener("mouseover",function(ev){
+  var el=ev.target,bi=null;
+  while(el&&el!==document.body){
+    if(el.classList&&el.classList.contains("bi")){bi=el;break;}
+    el=el.parentNode;
+  }
+  if(!bi||bi===lastBi)return;
+  if(lastBi){var op=lastBi.querySelector(".bipop"); if(op)op.style.transition="none";}
+  var np=bi.querySelector(".bipop");
+  if(np){np.style.transition="";np.style.transitionDelay="";}
+  fitPop(bi);
+  lastBi=bi;
+});
 fitStick(); window.addEventListener("resize",fitStick); window.addEventListener("load",fitStick);
 (function(){
   var m=(location.search||"").match(/[?&]art=([^&]+)/);
   if(m){ var art; try{art=decodeURIComponent(m[1].replace(/\+/g," "));}catch(e){art=m[1];} if(art) openModal(art); }
 })();
 fetchAll().then(function(rows){
+  /* 写真のある製品を先に並べる（見た目の印象を良くするため）。
+     写真の有無が同じものどうしは、これまでどおり型番順。 */
+  rows.sort(function(a,b){
+    var ai=(a.image_url?0:1), bi=(b.image_url?0:1);
+    if(ai!==bi) return ai-bi;
+    var x=(a.article||""), y=(b.article||"");
+    return x<y?-1:(x>y?1:0);
+  });
   DATA=rows;
   var ld=$("loading"); if(ld) ld.style.display="none";
   var qel=$("q"); if(qel) qel.disabled=false;
