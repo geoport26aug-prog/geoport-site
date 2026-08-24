@@ -63,6 +63,8 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .card:hover .golink{color:var(--accent2)}
 .thumb{height:96px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden;background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px)}
 .thumb .pn{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:#aab6c4;font-size:17px;letter-spacing:1px}
+.thumb.has-img{background:#fff}
+.thumbimg{width:100%;height:100%;object-fit:contain;padding:6px}
 .badge{position:absolute;top:10px;left:10px;background:rgba(21,128,61,.15);color:var(--green);border:1px solid rgba(21,128,61,.4);font-size:11px;font-weight:700;padding:4px 9px;border-radius:5px;z-index:2}
 .cbody{padding:14px;display:flex;flex-direction:column;gap:5px;flex:1}
 .brand{font-size:11px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
@@ -243,7 +245,7 @@ function render(){
   var mEl=$("more"); if(mEl) mEl.style.display=filtered.length>shown?"block":"none";
   var gEl=$("grid"); if(!gEl) return;
   gEl.innerHTML=list.map(function(d){
-    return '<div class="card"><div class="thumb"><span class="badge">● 在庫 '+h(d.stock)+' 点</span><span class="pn">'+h(d.brand)+'</span></div>'+
+    return '<div class="card"><div class="thumb'+(d.image_url?' has-img':'')+'"><span class="badge">● 在庫 '+h(d.stock)+' 点</span>'+(d.image_url?'<img class="thumbimg" src="'+h(d.image_url)+'" alt="'+h(d.article)+'" loading="lazy">':'<span class="pn">'+h(d.brand)+'</span>')+'</div>'+
     '<div class="cbody"><div class="brand">'+h(d.brand)+' · 新古品</div><div class="art"><a class="cardlink" href="p/'+slugify(d.article)+'.html">'+h(d.article)+'</a></div>'+
     '<div class="desc">'+h(cardDesc(d))+'</div>'+
     '<div class="specrow"><span>'+h(d.family&&d.family!=="None"?d.family:"")+'</span></div>'+
