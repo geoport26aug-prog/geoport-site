@@ -24,9 +24,11 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .wrap{max-width:900px;margin:0 auto;padding:20px}
 .crumb{font-size:12px;color:var(--muted);margin-bottom:16px}
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--accent)}
-.top{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
-@media(max-width:640px){.top{grid-template-columns:1fr}}
-.photo{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px);border:1px solid var(--border);border-radius:12px;height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#aab6c4;gap:8px}
+.top{display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
+@media(max-width:720px){.top{grid-template-columns:1fr}}
+.photo{border:1px solid var(--border);border-radius:12px;background:#fff;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden}
+.photo img{max-width:100%;max-height:100%;object-fit:contain}
+.photo.ph{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px);flex-direction:column;color:#aab6c4;gap:8px}
 .photo .pn{font-family:'Barlow',sans-serif;font-weight:600;font-size:18px;color:#aab6c4;word-break:break-all;text-align:center;padding:0 14px}
 .photo .note{font-size:11px;color:var(--muted)}
 .brand{font-size:12px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
@@ -79,13 +81,13 @@ header{background:#0f2f5c;border-color:#123354}
 
 def fetch_catalog():
     # description_ja がまだ公開ビューに無い場合(view更新前)は、その列を外して取得する
-    cols = "article,brand,family,condition,stock,weight_kg,description_ja"
+    cols = "article,brand,family,condition,stock,weight_kg,image_url,description_ja"
     try:
         rows = _fetch(cols)
     except urllib.error.HTTPError as ex:
         if ex.code == 400 and "description_ja" in cols:
             print("note: description_ja 列が catalog に無いため、説明なしで生成します（view更新前）")
-            rows = _fetch("article,brand,family,condition,stock,weight_kg")
+            rows = _fetch("article,brand,family,condition,stock,weight_kg,image_url")
         else:
             raise
     _attach_dims(rows)
@@ -234,6 +236,14 @@ def render(row, slug):
     spec_extra = ('<details class="specbox" open><summary>製品仕様</summary>'
                   '<table class="spec2">' + "".join(s for s in _srows if s) +
                   '</table></details>')
+    # 製品写真（自社ストレージの公開URLのみ。無ければ準備中プレースホルダ）
+    img_url = (row.get("image_url") or "").strip()
+    if img_url:
+        photo_html = (f'<div class="photo"><img src="{e(img_url)}" '
+                      f'alt="{e(art)} {e(brand)}" loading="lazy"></div>')
+    else:
+        photo_html = (f'<div class="photo ph"><span class="pn">{e(art)}</span>'
+                      f'<span class="note">製品写真は準備中です</span></div>')
     return f"""<!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -264,10 +274,7 @@ def render(row, slug):
 <div class="crumb"><a href="../index.html">製品カタログ</a> ／ {e(art)}</div>
 
 <div class="top">
-  <div class="photo">
-    <span class="pn">{e(art)}</span>
-    <span class="note">製品写真は準備中です</span>
-  </div>
+  {photo_html}
   <div>
     {brand_html}
     <h1>{e(art)}</h1>
