@@ -34,6 +34,11 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .photo.ph{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px);flex-direction:column;color:#aab6c4;gap:8px}
 .photo .pn{font-family:'Barlow',sans-serif;font-weight:600;font-size:18px;color:#aab6c4;word-break:break-all;text-align:center;padding:0 14px}
 .photo .note{font-size:11px;color:var(--muted)}
+.thumbs{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.th{width:56px;height:56px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:3px;cursor:pointer;overflow:hidden;transition:.15s}
+.th img{width:100%;height:100%;object-fit:contain;display:block}
+.th:hover{border-color:var(--accent)}
+.th.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .brand{font-size:12px;color:var(--accent);letter-spacing:1.5px;font-weight:700;text-transform:uppercase}
 h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:break-all;margin:6px 0 4px}
 .series{color:var(--muted);font-size:13px;margin-bottom:14px}
@@ -120,7 +125,7 @@ def _attach_dims(rows):
     specs, off = {}, 0
     try:
         while True:
-            url = (SB_URL + "/rest/v1/product_dims?select=article,dimensions,commodity_code,ean"
+            url = (SB_URL + "/rest/v1/product_dims?select=article,dimensions,commodity_code,ean,image_count"
                    "&order=article&limit=%d&offset=%d&apikey=%s" % (PAGE, off, SB_KEY))
             req = urllib.request.Request(url, headers={"apikey": SB_KEY})
             with urllib.request.urlopen(req, timeout=60) as r:
@@ -139,6 +144,10 @@ def _attach_dims(rows):
         row["dimensions"]     = d.get("dimensions") or ""
         row["commodity_code"] = d.get("commodity_code") or ""
         row["ean"]            = d.get("ean") or ""
+        try:
+            row["image_count"] = int(d.get("image_count") or 0)
+        except (TypeError, ValueError):
+            row["image_count"] = 0
 
 def _fetch(cols):
     rows, off = [], 0
@@ -504,10 +513,22 @@ def render(row, slug, g=None, pos=0):
                   '<table class="spec2">' + "".join(s for s in _srows if s) +
                   '</table></details>')
     # 製品写真（自社ストレージの公開URLのみ。無ければ準備中プレースホルダ）
+    # 2枚目以降は x/<slug>_N.jpg。サムネイルを押すと大きい写真が入れ替わる。
     img_url = (row.get("image_url") or "").strip()
     if img_url:
-        photo_html = (f'<div class="photo"><img src="{e(img_url)}" '
-                      f'alt="{e(art)} {e(brand)}" loading="lazy"></div>')
+        n_img = max(1, int(row.get("image_count") or 1))
+        shots = [img_url] + [f"{SB_URL}/storage/v1/object/public/product-images/x/{slug}_{i}.jpg"
+                             for i in range(1, n_img)]
+        thumbs = ""
+        if len(shots) > 1:
+            btns = "".join(
+                f'<button type="button" class="th{" on" if i == 0 else ""}" '
+                f"onclick=\"showShot(this,'{e(u)}')\" aria-label=\"写真{i + 1}\">"
+                f'<img src="{e(u)}" alt="" loading="lazy"></button>'
+                for i, u in enumerate(shots))
+            thumbs = f'<div class="thumbs">{btns}</div>'
+        photo_html = (f'<div><div class="photo"><img id="mainshot" src="{e(img_url)}" '
+                      f'alt="{e(art)} {e(brand)}"></div>{thumbs}</div>')
     else:
         photo_html = (f'<div class="photo ph"><span class="pn">{e(art)}</span>'
                       f'<span class="note">製品写真は準備中です</span></div>')
@@ -596,6 +617,9 @@ var SB_KEY={sbkey_json};
 var RELAY={relay_json};
 var ART={art_json};
 function $(i){{return document.getElementById(i);}}
+function showShot(b,u){{var m=$("mainshot");if(m)m.src=u;
+  var t=document.querySelectorAll(".th");for(var i=0;i<t.length;i++)t[i].classList.remove("on");
+  b.classList.add("on");}}
 function openQuote(){{var e=$("m-err");if(e)e.style.display="none";var f=$("mform");if(f)f.style.display="flex";var ft=$("mfoot");if(ft)ft.style.display="block";var s=$("m-sent");if(s)s.classList.remove("show");var b=$("m-sub");if(b){{b.disabled=false;b.textContent="この内容で問い合わせる";}}["f-qty","f-co","f-name","f-mail","f-note"].forEach(function(id){{var el=$(id);if(el)el.value=(id==="f-qty"?"1":"");}});var ov=$("ov");if(ov)ov.classList.add("show");}}
 function closeQuote(){{var ov=$("ov");if(ov)ov.classList.remove("show");}}
 function submitQuote(){{
