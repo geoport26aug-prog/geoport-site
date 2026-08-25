@@ -319,8 +319,8 @@ def _shell(title, metad, canon, h1, crumb_html, body, jsonld, updir="../"):
 {CSS}
 </style></head><body>
 <header><div class="bar">
-<a class="logo" href="{updir}index.html"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
-<a class="back" href="{updir}index.html">← 製品カタログへ戻る</a>
+<a class="logo" href="{updir}"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
+<a class="back" href="{updir}">← 製品カタログへ戻る</a>
 </div></header>
 
 <div class="wrap">
@@ -331,7 +331,7 @@ def _shell(title, metad, canon, h1, crumb_html, body, jsonld, updir="../"):
 
 <footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
 掲載中の在庫品を短納期でお届けします。価格・お見積りはお問い合わせください。<br>
-<a href="{updir}list/index.html">メーカー・シリーズ一覧</a> ｜ <a href="{updir}guide.html">サービス案内・保証規定</a> ｜ <a href="{updir}company.html">会社情報</a></footer>
+<a href="{updir}list/">メーカー・シリーズ一覧</a> ｜ <a href="{updir}guide.html">サービス案内・保証規定</a> ｜ <a href="{updir}company.html">会社情報</a></footer>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "1f55d2e30afe4d8a806863540932191d"}}'></script><!-- End Cloudflare Web Analytics -->
 </body></html>
 """
@@ -376,7 +376,7 @@ def render_list_top(brands):
                   f"GEOPORTが取り扱う産業用FA機器 {total:,} 点の在庫を、メーカー別・シリーズ別に一覧できます。"
                   f"Siemens・Schneider Electric・ABB・Fanuc ほか。型番から在庫確認・お見積りをご依頼いただけます。",
                   f"{SITE}/{LIST}/", "メーカー・シリーズ一覧",
-                  '<a href="../index.html">製品カタログ</a> ／ メーカー・シリーズ一覧', body,
+                  '<a href="../">製品カタログ</a> ／ メーカー・シリーズ一覧', body,
                   _crumb_ld([("製品カタログ", SITE + "/"), ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/")]))
 
 _BL_RE = re.compile(r"(<!--BRANDLINKS-->)(.*?)(<!--/BRANDLINKS-->)", re.S)
@@ -427,7 +427,7 @@ def render_list_brand(b):
                   f'{b["name"]} の産業用FA機器 {b["count"]:,} 点の在庫一覧。シリーズ別に型番を確認できます。'
                   f'新古品・初期不良は納品後1年以内保証。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
                   f'{SITE}/{LIST}/{b["slug"]}.html', f'{b["name"]} 在庫一覧',
-                  f'<a href="../index.html">製品カタログ</a> ／ <a href="index.html">メーカー・シリーズ一覧</a> ／ {e(b["name"])}',
+                  f'<a href="../">製品カタログ</a> ／ <a href="./">メーカー・シリーズ一覧</a> ／ {e(b["name"])}',
                   body,
                   _crumb_ld([("製品カタログ", SITE + "/"), ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/"),
                              (b["name"], f'{SITE}/{LIST}/{b["slug"]}.html')]))
@@ -453,7 +453,7 @@ def render_list_group(g, page_i, pages_total, items):
                   f'{label} の在庫 {n:,} 点の型番一覧{suffix}。新古品・初期不良は納品後1年以内保証。'
                   f'型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
                   canon, f'{label} 型番一覧',
-                  f'<a href="../index.html">製品カタログ</a> ／ <a href="index.html">メーカー・シリーズ一覧</a>'
+                  f'<a href="../">製品カタログ</a> ／ <a href="./">メーカー・シリーズ一覧</a>'
                   f' ／ <a href="{g["bslug"]}.html">{e(g["brand"])}</a> ／ {e(g["name"] if g["name"] != OTHER else "その他の型番")}',
                   body,
                   _crumb_ld([("製品カタログ", SITE + "/"), ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/"),
@@ -503,8 +503,8 @@ def render(row, slug, g=None, pos=0):
     # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
     # Search Consoleで「商品スニペット」不備の警告になるため（見積制で価格非公開）。パンくずのみ残す。
     # パンくず＝製品カタログ／メーカー・シリーズ一覧／メーカー／シリーズ／型番（一覧ページへの内部リンクを兼ねる）
-    trail = [("製品カタログ", SITE + "/", "../index.html"),
-             ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/", f"../{LIST}/index.html")]
+    trail = [("製品カタログ", SITE + "/", "../"),
+             ("メーカー・シリーズ一覧", f"{SITE}/{LIST}/", f"../{LIST}/")]
     if g:
         trail.append((g["brand"], f'{SITE}/{LIST}/{g["bslug"]}.html', f'../{LIST}/{g["bslug"]}.html'))
         if g["name"] != OTHER:
@@ -607,8 +607,8 @@ def render(row, slug, g=None, pos=0):
 {CSS}
 </style></head><body>
 <header><div class="bar">
-<a class="logo" href="../index.html"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
-<a class="back" href="../index.html">← 製品カタログへ戻る</a>
+<a class="logo" href="../"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
+<a class="back" href="../">← 製品カタログへ戻る</a>
 </div></header>
 
 <div class="wrap">
@@ -647,7 +647,7 @@ def render(row, slug, g=None, pos=0):
 
 <footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
 掲載中の在庫品を短納期でお届けします。価格・お見積りはお問い合わせください。<br>
-<a href="../{LIST}/index.html">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
+<a href="../{LIST}/">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
 
 {lightbox}
 
