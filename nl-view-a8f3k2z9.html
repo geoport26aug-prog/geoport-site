@@ -171,6 +171,7 @@
             : ' ・ <span class="trk">追跡 '+esc(x.tracking_no)+'</span>')
         : '';
       var ql = x.quality ? '<span class="ql">'+esc(x.quality)+'</span> ・ ' : '';
+      var acc = x.plan_month ? ' ・ 検収 '+esc(x.plan_month) : ''; // ★予定検収月
       var el = document.createElement('div'); el.className='item';
       el.innerHTML =
         '<div class="due '+di.cls+'">'+di.t+'<small>'+mmdd(x.due_date)+'</small></div>'+
@@ -178,7 +179,7 @@
           '<span class="ship '+starCls+'">★</span>'+
           '<span class="sup">'+supMark(x.supplier)+'</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
-          '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+trk+'</div></div>'+
+          '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+acc+trk+'</div></div>'+
         '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>';
       L.appendChild(el);
     });
