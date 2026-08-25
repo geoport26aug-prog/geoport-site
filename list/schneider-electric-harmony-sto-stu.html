@@ -31,8 +31,25 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--accent)}
 .top{display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
 @media(max-width:720px){.top{grid-template-columns:1fr}}
-.photo{border:1px solid var(--border);border-radius:12px;background:#fff;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden}
+.photo{border:1px solid var(--border);border-radius:12px;background:#fff;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;position:relative}
 .photo img{max-width:100%;max-height:100%;object-fit:contain}
+.photo.zoomable img{cursor:zoom-in}
+/* 虫眼鏡（マウスのある端末だけ）。写真の上でカーソルに追従して約2.3倍に拡大する */
+.lens{display:none;position:absolute;width:170px;height:170px;border-radius:50%;border:2px solid rgba(28,95,176,.7);box-shadow:0 6px 20px rgba(15,47,92,.28);background-color:#fff;background-repeat:no-repeat;pointer-events:none;z-index:5}
+@media (hover:none){.lens{display:none!important}}
+.zhint{position:absolute;left:10px;bottom:10px;background:rgba(15,47,92,.72);color:#fff;font-size:10px;padding:3px 8px;border-radius:5px;pointer-events:none;letter-spacing:.5px}
+/* 全画面拡大（PC・スマホ共通） */
+.lb{position:fixed;inset:0;background:rgba(8,12,18,.93);display:none;z-index:60}
+.lb.show{display:block}
+/* 画像より枠が小さいときも端が切れないよう、スクロール枠＋margin:auto で中央寄せする */
+.lbscroll{position:absolute;inset:0;overflow:auto;display:flex;-webkit-overflow-scrolling:touch}
+.lb img{margin:auto;max-width:92vw;max-height:82vh;object-fit:contain;cursor:zoom-in}
+.lb img.full{max-width:none;max-height:none;cursor:zoom-out}
+.lb .x{position:fixed;top:12px;right:16px;background:none;border:none;color:#fff;font-size:30px;line-height:1;cursor:pointer;z-index:2}
+.lb .nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:46px;height:62px;border-radius:9px;cursor:pointer;z-index:2}
+.lb .nav:hover{background:rgba(255,255,255,.28)}
+.lb .prev{left:12px}.lb .next{right:12px}
+.lb .cnt{position:fixed;bottom:14px;left:0;right:0;text-align:center;color:#cdd9e8;font-size:12px;z-index:2}
 .photo.ph{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px);flex-direction:column;color:#aab6c4;gap:8px}
 .photo .pn{font-family:'Barlow',sans-serif;font-weight:600;font-size:18px;color:#aab6c4;word-break:break-all;text-align:center;padding:0 14px}
 .photo .note{font-size:11px;color:var(--muted)}

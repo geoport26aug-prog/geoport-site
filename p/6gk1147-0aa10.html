@@ -31,8 +31,25 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--accent)}
 .top{display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
 @media(max-width:720px){.top{grid-template-columns:1fr}}
-.photo{border:1px solid var(--border);border-radius:12px;background:#fff;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden}
+.photo{border:1px solid var(--border);border-radius:12px;background:#fff;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;position:relative}
 .photo img{max-width:100%;max-height:100%;object-fit:contain}
+.photo.zoomable img{cursor:zoom-in}
+/* 虫眼鏡（マウスのある端末だけ）。写真の上でカーソルに追従して約2.3倍に拡大する */
+.lens{display:none;position:absolute;width:170px;height:170px;border-radius:50%;border:2px solid rgba(28,95,176,.7);box-shadow:0 6px 20px rgba(15,47,92,.28);background-color:#fff;background-repeat:no-repeat;pointer-events:none;z-index:5}
+@media (hover:none){.lens{display:none!important}}
+.zhint{position:absolute;left:10px;bottom:10px;background:rgba(15,47,92,.72);color:#fff;font-size:10px;padding:3px 8px;border-radius:5px;pointer-events:none;letter-spacing:.5px}
+/* 全画面拡大（PC・スマホ共通） */
+.lb{position:fixed;inset:0;background:rgba(8,12,18,.93);display:none;z-index:60}
+.lb.show{display:block}
+/* 画像より枠が小さいときも端が切れないよう、スクロール枠＋margin:auto で中央寄せする */
+.lbscroll{position:absolute;inset:0;overflow:auto;display:flex;-webkit-overflow-scrolling:touch}
+.lb img{margin:auto;max-width:92vw;max-height:82vh;object-fit:contain;cursor:zoom-in}
+.lb img.full{max-width:none;max-height:none;cursor:zoom-out}
+.lb .x{position:fixed;top:12px;right:16px;background:none;border:none;color:#fff;font-size:30px;line-height:1;cursor:pointer;z-index:2}
+.lb .nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:46px;height:62px;border-radius:9px;cursor:pointer;z-index:2}
+.lb .nav:hover{background:rgba(255,255,255,.28)}
+.lb .prev{left:12px}.lb .next{right:12px}
+.lb .cnt{position:fixed;bottom:14px;left:0;right:0;text-align:center;color:#cdd9e8;font-size:12px;z-index:2}
 .photo.ph{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px);flex-direction:column;color:#aab6c4;gap:8px}
 .photo .pn{font-family:'Barlow',sans-serif;font-weight:600;font-size:18px;color:#aab6c4;word-break:break-all;text-align:center;padding:0 14px}
 .photo .note{font-size:11px;color:var(--muted)}
@@ -153,6 +170,8 @@ header{background:#0f2f5c;border-color:#123354}
 掲載中の在庫品を、通常10〜14日でお届けします。価格・お見積りはお問い合わせください。<br>
 <a href="../list/index.html">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
 
+
+
 <div class="overlay" id="ov"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub">6GK1147-0AA10</div></div><button class="x" type="button" onclick="closeQuote()">&times;</button></div>
 <div class="mbody" id="mform">
@@ -172,9 +191,58 @@ var SB_KEY="sb_publishable_qVTKT3ZOy8RL-5k2M94fVw_iOowUGWy";
 var RELAY="https://vprtbkkqqdfidzvfwhzo.supabase.co/functions/v1/quote-relay";
 var ART="6GK1147-0AA10";
 function $(i){return document.getElementById(i);}
-function showShot(b,u){var m=$("mainshot");if(m)m.src=u;
-  var t=document.querySelectorAll(".th");for(var i=0;i<t.length;i++)t[i].classList.remove("on");
-  b.classList.add("on");}
+/* ---- 写真の切替・虫眼鏡・全画面拡大 ---- */
+var SHOTS=[], CUR=0;
+function showShot(b,i){CUR=i;var m=$("mainshot");if(m&&SHOTS[i])m.src=SHOTS[i];
+  var t=document.querySelectorAll(".th");for(var k=0;k<t.length;k++)t[k].classList.remove("on");
+  if(b)b.classList.add("on");}
+function lbToggle(ev){if(ev)ev.stopPropagation();var im=$("lbimg");if(im)im.classList.toggle("full");lbCount();}
+function lbCount(){var im=$("lbimg"),tip="";
+  /* 画面いっぱいでも実寸に届かないときだけ「原寸で見る」を案内する（PCでは元々原寸のことが多い） */
+  if(im&&im.naturalWidth){
+    if(im.classList.contains("full")) tip="画像を押すと全体表示";
+    else if(im.naturalWidth>im.getBoundingClientRect().width+2) tip="画像を押すと原寸";
+  }
+  var head=(SHOTS.length>1?((CUR+1)+" / "+SHOTS.length):"");
+  var c=$("lbcnt");if(c)c.textContent=head+((head&&tip)?"　・　":"")+tip;
+  var n=document.querySelectorAll(".lb .nav");
+  for(var i=0;i<n.length;i++)n[i].style.display=SHOTS.length>1?"block":"none";}
+function openLB(){if(!SHOTS.length)return;var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}
+  var l=$("lb");if(l)l.classList.add("show");lbCount();}
+function closeLB(){var l=$("lb");if(l)l.classList.remove("show");}
+function lbBg(ev){if(ev.target&&ev.target.id==="lb")closeLB();}
+function stepLB(d){if(SHOTS.length<2)return;CUR=(CUR+d+SHOTS.length)%SHOTS.length;
+  var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}
+  var m=$("mainshot");if(m)m.src=SHOTS[CUR];
+  var t=document.querySelectorAll(".th");
+  for(var i=0;i<t.length;i++){if(i===CUR)t[i].classList.add("on");else t[i].classList.remove("on");}
+  lbCount();}
+document.addEventListener("keydown",function(ev){
+  var l=$("lb");if(!l||!l.classList.contains("show"))return;
+  if(ev.key==="Escape")closeLB();
+  else if(ev.key==="ArrowRight")stepLB(1);
+  else if(ev.key==="ArrowLeft")stepLB(-1);});
+/* 虫眼鏡：マウスのある端末だけ。倍率は写真の実サイズ÷表示サイズ（約2.3倍） */
+(function(){
+  if(!window.matchMedia||!matchMedia("(hover:hover)").matches)return;
+  var box=$("photobox"),img=$("mainshot");if(!box||!img)return;
+  var L=170,lens=document.createElement("div");lens.className="lens";box.appendChild(lens);
+  box.addEventListener("mousemove",function(ev){
+    if(!img.naturalWidth){lens.style.display="none";return;}
+    var r=img.getBoundingClientRect(),br=box.getBoundingClientRect();
+    if(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom){
+      lens.style.display="none";return;}
+    var zx=img.naturalWidth/r.width,zy=img.naturalHeight/r.height;
+    var x=ev.clientX-r.left,y=ev.clientY-r.top;
+    lens.style.display="block";
+    lens.style.left=(ev.clientX-br.left-L/2)+"px";
+    lens.style.top=(ev.clientY-br.top-L/2)+"px";
+    lens.style.backgroundImage='url("'+img.src+'")';
+    lens.style.backgroundSize=img.naturalWidth+"px "+img.naturalHeight+"px";
+    lens.style.backgroundPosition=(-(x*zx-L/2))+"px "+(-(y*zy-L/2))+"px";
+  });
+  box.addEventListener("mouseleave",function(){lens.style.display="none";});
+})();
 function openQuote(){var e=$("m-err");if(e)e.style.display="none";var f=$("mform");if(f)f.style.display="flex";var ft=$("mfoot");if(ft)ft.style.display="block";var s=$("m-sent");if(s)s.classList.remove("show");var b=$("m-sub");if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}["f-qty","f-co","f-name","f-mail","f-note"].forEach(function(id){var el=$(id);if(el)el.value=(id==="f-qty"?"1":"");});var ov=$("ov");if(ov)ov.classList.add("show");}
 function closeQuote(){var ov=$("ov");if(ov)ov.classList.remove("show");}
 function submitQuote(){
