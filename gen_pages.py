@@ -27,8 +27,12 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .wrap{max-width:900px;margin:0 auto;padding:20px}
 .crumb{font-size:12px;color:var(--muted);margin-bottom:16px}
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--accent)}
-.top{display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:start}
-@media(max-width:720px){.top{grid-template-columns:1fr}}
+.top{display:grid;grid-template-columns:380px 1fr;gap:28px;align-items:stretch}
+/* 写真の列を伸縮させ、右の仕様表と上端・下端を揃える（デザインの安定感） */
+.gal{display:flex;flex-direction:column}
+.gal .photo{flex:1 1 auto;aspect-ratio:auto;min-height:360px}
+@media(max-width:720px){.top{grid-template-columns:1fr}
+  .gal .photo{flex:0 0 auto;aspect-ratio:1/1;min-height:0}}
 .photo{border:1px solid var(--border);border-radius:12px;background:#fff;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;position:relative}
 .photo img{max-width:100%;max-height:100%;object-fit:contain}
 .photo.zoomable img{cursor:zoom-in}
@@ -72,6 +76,7 @@ h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:bre
 .spec{width:100%;border-collapse:collapse;margin:16px 0}
 .spec th,.spec td{text-align:left;padding:9px 12px;border:1px solid var(--border);font-size:13px;vertical-align:top}
 .spec th{background:var(--dark);color:var(--muted);font-weight:500;white-space:nowrap;width:34%}
+.wlink{margin-left:14px;color:var(--accent);text-decoration:underline}
 .cta{display:inline-block;background:var(--accent);color:#ffffff;font-weight:700;font-size:15px;padding:13px 26px;border-radius:9px;text-decoration:none;margin-top:6px;border:none;cursor:pointer;font-family:inherit}
 .cta:hover{background:var(--accent2)}
 .spec td .cta{margin:2px 0;font-size:14px;padding:11px 20px}
@@ -556,7 +561,7 @@ def render(row, slug, g=None, pos=0):
                 f'<img src="{e(u)}" alt="" loading="lazy"></button>'
                 for i, u in enumerate(shots))
             thumbs = f'<div class="thumbs">{btns}</div>'
-        photo_html = (f'<div><div class="photo zoomable" id="photobox">'
+        photo_html = (f'<div class="gal"><div class="photo zoomable" id="photobox">'
                       f'<img id="mainshot" src="{e(img_url)}" alt="{e(art)} {e(brand)}" '
                       f'onclick="photoClick()">'
                       f'<div class="inzoom" id="inzoom"></div>'
@@ -571,8 +576,8 @@ def render(row, slug, g=None, pos=0):
                       f'</div></div>'
                       f'{thumbs}</div>')
     else:
-        photo_html = (f'<div class="photo ph"><span class="pn">{e(art)}</span>'
-                      f'<span class="note">製品写真は準備中です</span></div>')
+        photo_html = (f'<div class="gal"><div class="photo ph"><span class="pn">{e(art)}</span>'
+                      f'<span class="note">製品写真は準備中です</span></div></div>')
     # 全画面拡大の器（写真がある場合だけ）
     lightbox = ("" if not img_url else
                 '<div class="lb" id="lb" onclick="lbBg(event)">'
@@ -622,8 +627,8 @@ def render(row, slug, g=None, pos=0):
       {brand_trow}
       {fam_row}
       <tr><th>品質区分</th><td>新古品（未使用在庫品）</td></tr>
-      <tr><th>納期</th><td>ご入金確認後、約10〜14日でお届け（輸送状況により前後する場合がございます）</td></tr>
-      <tr><th>保証</th><td>初期不良に限り納品後1年を保証</td></tr>
+      <tr><th>納期</th><td>約10〜14日でお届け</td></tr>
+      <tr><th>保証</th><td>1年保証<a class="wlink" href="../guide.html#warranty">保証規定</a></td></tr>
       <tr><th>価格</th><td><button class="cta" type="button" onclick="openQuote()">この製品の見積を確認する</button></td></tr>
     </table>
   </div>
