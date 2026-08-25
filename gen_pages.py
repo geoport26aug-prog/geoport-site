@@ -73,7 +73,7 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:break-all;margin:6px 0 4px}
 .series{color:var(--muted);font-size:13px;margin-bottom:14px}
 .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(21,128,61,.15);color:var(--green);border:1px solid rgba(21,128,61,.4);font-size:12px;font-weight:700;padding:5px 11px;border-radius:6px}
-.spec{width:100%;border-collapse:collapse;margin:16px 0}
+.spec{width:100%;border-collapse:collapse;margin:16px 0 0}
 .spec th,.spec td{text-align:left;padding:9px 12px;border:1px solid var(--border);font-size:13px;vertical-align:top}
 .spec th{background:var(--dark);color:var(--muted);font-weight:500;white-space:nowrap;width:34%}
 .wlink{margin-left:14px;color:var(--accent);text-decoration:underline}
@@ -535,7 +535,6 @@ def render(row, slug, g=None, pos=0):
         f"<tr><th>メーカー</th><td>{e(brand)}</td></tr>" if brand else "",
         f"<tr><th>シリーズ</th><td>{e(fam)}</td></tr>" if fam else "",
         f"<tr><th>型番</th><td>{e(art)}</td></tr>",
-        "<tr><th>状態</th><td>新古品（未使用在庫品）</td></tr>",
         f"<tr><th>外形寸法 (W×D×H)</th><td>{e(dims)}</td></tr>" if dims else "",
         f"<tr><th>質量</th><td>{e(wtxt)}</td></tr>" if wtxt else "",
         f"<tr><th>HSコード</th><td>{e(hs)}</td></tr>" if hs else "",
@@ -627,8 +626,8 @@ def render(row, slug, g=None, pos=0):
       {brand_trow}
       {fam_row}
       <tr><th>品質区分</th><td>新古品（未使用在庫品）</td></tr>
-      <tr><th>納期</th><td>約10〜14日でお届け</td></tr>
-      <tr><th>保証</th><td>1年保証<a class="wlink" href="../guide.html#warranty">保証規定</a></td></tr>
+      <tr><th>納期</th><td>通常 約10〜14日でお届け</td></tr>
+      <tr><th>保証</th><td>1年保証<a class="wlink" href="../guide.html#warranty">※保証規定をご確認ください</a></td></tr>
       <tr><th>価格</th><td><button class="cta" type="button" onclick="openQuote()">この製品の見積を確認する</button></td></tr>
     </table>
   </div>
