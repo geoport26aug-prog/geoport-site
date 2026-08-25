@@ -36,8 +36,9 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .photo.ph{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 10px,#e6ecf3 10px,#e6ecf3 20px);flex-direction:column;color:#aab6c4;gap:8px}
 .photo .pn{font-family:'Barlow',sans-serif;font-weight:600;font-size:18px;color:#aab6c4;word-break:break-all;text-align:center;padding:0 14px}
 .photo .note{font-size:11px;color:var(--muted)}
-.thumbs{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
-.th{width:56px;height:56px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:3px;cursor:pointer;overflow:hidden;transition:.15s}
+.thumbs{display:flex;gap:6px;margin-top:9px}
+/* 枚数が多いときは自動で縮んで1段に収まる（6枚=56px / 7枚=約48px） */
+.th{flex:0 1 56px;max-width:56px;min-width:30px;height:56px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:3px;cursor:pointer;overflow:hidden;transition:.15s}
 .th img{width:100%;height:100%;object-fit:contain;display:block}
 .th:hover{border-color:var(--accent)}
 .th.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
@@ -121,7 +122,7 @@ header{background:#0f2f5c;border-color:#123354}
     <div class="brand">Siemens</div>
     <h1>F01</h1>
     <div class="series">SIMOVERT シリーズ</div>
-    <span class="badge">● 在庫 197 点</span>
+    <span class="badge">● 在庫 196 点</span>
     <table class="spec">
       <tr><th>型番</th><td>F01</td></tr>
       <tr><th>メーカー</th><td>Siemens</td></tr>
