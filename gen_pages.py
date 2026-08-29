@@ -148,13 +148,13 @@ header{background:#0f2f5c;border-color:#123354}
 
 def fetch_catalog():
     # description_ja がまだ公開ビューに無い場合(view更新前)は、その列を外して取得する
-    cols = "article,brand,family,condition,stock,weight_kg,image_url,description_ja"
+    cols = "article,brand,family,condition,stock,weight_kg,image_url,description_ja,warranty_years"
     try:
         rows = _fetch(cols)
     except urllib.error.HTTPError as ex:
         if ex.code == 400 and "description_ja" in cols:
             print("note: description_ja 列が catalog に無いため、説明なしで生成します（view更新前）")
-            rows = _fetch("article,brand,family,condition,stock,weight_kg,image_url")
+            rows = _fetch("article,brand,family,condition,stock,weight_kg,image_url,warranty_years")
         else:
             raise
     _attach_dims(rows)
@@ -445,7 +445,7 @@ def render_list_brand(b):
             f'<div class="lgrid">{"".join(cards)}</div>')
     return _shell(f'{b["name"]} 在庫一覧（{b["count"]:,}点）｜GEOPORT',
                   f'{b["name"]} の産業用FA機器 {b["count"]:,} 点の在庫一覧。シリーズ別に型番を確認できます。'
-                  f'新古品・初期不良は納品後1年以内保証。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
+                  f'初期不良を保証（期間は製品ページに表示）。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
                   f'{SITE}/{LIST}/{b["slug"]}.html', f'{b["name"]} 在庫一覧',
                   f'<a href="../">製品カタログ</a> ／ <a href="./">メーカー・シリーズ一覧</a> ／ {e(b["name"])}',
                   body,
@@ -470,7 +470,7 @@ def render_list_group(g, page_i, pages_total, items):
     canon = f'{SITE}/{LIST}/{page_slug(g, page_i)}.html'
     title = f'{label} 型番一覧（{n:,}点）{suffix}｜GEOPORT'
     return _shell(title,
-                  f'{label} の在庫 {n:,} 点の型番一覧{suffix}。新古品・初期不良は納品後1年以内保証。'
+                  f'{label} の在庫 {n:,} 点の型番一覧{suffix}。初期不良を保証（期間は製品ページに表示）。'
                   f'型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
                   canon, f'{label} 型番一覧',
                   f'<a href="../">製品カタログ</a> ／ <a href="./">メーカー・シリーズ一覧</a>'
@@ -510,16 +510,31 @@ def render(row, slug, g=None, pos=0):
         dj = ""
     stock = row.get("stock")
     badge_txt = f"在庫 {stock} 点" if isinstance(stock, int) and stock > 0 else "在庫あり"
+    # 品質区分。リファビッシュ品は説明ページ（3工程・ISO・Q&A）へリンクする。
+    is_ref = "リファビッシュ" in (row.get("condition") or "")
+    if is_ref:
+        cond_html = ('リファビッシュ品（J-Certified）'
+                     '<a class="wlink" href="../refurbished.html">※J-Certified規格について</a>')
+    else:
+        cond_html = '新古品（未使用在庫品）'
+    # ★保証期間は catalog.warranty_years の値をそのまま出す（2026-08-29）。
+    #   以前は「新古品=1年／リファ=2年」とここに直接書いていたが、見積書PDF側にも
+    #   別に「1年」と書いてあり、**偶然一致しているだけ**の危うい状態だった（S指摘）。
+    #   いまは sync.py が決めた値をページも見積書も読む＝出どころが1つ。
+    wy = row.get("warranty_years")
+    wy = 1 if wy in (None, "") else int(wy)
+    warr_html = f'{wy}年保証<a class="wlink" href="../guide.html#warranty">※保証規定をご確認ください</a>' 
     sbkey_json = json.dumps(SB_KEY)
     relay_json = json.dumps(RELAY)
     art_json   = json.dumps(art)
     canon = f"{SITE}/{OUT}/{slug}.html"
     title = f"{art} {brand}｜GEOPORT" if brand else f"{art}｜GEOPORT"
     fam_paren = f"（{fam}）" if fam else ""
-    metad = (f"{brand}{fam_paren}{art} の在庫・お見積り。新古品、初期不良は納品後1年以内保証。"
+    _cond_txt = "リファビッシュ品" if is_ref else "新古品"
+    metad = (f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}、初期不良は納品後{wy}年以内保証。"
              f"型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
     ogt = f"{art} {brand}｜GEOPORT" if brand else title
-    ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。新古品・初期不良1年保証。"
+    ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}・初期不良{wy}年保証。"
     # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
     # Search Consoleで「商品スニペット」不備の警告になるため（見積制で価格非公開）。パンくずのみ残す。
     # パンくず＝製品カタログ／メーカー・シリーズ一覧／メーカー／シリーズ／型番（一覧ページへの内部リンクを兼ねる）
@@ -645,9 +660,9 @@ def render(row, slug, g=None, pos=0):
       <tr><th>型番</th><td>{e(art)}</td></tr>
       {brand_trow}
       {fam_row}
-      <tr><th>品質区分</th><td>新古品（未使用在庫品）</td></tr>
+      <tr><th>品質区分</th><td>{cond_html}</td></tr>
       <tr><th>納期</th><td>通常 約10〜14日でお届け</td></tr>
-      <tr><th>保証</th><td>1年保証<a class="wlink" href="../guide.html#warranty">※保証規定をご確認ください</a></td></tr>
+      <tr><th>保証</th><td>{warr_html}</td></tr>
       <tr><th>価格</th><td><button class="cta" type="button" onclick="openQuote()">この製品の見積を確認する</button></td></tr>
     </table>
   </div>
