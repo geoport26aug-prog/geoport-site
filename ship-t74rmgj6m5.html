@@ -253,8 +253,17 @@ function paneOrder(){
          (o.paid_on ? '　<span class="tag g">入金 ' + md(o.paid_on) + "</span>" : "") + "</div>";
     if(!o.ship_addr) h += '<p class="note"><span class="tag r">納品先が空</span> 出荷の前に住所を入れてください（いまは注文書を見ながら手で入れます）。</p>';
 
+    var inv = (o.documents||[]).filter(function(x){ return x.kind==="ご請求書"; })[0];
+    if(inv){
+      h += '<div class="meta"><span class="tag g">ご請求書 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) +
+           '　' + yen(inv.total_jpy) + '　<span class="tag">Gmailの下書きに入っています</span></div>';
+    }
     h += '<div class="btns">';
-    if(o.status==="受注")      h += '<button class="btn" data-mark="' + o.id + '" data-what="ご請求書を出した">ご請求書を出した</button>';
+    if(o.status==="受注" && !inv){
+      h += '<button class="btn pri" data-invoice="' + o.id + '">ご請求書を作る</button>';
+      h += '<button class="btn sec" data-invprev="' + o.id + '">先にPDFを見る</button>';
+    }
+    if(inv) h += '<button class="btn" data-invoice="' + o.id + '" data-redo="1">ご請求書を作り直す</button>';
     if(o.status==="受注" || o.status==="入金待ち"){
       if(!o.paid_on)           h += '<button class="btn ok" data-mark="' + o.id + '" data-what="入金を確認した">入金を確認した</button>';
       // ★発注メールを送った時点では、JCの発注番号はまだ分からない（S確認 2026-08-30）
@@ -270,6 +279,7 @@ function paneOrder(){
     if(o.status==="出荷")      h += '<button class="btn ok" data-mark="' + o.id + '" data-what="完了にする">完了にする</button>';
     h += "</div>";
     h += '<div id="jc-' + o.id + '" class="form hidden"></div>';
+    h += '<div id="iv-' + o.id + '"></div>';
     h += "</div>";
   });
 
@@ -565,7 +575,50 @@ function wire(){
     });
   });
 
-  // 状態を進める（ご請求書を出した／入金を確認した／完了／キャンセル）
+  // ご請求書を作る（PDF＋Gmailの下書きまで。★送信はしない）
+  root.querySelectorAll("[data-invoice]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-invoice"));
+      var redo = b.getAttribute("data-redo")==="1";
+      var o = D.ordered.filter(function(x){ return x.id===id; })[0] || {};
+      var msg = redo
+        ? "ご請求書を作り直します。\n\n・新しいPDFと下書きを作り、古い下書きは消します\n・すでにお客様へお送りしている場合は、差し替えのご連絡をお願いします\n\nよろしいですか？"
+        : (o.company_formal || "") + " へのご請求書を作ります。\n\n・PDFを作り、Gmailの【下書き】に入れます\n・★送信はしません。Gmailで中身を見てから、ご自身で送ってください\n・この受注は「入金待ち」になります\n\nよろしいですか？";
+      if(!confirm(msg)) return;
+      b.disabled = true; var was = b.textContent; b.textContent = "作成中…（20秒ほど）";
+      act({ action:"make_invoice", order_id:id, redo:redo })
+        .then(function(r){
+          toast("ご請求書 " + r.doc_no + " を作りました。★Gmailの下書きを確認して、ご自身で送信してください" +
+                (r.old_draft_left ? "（古い下書きが消せませんでした。Gmailで古いほうを消してください）" : ""));
+          return reload();
+        })
+        .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  // 先にPDFだけ見る（★台帳は一切変えない・下書きも作らない）
+  root.querySelectorAll("[data-invprev]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-invprev"));
+      b.disabled = true; var was = b.textContent; b.textContent = "作成中…";
+      act({ action:"make_invoice", order_id:id, preview:true })
+        .then(function(r){
+          var bin = atob(r.pdf_base64), arr = new Uint8Array(bin.length);
+          for(var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+          var url = URL.createObjectURL(new Blob([arr], {type:"application/pdf"}));
+          el("iv-" + id).innerHTML =
+            '<div class="card" style="margin:10px 0 0"><div class="meta">' +
+            '<span class="tag">下書きは作っていません</span> 見た目の確認用です</div>' +
+            '<p class="note">お支払期限 ' + esc(r.due) + '　ご請求金額 ' + yen(r.total_jpy) + '　宛先 ' + esc(r.to) + '</p>' +
+            '<div class="btns"><a class="btn pri" href="' + url + '" target="_blank" rel="noopener" ' +
+            'style="text-decoration:none;display:inline-block">▶ ご請求書のPDFを開く</a></div></div>';
+          b.disabled = false; b.textContent = was;
+        })
+        .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  // 状態を進める（入金を確認した／完了／キャンセル 等）
   root.querySelectorAll("[data-mark]").forEach(function(b){
     b.addEventListener("click", function(){
       var id = Number(b.getAttribute("data-mark")), what = b.getAttribute("data-what");
