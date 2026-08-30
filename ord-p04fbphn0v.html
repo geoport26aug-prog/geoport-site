@@ -257,15 +257,41 @@ function paneOrder(){
     if(o.status==="受注")      h += '<button class="btn" data-mark="' + o.id + '" data-what="ご請求書を出した">ご請求書を出した</button>';
     if(o.status==="受注" || o.status==="入金待ち"){
       if(!o.paid_on)           h += '<button class="btn ok" data-mark="' + o.id + '" data-what="入金を確認した">入金を確認した</button>';
-      h += '<button class="btn pri" data-jcform="' + o.id + '">J-Certifiedへ発注した</button>';
-      h += '<button class="btn dang" data-mark="' + o.id + '" data-what="キャンセルする">キャンセル</button>';
+      // ★発注メールを送った時点では、JCの発注番号はまだ分からない（S確認 2026-08-30）
+      h += '<button class="btn pri" data-mark="' + o.id + '" data-what="JCへ発注メールを送った">JCへ発注メールを送った</button>';
+      h += '<button class="btn dang" data-mark="' + o.id + '" data-what="キャンセルする">お客様都合のキャンセル</button>';
     }
-    if(o.status==="発注")      h += '<button class="btn" data-jcform="' + o.id + '">発注の番号を直す</button>';
+    // 番号はインボイスが来てから。発注前でも「先に分かった」なら入れられる
+    if(["受注","入金待ち","発注","入荷"].indexOf(o.status)>=0)
+      h += '<button class="btn" data-jcform="' + o.id + '">JCの番号を入れる</button>';
+    // ★在庫切れは「お客様都合のキャンセル」とは別の道。発注後でも通り、全額返金になる（§A-2①）
+    if(["受注","入金待ち","発注","入荷","検品"].indexOf(o.status)>=0)
+      h += '<button class="btn dang" data-mark="' + o.id + '" data-what="在庫切れで中止する">在庫切れで中止</button>';
     if(o.status==="出荷")      h += '<button class="btn ok" data-mark="' + o.id + '" data-what="完了にする">完了にする</button>';
     h += "</div>";
     h += '<div id="jc-' + o.id + '" class="form hidden"></div>';
     h += "</div>";
   });
+
+  // ── 中止した受注（返金がまだのものを目立たせる）─────────────────
+  var cx = D.cancelled || [];
+  if(cx.length){
+    h += '<h2>中止した受注<span class="cnt">' + cx.length + "件</span></h2>";
+    cx.forEach(function(o){
+      var need = o.paid_on && !o.refunded_on;
+      h += '<div class="card' + (need ? " ngc" : "") + '">' +
+           '<div class="top"><span class="co">' + esc(o.company_formal) + '</span><span class="no">' + esc(o.order_no) + "</span></div>" +
+           '<div class="meta"><span class="tag r">中止</span> 合計 ' + yen((o.totals||{}).total_jpy) +
+           (o.paid_on ? "　入金 " + md(o.paid_on) : "　入金なし") +
+           (o.refunded_on ? '　<span class="tag g">返金 ' + md(o.refunded_on) + "</span>" : "") + "</div>";
+      if(need){
+        h += '<p class="note">★<b>全額を返金してください。振込手数料も当社負担です</b>（規約どおり）。<br>' +
+             "返金の振込が済んだら、下のボタンを押してください。</p>" +
+             '<div class="btns"><button class="btn ok" data-mark="' + o.id + '" data-what="返金した">返金した</button></div>';
+      }
+      h += "</div>";
+    });
+  }
 
   if(D.closed && D.closed.length){
     h += '<h2>おわった受注（新しい順に10件）<span class="cnt">' + D.closed.length + "件</span></h2>";
@@ -318,8 +344,10 @@ function orderForm(q){
 function jcForm(o){
   var u = null;
   (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){ if(!u && x.jc_order_no) u = x; }); });
-  return '<h3>J-Certifiedへの発注を記録します</h3>' +
-    '<label class="f">発注番号（必須）</label><input class="f" id="jc-no-' + o.id + '" value="' + esc(u&&u.jc_order_no||"") + '" placeholder="#4471">' +
+  return '<h3>J-Certifiedの番号を入れます（分かったものだけでOK）</h3>' +
+    '<p class="note" style="margin:0 0 4px">発注番号はインボイスが届いてから、追跡番号は出荷連絡が来てから入れられます。<br>' +
+    '空のままにした欄は、いま入っている値を消しません。</p>' +
+    '<label class="f">発注番号</label><input class="f" id="jc-no-' + o.id + '" value="' + esc(u&&u.jc_order_no||"") + '" placeholder="#4471">' +
     '<label class="f">追跡番号（FedEx）</label><input class="f" id="jc-tr-' + o.id + '" value="' + esc(u&&u.inbound_tracking||"") + '" placeholder="7712 3456 7890">' +
     '<label class="f">到着予定日</label><input class="f" type="date" id="jc-eta-' + o.id + '" value="' + esc(u&&u.inbound_eta||"") + '">' +
     '<div class="btns"><button class="btn pri" data-dojc="' + o.id + '">記録する</button>' +
@@ -487,10 +515,17 @@ function wire(){
   root.querySelectorAll("[data-mark]").forEach(function(b){
     b.addEventListener("click", function(){
       var id = Number(b.getAttribute("data-mark")), what = b.getAttribute("data-what");
+      var o = (D.ordered||[]).concat(D.cancelled||[]).filter(function(x){ return x.id===id; })[0] || {};
+      var amt = yen((o.totals||{}).total_jpy);
       var msg = { "ご請求書を出した":"ご請求書を出したことを記録し、「入金待ち」にします。よろしいですか？",
                   "入金を確認した":"入金を確認したことを、今日の日付で記録します。よろしいですか？",
+                  "JCへ発注メールを送った":"J-Certifiedへ発注メールを送ったことを記録します。\n発注番号は、インボイスが届いてから「JCの番号を入れる」で入れてください。\n\nよろしいですか？",
                   "完了にする":"この受注を完了にします。よろしいですか？",
-                  "キャンセルする":"この受注をキャンセルにします。\n※発注のあとはキャンセルできません。よろしいですか？" }[what];
+                  "キャンセルする":"お客様都合のキャンセルとして記録します。\n※発注のあとはお受けできません（規約どおり）。\n\nよろしいですか？",
+                  "在庫切れで中止する": (o.paid_on
+                      ? "★この受注を中止します。\n\nすでに " + amt + " のご入金をいただいています。\n中止すると【全額返金】が必要になります（振込手数料も当社負担）。\n\nよろしいですか？"
+                      : "この受注を中止します。まだ入金はありません。\nよろしいですか？"),
+                  "返金した":"返金の振込が完了したことを、今日の日付で記録します。\n\n★本当に振り込みましたか？" }[what];
       if(!confirm(msg)) return;
       b.disabled = true;
       act({ action:"mark", order_id:id, what:what })
@@ -504,6 +539,7 @@ function wire(){
     b.addEventListener("click", function(){
       var id = b.getAttribute("data-jcform");
       var o = D.ordered.filter(function(x){ return String(x.id)===id; })[0];
+      if(!o) return;
       var box = el("jc-" + id);
       box.innerHTML = jcForm(o); box.classList.remove("hidden"); b.disabled = true;
       wire();
@@ -515,11 +551,11 @@ function wire(){
   root.querySelectorAll("[data-dojc]").forEach(function(b){
     b.addEventListener("click", function(){
       var id = Number(b.getAttribute("data-dojc"));
-      var no = val("jc-no-" + id);
-      if(!no){ toast("発注番号を入れてください", true); return; }
+      var no = val("jc-no-" + id), tr = val("jc-tr-" + id), eta = val("jc-eta-" + id);
+      if(!no && !tr && !eta){ toast("発注番号・追跡番号・到着予定日のうち、1つは入れてください", true); return; }
       b.disabled = true;
-      act({ action:"jc_order", order_id:id, jc_order_no:no, tracking:val("jc-tr-"+id), eta:val("jc-eta-"+id)||null })
-        .then(function(r){ toast(r.order_no + "：発注を記録しました（" + r.units + "台）"); return reload(); })
+      act({ action:"jc_order", order_id:id, jc_order_no:no, tracking:tr, eta:eta||null })
+        .then(function(r){ toast(r.order_no + "：番号を記録しました（" + r.units + "台）"); return reload(); })
         .catch(function(e){ b.disabled=false; toast(e.message, true); });
     });
   });
