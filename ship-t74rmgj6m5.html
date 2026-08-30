@@ -308,7 +308,14 @@ function orderForm(q){
   var f = function(id, label, ph){
     return '<label class="f">' + esc(label) + '</label><input class="f" id="of-' + id + '" value="" placeholder="' + esc(ph||"") + '">';
   };
-  var h = '<h3>注文書の内容を入れてください（空でも受注にできます。あとから直せます）</h3>' +
+  var h = '<h3>注文書を読み込む（PDFか、注文書の写真）</h3>' +
+    '<p class="note" style="margin:2px 0 0">読み込むと、下の欄が自動で埋まります。<b>そのまま受注にはしません。</b>必ず中身をご確認ください。<br>' +
+    '見積と食い違うところがあれば警告を出します。読み取りには20秒ほどかかります。</p>' +
+    '<input class="f" type="file" id="pf-' + q.request_id + '" accept="application/pdf,image/jpeg,image/png,image/webp,image/heic" style="padding:7px">' +
+    '<div class="btns" style="margin-top:8px"><button class="btn sec" data-readpo="' + q.request_id + '">注文書を読み込む</button></div>' +
+    '<div id="pw-' + q.request_id + '"></div>' +
+    '<input type="hidden" id="pp-' + q.request_id + '" value="">' +
+    '<h3>注文書の内容（読み込んだら埋まります。手で直せます）</h3>' +
     '<div class="grid2">' +
       f("company_formal","正式な社名") + f("dept","部署") +
       f("person","ご担当") + f("person_title","役職") +
@@ -476,6 +483,52 @@ function wire(){
     b.addEventListener("click", function(){ render(); });
   });
 
+  // 注文書を読み込む（★台帳は変えない。入力欄を埋めるだけ）
+  root.querySelectorAll("[data-readpo]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = b.getAttribute("data-readpo");
+      var inp = el("pf-" + id);
+      var file = inp && inp.files && inp.files[0];
+      if(!file){ toast("先にファイルを選んでください", true); return; }
+      if(file.size > 15*1024*1024){ toast("ファイルが大きすぎます（15MBまで）", true); return; }
+      var box = el("pw-" + id);
+      b.disabled = true; var was = b.textContent; b.textContent = "読み取り中…（20秒ほど）";
+      box.innerHTML = "";
+
+      var fr = new FileReader();
+      fr.onerror = function(){ b.disabled=false; b.textContent=was; toast("ファイルを開けませんでした", true); };
+      fr.onload = function(){
+        var data = String(fr.result); data = data.slice(data.indexOf(",") + 1);
+        act({ action:"read_po", request_id:Number(id), media_type:file.type, data:data })
+          .then(function(r){
+            var f = r.fields || {};
+            Object.keys(f).forEach(function(k){
+              var e = el("of-" + k); if(e && f[k]) e.value = f[k];
+            });
+            el("pp-" + id).value = r.po_path || "";
+            var extra = [];
+            if(f.order_date)         extra.push("注文日：" + esc(f.order_date));
+            if(f.desired_delivery)   extra.push("希望納期：" + esc(f.desired_delivery));
+            if(f.payment_terms_text) extra.push("お支払い：" + esc(f.payment_terms_text));
+            if(f.notes)              extra.push("備考：" + esc(f.notes));
+            var html = '<div class="card" style="margin:10px 0 0">' +
+              '<div class="meta"><span class="tag g">読み取りました</span> 注文書は台帳に保管されます</div>' +
+              (extra.length ? '<p class="note">' + extra.join("<br>") + "</p>" : "");
+            (r.warnings || []).forEach(function(w){
+              html += '<p class="note" style="color:#b02a2a;font-weight:600">⚠️ ' + esc(w).replace(/\n/g,"<br>") + "</p>";
+            });
+            if(!(r.warnings||[]).length) html += '<p class="note">見積との食い違いはありませんでした。</p>';
+            html += "</div>";
+            box.innerHTML = html;
+            b.disabled = false; b.textContent = "別の注文書を読み込む";
+            toast("読み取りました。中身をご確認ください");
+          })
+          .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+      };
+      fr.readAsDataURL(file);
+    });
+  });
+
   // 受注にする
   root.querySelectorAll("[data-docreate]").forEach(function(b){
     b.addEventListener("click", function(){
@@ -491,6 +544,7 @@ function wire(){
         var v = val("of-" + k); if(v) ov[k] = v;
       });
       ov.payment_terms = el("of-payment_terms").value;
+      var pp = el("pp-" + id); if(pp && pp.value) ov.po_path = pp.value;   // 注文書の置き場を台帳に残す
       var sh = val("of-shipping_jpy"); if(sh !== "") ov.shipping_jpy = Number(sh);
       var qty = {}, changed = false;
       q.items.forEach(function(i, n){
