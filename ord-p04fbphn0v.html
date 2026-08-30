@@ -209,10 +209,22 @@ function paneOrder(){
   // ── 見積を出した先（受注にできる）─────────────────────────
   h += '<h2>見積を出した先（受注にできます）<span class="cnt">' + D.quotable.length + "件</span></h2>";
   if(!D.quotable.length) h += '<div class="empty">いまは、受注にできる見積はありません。</div>';
+  if(D.quotable.length > 1){
+    h += '<div class="card" id="mergebox" style="border-left:4px solid var(--navy)">' +
+      '<div class="meta"><b>同じお客様の見積を、1つの受注にまとめられます</b></div>' +
+      '<p class="note">下の見積に「まとめる」のチェックを付けてください。<br>' +
+      'まとめると<b>請求書が1通</b>になり、<b>国内送料も1個口ぶん</b>で済みます（別々に送るより安くなります）。</p>' +
+      '<div id="mergeinfo"></div>' +
+      '<div class="btns"><button class="btn pri" id="domerge" disabled>選んだ見積をまとめて受注にする</button></div></div>';
+  }
 
   D.quotable.forEach(function(q){
     h += '<div class="card' + (q.expired ? " warnc" : "") + '">' +
-         '<div class="top"><span class="co">' + esc(q.company) + '</span><span class="no">' + esc(q.quote_no) + "</span></div>";
+         '<div class="top"><span class="co">' +
+           '<label style="font-weight:400;font-size:13px;color:var(--sub);margin-right:8px">' +
+           '<input type="checkbox" class="qsel" value="' + q.request_id + '" data-mail="' + esc(q.email||"") +
+           '" data-exp="' + (q.expired?"1":"0") + '" style="width:18px;height:18px;vertical-align:-3px"> まとめる</label>' +
+           esc(q.company) + '</span><span class="no">' + esc(q.quote_no) + "</span></div>";
     q.items.forEach(function(i){
       h += '<div class="it"><span class="kata">' + esc(i.article) + "</span> × " + i.qty +
            '　<span class="sn">' + esc([i.brand, i.condition, "保証" + (i.warranty_years||1) + "年"].filter(Boolean).join("／")) + "</span></div>";
@@ -234,6 +246,7 @@ function paneOrder(){
          (q.expired ? "承知のうえで受注にする" : "受注にする") + "</button></div>" +
          '<div id="form-' + q.request_id + '" class="form hidden"></div></div>';
   });
+  if(D.quotable.length > 1) h += '<div id="mergeform" class="form hidden"></div>';
 
   // ── 受注済み ─────────────────────────────────────────────
   h += '<h2>受注済み<span class="cnt">' + D.ordered.length + "件</span></h2>";
@@ -371,6 +384,41 @@ function jcForm(o){
     '<button class="btn gray" data-closejc="' + o.id + '">やめる</button></div>';
 }
 
+// まとめて受注にするときの入力欄
+function mergeForm(qs, ship){
+  var f = function(id, label, ph){
+    return '<label class="f">' + esc(label) + '</label><input class="f" id="mf-' + id + '" value="" placeholder="' + esc(ph||"") + '">';
+  };
+  var anyExp = qs.some(function(q){ return q.expired; });
+  var h = '<h3>' + qs.length + '件の見積を、1つの受注にまとめます</h3>' +
+    '<p class="note">' + qs.map(function(q){
+      return esc(q.quote_no) + '（' + q.items.map(function(i){ return esc(i.article)+'×'+i.qty; }).join('・') + '）' +
+             (q.expired ? ' <span class="tag w">期限切れ</span>' : '');
+    }).join('<br>') + '</p>';
+  if(anyExp) h += '<p class="note" style="color:#b02a2a;font-weight:600">' +
+    '⚠️有効期限が切れた見積が含まれています。台帳に記録が残ります。</p>';
+  h += '<label class="f">国内送料（円）★まとめた分の1個口ぶん</label>' +
+       '<input class="f" id="mf-shipping_jpy" inputmode="numeric" value="' + esc(ship) + '">' +
+       '<h3>注文書の内容（分かる範囲で。あとから直せます）</h3>' +
+       '<div class="grid2">' +
+         f("company_formal","正式な社名") + f("dept","部署") +
+         f("person","ご担当") + f("person_title","役職") +
+         f("email","メール") + f("tel","電話") +
+         f("bill_zip","請求先 〒") + f("bill_addr","請求先 住所") +
+       "</div><h3>納品先</h3><div class='grid2'>" +
+         f("ship_name","納品先の名称") + f("ship_zip","〒") +
+         f("ship_pref","都道府県", qs[0] && qs[0].pref || "") + f("ship_addr","住所") +
+         f("ship_person","ご担当") + f("ship_tel","電話") +
+       "</div>" +
+       '<div class="grid2">' + f("customer_po_no","先方の注文番号") +
+         '<label class="f">お支払い</label><select class="f" id="mf-payment_terms"><option>前払い</option><option>掛売り</option></select>' +
+       "</div>" +
+       '<div class="btns"><button class="btn pri" id="domerge2" data-exp="' + (anyExp?"1":"0") + '">' +
+       'この内容でまとめて受注にする</button>' +
+       '<button class="btn gray" id="cancelmerge">やめる</button></div>';
+  return h;
+}
+
 // ══════════════════════════════════════════════════════════════
 //  ② 要対応タブ（Sだけ）
 // ══════════════════════════════════════════════════════════════
@@ -491,6 +539,73 @@ function wire(){
   });
   root.querySelectorAll("[data-closeform]").forEach(function(b){
     b.addEventListener("click", function(){ render(); });
+  });
+
+  // ── まとめる：チェックが変わるたびに、送料の目安を出し直す ──────────
+  function selectedQuotes(){
+    var out=[];
+    root.querySelectorAll(".qsel").forEach(function(c){
+      if(c.checked) out.push({ id:Number(c.value), mail:c.getAttribute("data-mail"),
+                               exp:c.getAttribute("data-exp")==="1" });
+    });
+    return out;
+  }
+  var estTimer=null;
+  function refreshMerge(){
+    var sel = selectedQuotes(), info = el("mergeinfo"), btn = el("domerge");
+    if(!info || !btn) return;
+    if(sel.length < 2){
+      info.innerHTML = ""; btn.disabled = true;
+      btn.textContent = "選んだ見積をまとめて受注にする"; return;
+    }
+    // お客様が違うものが混ざっていないか（サーバー側でも弾くが、先に画面で気づけるように）
+    var mails = {}; sel.forEach(function(x){ mails[(x.mail||"").toLowerCase()] = 1; });
+    if(Object.keys(mails).length > 1){
+      info.innerHTML = '<p class="note" style="color:#b02a2a;font-weight:600">' +
+        '⚠️お客様が違う見積が混ざっています（メールアドレスが' + Object.keys(mails).length + '種類）。同じお客様だけ選んでください。</p>';
+      btn.disabled = true; return;
+    }
+    btn.disabled = false;
+    btn.textContent = sel.length + "件の見積をまとめて受注にする";
+    var q = D.quotable.filter(function(x){ return sel.some(function(y){ return y.id===x.request_id; }); });
+    var pref = q[0] && q[0].pref || "";
+    var goods = q.reduce(function(a,x){ return a + x.goods_jpy; }, 0);
+    info.innerHTML = '<p class="note">選択中：' + sel.length + '件　商品計 ' + yen(goods) +
+                     (pref ? '　お届け先 ' + esc(pref) : '　<b style="color:#b02a2a">お届け先の都道府県が未設定</b>') +
+                     '<br>送料を計算中…</p>';
+    clearTimeout(estTimer);
+    estTimer = setTimeout(function(){
+      act({ action:"ship_estimate", request_ids: sel.map(function(x){return x.id;}), pref: pref })
+        .then(function(r){
+          if(!r.ok){ info.innerHTML = '<p class="note" style="color:#b02a2a">送料の目安を出せません：' +
+            esc(r.reason||"") + (r.missing?"（"+esc(r.missing.join(", "))+"）":"") +
+            '<br>受注にしたあと、送料を手で直してください。</p>'; return; }
+          var saved = r.individual_jpy - r.combined_jpy;
+          info.innerHTML =
+            '<table class="sum" style="max-width:420px">' +
+            '<tr><td>別々に送った場合</td><td>' + yen(r.individual_jpy) + '</td></tr>' +
+            '<tr class="tot"><td>まとめた場合（推定）</td><td>' + yen(r.combined_jpy) + '</td></tr></table>' +
+            '<p class="note">' + (saved>0 ? '<b style="color:#1a7f4b">' + yen(saved) + ' 安くなります</b><br>' : '') +
+            esc(r.note||"") + '<br>この額は<b>受注にするときに直せます</b>。実際の梱包で変わります。</p>' +
+            '<label class="f">この受注の国内送料（円）</label>' +
+            '<input class="f" id="mergeship" inputmode="numeric" value="' + r.combined_jpy + '" style="max-width:220px">';
+        })
+        .catch(function(e){ info.innerHTML = '<p class="note" style="color:#b02a2a">' + esc(e.message) + "</p>"; });
+    }, 250);
+  }
+  root.querySelectorAll(".qsel").forEach(function(c){ c.addEventListener("change", refreshMerge); });
+
+  // まとめて受注にする → 入力欄を出す
+  if(el("domerge")) el("domerge").addEventListener("click", function(){
+    var sel = selectedQuotes();
+    if(sel.length < 2) return;
+    var q = D.quotable.filter(function(x){ return sel.some(function(y){ return y.id===x.request_id; }); });
+    var box = el("mergeform");
+    var ship = el("mergeship") ? el("mergeship").value : "";
+    box.innerHTML = mergeForm(q, ship);
+    box.classList.remove("hidden");
+    box.scrollIntoView({behavior:"smooth", block:"start"});
+    wire();
   });
 
   // 注文書を読み込む（★台帳は変えない。入力欄を埋めるだけ）
@@ -616,6 +731,33 @@ function wire(){
         })
         .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
     });
+  });
+
+  // まとめて受注にする（実行）
+  if(el("cancelmerge")) el("cancelmerge").addEventListener("click", function(){ render(); });
+  if(el("domerge2")) el("domerge2").addEventListener("click", function(){
+    var b = el("domerge2");
+    var ids = selectedQuotes().map(function(x){ return x.id; });
+    var expired = b.getAttribute("data-exp")==="1";
+    if(!ids.length){ toast("見積が選ばれていません", true); return; }
+    if(!confirm(ids.length + "件の見積を1つの受注にまとめます。\n\n" +
+        (expired ? "★有効期限が切れた見積が含まれています。台帳に記録が残ります。\n\n" : "") +
+        "・請求書は1通になります\n・国内送料は入力した額になります\n\nよろしいですか？")) return;
+    var ov = {};
+    ["company_formal","dept","person","person_title","email","tel","bill_zip","bill_addr",
+     "ship_name","ship_zip","ship_pref","ship_addr","ship_person","ship_tel","customer_po_no"].forEach(function(k){
+      var v = val("mf-" + k); if(v) ov[k] = v;
+    });
+    ov.payment_terms = el("mf-payment_terms").value;
+    var sh = val("mf-shipping_jpy"); if(sh !== "") ov.shipping_jpy = Number(sh);
+    b.disabled = true; b.textContent = "作成中…";
+    act({ action:"create_orders", request_ids:ids, override:ov, allow_expired:expired })
+      .then(function(r){
+        toast(r.created ? (r.order_no + " で受注にしました（見積" + r.merged + "件・" + r.units + "台・合計 " + yen(r.total_jpy) + "）")
+                        : (r.message || "すでに受注になっています"));
+        return reload();
+      })
+      .catch(function(e){ b.disabled=false; b.textContent="この内容でまとめて受注にする"; toast(e.message, true); });
   });
 
   // 状態を進める（入金を確認した／完了／キャンセル 等）
