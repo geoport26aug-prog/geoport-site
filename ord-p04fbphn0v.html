@@ -271,6 +271,12 @@ function paneOrder(){
       h += '<div class="meta"><span class="tag g">ご請求書 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) +
            '　' + yen(inv.total_jpy) + '　<span class="tag">Gmailの下書きに入っています</span></div>';
     }
+    // JCへの発注メール（英語）の下書きが出来ているか
+    if(o.jc_po_draft_id){
+      h += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' +
+           (o.jc_po_drafted_at ? '　' + md(String(o.jc_po_drafted_at).slice(0,10)) : "") +
+           '　<span class="tag">Gmailの下書きに入っています。送ったら右の「JCへ発注メールを送った」を押してください</span></div>';
+    }
     h += '<div class="btns">';
     if(o.status==="受注" && !inv){
       h += '<button class="btn pri" data-invoice="' + o.id + '">ご請求書を作る</button>';
@@ -279,6 +285,10 @@ function paneOrder(){
     if(inv) h += '<button class="btn" data-invoice="' + o.id + '" data-redo="1">ご請求書を作り直す</button>';
     if(o.status==="受注" || o.status==="入金待ち"){
       if(!o.paid_on)           h += '<button class="btn ok" data-mark="' + o.id + '" data-what="入金を確認した">入金を確認した</button>';
+      // ★JCへの発注メール（英語）。文面を先に読める。送信は人（大原則①）
+      h += '<button class="btn sec" data-jcpoprev="' + o.id + '">JCへの発注メールを見る</button>';
+      h += '<button class="btn" data-jcpo="' + o.id + '"' + (o.jc_po_draft_id ? ' data-redo="1"' : '') + '>' +
+           (o.jc_po_draft_id ? "発注メールを作り直す" : "発注メールの下書きを作る") + "</button>";
       // ★発注メールを送った時点では、JCの発注番号はまだ分からない（S確認 2026-08-30）
       h += '<button class="btn pri" data-mark="' + o.id + '" data-what="JCへ発注メールを送った">JCへ発注メールを送った</button>';
       h += '<button class="btn dang" data-mark="' + o.id + '" data-what="キャンセルする">お客様都合のキャンセル</button>';
@@ -292,6 +302,7 @@ function paneOrder(){
     if(o.status==="出荷")      h += '<button class="btn ok" data-mark="' + o.id + '" data-what="完了にする">完了にする</button>';
     h += "</div>";
     h += '<div id="jc-' + o.id + '" class="form hidden"></div>';
+    h += '<div id="po-' + o.id + '"></div>';
     h += '<div id="iv-' + o.id + '"></div>';
     h += "</div>";
   });
@@ -704,6 +715,54 @@ function wire(){
       act({ action:"make_invoice", order_id:id, redo:redo })
         .then(function(r){
           toast("ご請求書 " + r.doc_no + " を作りました。★Gmailの下書きを確認して、ご自身で送信してください" +
+                (r.old_draft_left ? "（古い下書きが消せませんでした。Gmailで古いほうを消してください）" : ""));
+          return reload();
+        })
+        .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  // JCへの発注メールの文面だけ見る（★台帳は一切変えない・下書きも作らない）
+  root.querySelectorAll("[data-jcpoprev]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-jcpoprev"));
+      b.disabled = true; var was = b.textContent; b.textContent = "作成中…";
+      act({ action:"jc_po", order_id:id, preview:true })
+        .then(function(r){
+          el("po-" + id).innerHTML =
+            '<div class="card" style="margin:10px 0 0"><div class="meta">' +
+            '<span class="tag">下書きは作っていません</span> 文面の確認用です</div>' +
+            '<p class="note">宛先 ' + esc(r.to) + '　件名 ' + esc(r.subject) + '</p>' +
+            (r.missing_price && r.missing_price.length
+              ? '<p class="note" style="color:#b23">★' + esc(r.missing_price.join("／")) +
+                ' は今のJCの一覧に価格がありません。メールでは「価格を教えてください」と書いてあります</p>' : "") +
+            '<pre style="white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:13px;' +
+            'background:#fafafa;border:1px solid #e6e6e6;border-radius:6px;padding:12px;overflow-x:auto">' +
+            esc(r.text) + '</pre></div>';
+          b.disabled = false; b.textContent = was;
+        })
+        .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  // JCへの発注メールの下書きを作る（★Gmailの下書きまで。送信はしない）
+  root.querySelectorAll("[data-jcpo]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-jcpo"));
+      var redo = b.getAttribute("data-redo")==="1";
+      var o = D.ordered.filter(function(x){ return x.id===id; })[0] || {};
+      var warn = (o.payment_terms==="前払い" && !o.paid_on)
+        ? "\n\n★前払いのお客様ですが、まだご入金の記録がありません。送る前にご確認ください。" : "";
+      var msg = (redo ? "JCへの発注メールを作り直します。\n\n・新しい下書きを作り、古い下書きは消します"
+                      : "JCへの発注メール（英語）の下書きを作ります。\n\n・Gmailの【下書き】に入れます") +
+                "\n・★送信はしません。Gmailで中身を見てから、ご自身で送ってください" +
+                "\n・送ったあとに「JCへ発注メールを送った」を押してください" + warn + "\n\nよろしいですか？";
+      if(!confirm(msg)) return;
+      b.disabled = true; var was = b.textContent; b.textContent = "作成中…";
+      act({ action:"jc_po", order_id:id })
+        .then(function(r){
+          toast("JCへの発注メールの下書きを作りました。★Gmailで中身を確認して、ご自身で送信してください" +
+                (r.caution ? "／" + r.caution : "") +
                 (r.old_draft_left ? "（古い下書きが消せませんでした。Gmailで古いほうを消してください）" : ""));
           return reload();
         })
