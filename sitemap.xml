@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://geoport.co.jp/</loc><lastmod>2026-08-29</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://geoport.co.jp/</loc><lastmod>2026-08-31</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>
   <url><loc>https://geoport.co.jp/company.html</loc><lastmod>2026-08-24</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://geoport.co.jp/guide.html</loc><lastmod>2026-08-24</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://geoport.co.jp/list/</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://geoport.co.jp/list/</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://geoport.co.jp/list/abb-ach.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/abb-acs.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/abb-advant-ac-800m.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -27,12 +27,11 @@
   <url><loc>https://geoport.co.jp/list/allen-bradley-stratix.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/allen-bradley.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://geoport.co.jp/list/b-r-acopos.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/list/b-r-acoposmulti.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/b-r-pc-720.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/b-r-power-panel.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/b-r-system-2005.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/b-r-x20-systems.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/list/b-r.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://geoport.co.jp/list/b-r.html</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://geoport.co.jp/list/control-techniques-maxi-maestro.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/control-techniques-mentor-mp.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/control-techniques-other.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -161,7 +160,7 @@
   <url><loc>https://geoport.co.jp/list/siemens-ws-series.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/list/siemens.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://geoport.co.jp/p/04695690aa.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/p/0rmsm1115.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://geoport.co.jp/p/0rmsm1115.html</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/140chs32000.html</loc><lastmod>2026-08-28</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/140cps11420.html</loc><lastmod>2026-08-28</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/140cps21400.html</loc><lastmod>2026-08-28</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -432,8 +431,8 @@
   <url><loc>https://geoport.co.jp/p/3va9988-0aa12.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/3va9988-0bl33.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/3wl9111-0at33-0aa0-z.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/p/4ppc70.0573-20b.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/p/4ppc70.0702-20w.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://geoport.co.jp/p/4ppc70.0573-20b.html</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://geoport.co.jp/p/4ppc70.0702-20w.html</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/5069-obv8s.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/50982.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/59631.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -3275,7 +3274,6 @@
   <url><loc>https://geoport.co.jp/p/82000000013200.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/8ac114.60-2.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/8ac123.60-1.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/p/8bvi0055hws0.000-1.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/8gk6351-2kk23.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/8gk6715-2kk23.html</loc><lastmod>2026-08-28</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/8gk7010-1kk00.html</loc><lastmod>2026-08-26</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
@@ -4044,8 +4042,8 @@
   <url><loc>https://geoport.co.jp/p/x20br9300.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/x20bt9100.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/x20cp0483.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/p/x20cp1584.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://geoport.co.jp/p/x20cp1586.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://geoport.co.jp/p/x20cp1584.html</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://geoport.co.jp/p/x20cp1586.html</loc><lastmod>2026-08-31</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/x20dc1176.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/x20dc1976.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://geoport.co.jp/p/x20di4371.html</loc><lastmod>2026-08-29</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
