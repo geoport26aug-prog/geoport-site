@@ -401,11 +401,47 @@ def render_list_top(brands):
 
 _BL_RE = re.compile(r"(<!--BRANDLINKS-->)(.*?)(<!--/BRANDLINKS-->)", re.S)
 _BS_RE = re.compile(r"(<!--BRANDSERIES-->)(.*?)(<!--/BRANDSERIES-->)", re.S)
+_TC_RE = re.compile(r"(<!--TOPCARDS-->)(.*?)(<!--/TOPCARDS-->)", re.S)
 
-def update_index_brandlinks(brands):
-    """トップページの2か所を、在庫の実態に合わせて自動更新する（目印の間だけ書き換え）。
+# ★トップページに焼き込む在庫の件数（2026-09-02・S判断）
+#   トップの一覧は「探す道具」ではなく「これだけの品揃えがある」と伝わればよい飾り。
+#   以前は開いた瞬間に全在庫を読み込んでいて、27,321点になった時点で通信28回・8.4MBとなり
+#   カードが1枚も出なくなった。上位だけを焼き込めばトップ表示の通信は0回になる。
+#   探すお客様のための検索は index.html がサーバー側へ問い合わせる（全在庫が対象）。
+TOP_N = 240
+
+def top_cards(rows):
+    """焼き込む在庫を選ぶ。並びは「新古品を優先 → 写真の枚数が多い順 → 型番順」（S指示）。
+       写真と日本語説明のあるものだけを対象にする（カードの見た目が揃うため）。
+       ★新古品だけで TOP_N に届かない日でもトップが寂しくならないよう、
+         足りない分はリファビッシュ品で埋める（優先順は保たれる）。"""
+    ok = [r for r in rows
+          if (r.get("image_url") or "").strip() and (r.get("description_ja") or "").strip()]
+    ok.sort(key=lambda r: (-int(r.get("image_count") or 0), r.get("article") or ""))
+    pri = [r for r in ok if (r.get("condition") or "") == "新古品"]
+    sec = [r for r in ok if (r.get("condition") or "") != "新古品"]
+    keep = ("article", "brand", "family", "condition", "stock", "image_url", "description_ja")
+    return [{k: r.get(k) for k in keep} for r in (pri + sec)[:TOP_N]]
+
+def latest_updated():
+    """在庫データの最終更新時刻。トップの「データ更新 …」に出す。
+       取れなくてもページ生成は止めない（その場合は「接続済み」と出るだけ）。"""
+    try:
+        url = (SB_URL + "/rest/v1/catalog?select=source_updated_at"
+               "&order=source_updated_at.desc.nullslast&limit=1&apikey=" + SB_KEY)
+        req = urllib.request.Request(url, headers={"apikey": SB_KEY})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            d = json.load(r)
+        return (d[0].get("source_updated_at") or "") if d else ""
+    except Exception as ex:
+        print("note: 最終更新時刻が取れませんでした（表示は「接続済み」になります）:", str(ex)[:80])
+        return ""
+
+def update_index(brands, rows):
+    """トップページの3か所を、在庫の実態に合わせて自動更新する（目印の間だけ書き換え）。
       ① フッターのメーカーリンク … Googleが辿れる“ふつうのリンク”（JavaScript不要）
-      ② シリーズ一覧のデータ    … メーカーボタンに重ねたとき出るポップの中身"""
+      ② シリーズ一覧のデータ    … メーカーボタンに重ねたとき出るポップの中身
+      ③ ★トップに並べる在庫     … 上位 TOP_N 点。これでトップ表示の通信が0回になる"""
     try:
         with open("index.html", encoding="utf-8") as f:
             src = f.read()
@@ -425,6 +461,22 @@ def update_index_brandlinks(brands):
                + "</script>")
     out = _BL_RE.sub(lambda m: m.group(1) + links + m.group(3), src)
     out = _BS_RE.sub(lambda m: m.group(1) + payload + m.group(3), out)
+    if _TC_RE.search(out):
+        items = top_cards(rows)
+        tc = {"total": len(rows), "updated": latest_updated(), "items": items}
+        tcp = ('<script type="application/json" id="topcards">'
+               + json.dumps(tc, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+               + "</script>")
+        out = _TC_RE.sub(lambda m: m.group(1) + tcp + m.group(3), out)
+        nshin = sum(1 for x in items if (x.get("condition") or "") == "新古品")
+        print("トップに焼き込み: %d 点（新古品 %d／リファビッシュ品 %d）・全在庫 %d 点"
+              % (len(items), nshin, len(items) - nshin, len(rows)))
+    else:
+        print("note: index.html に目印(TOPCARDS)が無いため、トップの在庫は焼き込みません")
+    # 検索窓の上の「N点の在庫から…」の数字も実態に合わせる。
+    # （JavaScriptでも上書きしているが、静かに古い数字が残らないようここでも直す）
+    out = re.sub(r'(<span id="slead-n">)[^<]*(</span>)',
+                 lambda m: m.group(1) + format(len(rows), ",") + m.group(2), out)
     if out == src:
         return False
     with open("index.html", "w", encoding="utf-8") as f:
@@ -511,11 +563,13 @@ def render(row, slug, g=None, pos=0):
         dj = ""
     stock = row.get("stock")
     badge_txt = f"在庫 {stock} 点" if isinstance(stock, int) and stock > 0 else "在庫あり"
-    # 品質区分。リファビッシュ品は説明ページ（3工程・ISO・Q&A）へリンクする。
+    # 品質区分。リファビッシュ品は「J-Certified規格」そのものを、説明ページ
+    # （3工程・ISO・Q&A）へのリンクにする（2026-09-02・S指示）。
     is_ref = "リファビッシュ" in (row.get("condition") or "")
     if is_ref:
-        cond_html = ('リファビッシュ品（J-Certified）'
-                     '<a class="wlink" href="../refurbished.html">※J-Certified規格について</a>')
+        # ★間隔は .wlink の margin-left:14px が付けるので、ここに空白は入れない
+        cond_html = ('リファビッシュ品'
+                     '<a class="wlink" href="../refurbished.html">J-Certified規格</a>')
     else:
         cond_html = '新古品（未使用在庫品）'
     # ★保証期間は catalog.warranty_years の値をそのまま出す（2026-08-29）。
@@ -585,11 +639,16 @@ def render(row, slug, g=None, pos=0):
                   '</table></details>')
     # 製品写真（自社ストレージの公開URLのみ。無ければ準備中プレースホルダ）
     # 2枚目以降は x/<slug>_N.jpg。サムネイルを押すと大きい写真が入れ替わる。
+    # ★2026-09-02 修正：2枚目以降だけ旧置き場（Supabase Storage）を指したままで、
+    #   Supabase側の画像を整理した際に全部404になった（3,995型番・20,575枚）。
+    #   写真の実体はR2にある。★1枚目のURL(image_url)から土台を取り出して使うので、
+    #   将来また置き場を移しても sync.py の R2_PUBLIC_BASE を直すだけで済む（ここは触らなくてよい）。
     img_url = (row.get("image_url") or "").strip()
     shots_json = "[]"
     if img_url:
         n_img = max(1, int(row.get("image_count") or 1))
-        shots = [img_url] + [f"{SB_URL}/storage/v1/object/public/product-images/x/{slug}_{i}.jpg"
+        img_base = img_url.rsplit("/", 1)[0]          # 例 https://img.geoport.co.jp
+        shots = [img_url] + [f"{img_base}/x/{slug}_{i}.jpg"
                              for i in range(1, n_img)]
         shots_json = json.dumps(shots)
         thumbs = ""
@@ -871,8 +930,8 @@ def main():
     ngroups = sum(len(b["groups"]) for b in brands)
     print("目次: メーカー %d 社 / シリーズ %d 組" % (len(brands), ngroups))
 
-    # トップページのメーカーリンク行を在庫の実態に合わせる
-    idx_changed = update_index_brandlinks(brands)
+    # トップページ（メーカーリンク・シリーズ一覧・トップに並べる在庫）を実態に合わせる
+    idx_changed = update_index(brands, live)
 
     w = Writer(today, read_old_lastmod())
     # 固定ページ（会社情報・サービス案内）はこの生成の対象外なので日付を据え置く
