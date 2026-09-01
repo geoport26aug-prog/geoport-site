@@ -214,7 +214,13 @@ def e(s):
 def _clean_field(v):
     # データ上の "None"/"N/A"/空 は「値なし」として扱う
     s = (v or "").strip()
-    return "" if s.lower() in ("none", "n/a", "null", "-") else s
+    return "" if s.lower() in ("none", "n/a", "null", "-", "n", "/n", "\\n") else s
+
+def _clean_ean(v):
+    # ★2026-09-02：EAN欄に「N」とだけ出ているページが1,064件あった（フィードの欠測値）。
+    #   EANは8〜14桁の数字なので、数字を含まない値は「値なし」として出さない。
+    s = _clean_field(v)
+    return s if any(c.isdigit() for c in s) else ""
 
 # Phase 1 生成物には2種類のノイズがある：
 #  (1) 末尾の内部注記「（※…）」…本体の説明は有効。注記だけ外す（約15%）。
@@ -606,12 +612,16 @@ def render(row, slug, g=None, pos=0):
              [{"@type": "ListItem", "position": len(trail) + 1, "name": art, "item": canon}]}
     crumb_html = " ／ ".join(f'<a href="{href}">{e(nm)}</a>' for nm, _, href in trail) + f" ／ {e(art)}"
     related = related_html(g, pos) if g else ""
-    # ★2026-09-02：ここは品質区分で文言を変える。
-    #   リファビッシュ品を掲載し始めたのに「新古品（未使用在庫品）です」と固定で書いており、
-    #   説明文が無い 23,465 件（＝ほぼ全部のリファ品）で**お客様に誤った説明**が出ていた。
-    _about_cond = "J-Certified規格のリファビッシュ品" if is_ref else "新古品（未使用在庫品）"
-    about = desc_paras(dj) or (f"<p>{e(art)} の{_about_cond}です。詳しい仕様・在庫状況は、"
-                               f"下のボタンよりお問い合わせください。</p>")
+    # ★2026-09-02：日本語の説明が無いときは「製品について」の欄ごと出さない（S決定・案A）。
+    #   以前は決まり文句を出していたが、Sのご指摘どおり3つとも誤りだった：
+    #     ①「在庫状況は…お問い合わせください」… 在庫数は上の仕様表に出している
+    #     ② 品質区分の説明になっていて「製品について」の中身になっていない
+    #     ③「下のボタンより」… 見積ボタンは上（実測：ボタン17342 / この文 17497。下にボタンは無い）
+    #   中身のない決まり文句を数万ページに並べると、検索エンジンから薄いページと見なされる。
+    #   事実は真下の「製品仕様」表に出ているので、無理に文章を置かない。
+    #   ※日本語説明は gen-desc（毎晩0時）が作る。入荷直後の数十件だけがこの状態になる。
+    about = desc_paras(dj)
+    about_sec = f'<div class="sec">\n  <h2>製品について</h2>\n  {about}\n</div>' if about else ""
     series_html = f'<div class="series">{e(fam)} シリーズ</div>' if fam else ""
     brand_html  = f'<div class="brand">{e(brand)}</div>' if brand else ""
     brand_trow  = f"<tr><th>メーカー</th><td>{e(brand)}</td></tr>" if brand else ""
@@ -619,7 +629,7 @@ def render(row, slug, g=None, pos=0):
     # 製品仕様（説明の下に折りたたみで表示）。フィードにある項目だけを出す（推測しない）。
     dims = _clean_field(row.get("dimensions"))
     hs   = _clean_field(row.get("commodity_code"))
-    ean  = _clean_field(row.get("ean"))
+    ean  = _clean_ean(row.get("ean"))
     wt   = row.get("weight_kg")
     try:
         wtxt = (("%g" % float(wt)) + " kg") if wt not in (None, "") and float(wt) > 0 else ""
@@ -732,10 +742,7 @@ def render(row, slug, g=None, pos=0):
   </div>
 </div>
 
-<div class="sec">
-  <h2>製品について</h2>
-  {about}
-</div>
+{about_sec}
 
 {spec_extra}
 
