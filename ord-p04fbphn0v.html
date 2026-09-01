@@ -143,6 +143,39 @@ function load(pass){
       return r.json();
     });
 }
+
+// ── 写真を縮めてから送る ──────────────────────────────────────
+//   スマホの写真は1枚3〜8MBある。ラベルの文字を読むには長辺1600pxで十分。
+//   ★縮めるのはブラウザの中。元の写真は端末から出ない（縮めたものだけ送る）。
+function shrinkOne(file, maxSide, quality){
+  return new Promise(function(resolve, reject){
+    var fr = new FileReader();
+    fr.onerror = function(){ reject(new Error("写真を読めませんでした：" + file.name)); };
+    fr.onload = function(){
+      var img = new Image();
+      img.onerror = function(){ reject(new Error("この写真は開けませんでした：" + file.name)); };
+      img.onload = function(){
+        var w = img.width, hgt = img.height, r = Math.min(1, maxSide / Math.max(w, hgt));
+        var cw = Math.round(w * r), ch = Math.round(hgt * r);
+        var c = document.createElement("canvas"); c.width = cw; c.height = ch;
+        c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+        var url = c.toDataURL("image/jpeg", quality);
+        resolve({ media_type: "image/jpeg", data: url.slice(url.indexOf(",") + 1) });
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function shrinkAll(files){
+  if(!files.length) return Promise.resolve([]);
+  return files.reduce(function(chain, f){
+    return chain.then(function(acc){
+      return shrinkOne(f, 1600, 0.72).then(function(p){ acc.push(p); return acc; });
+    });
+  }, Promise.resolve([]));
+}
+
 // ボタンを押したとき。★台帳を書き換えるので、返事を必ず確かめて、そのあと画面を作り直す。
 function act(body){
   if(busy) return Promise.reject(new Error("busy"));
@@ -548,6 +581,8 @@ function paneArriving(){
 
 // ══════════════════════════════════════════════════════════════
 //  ④ 検品待ちタブ（両方）
+//   ★2026-09-01 S決定：写真は必須・手入力は任意・食い違いは要確認。
+//     写真そのものが証拠なので、まず写真。番号は打てるときだけ打つ。
 // ══════════════════════════════════════════════════════════════
 function paneInspect(){
   var n = D.inspecting.reduce(function(a,o){ return a + o.units.length; }, 0);
@@ -557,19 +592,29 @@ function paneInspect(){
   D.inspecting.forEach(function(o){
     h += '<div class="card"><div class="top"><span class="co">' + esc(o.company) + '</span><span class="no">' + esc(o.order_no) + "</span></div>";
     o.units.forEach(function(u){
+      var done = (u.photo_paths||[]).length;
       h += '<div class="it"><span class="kata">' + esc(u.article) + "</span>　" + u.unit_no + "台目" +
            (u.description ? '　<span class="sn">' + esc(u.description) + "</span>" : "") +
+           // ★写真が先。ラベルと封印シールの2枚。
+           '<label class="f" style="margin-top:8px">① 写真をとる（型式ラベル・封印シール）★これがいちばん大事な記録です</label>' +
+           '<input class="f" type="file" accept="image/*" capture="environment" multiple id="ip-' + u.unit_id + '">' +
+           '<div class="note" id="ipn-' + u.unit_id + '">' +
+             (done ? '保存済みの写真 ' + done + ' 枚（撮り直すと足されます。前の写真は消えません）'
+                   : 'スマホなら、その場で撮れます。2枚まとめて選べます。') + '</div>' +
+           '<label class="f" style="margin-top:10px">② 番号（読めたときだけでOK。空でもかまいません）</label>' +
            '<div class="grid2">' +
              '<div><label class="f">メーカーのシリアル番号</label><input class="f" id="is-' + u.unit_id + '" value="' + esc(u.serial_no||"") + '"></div>' +
              '<div><label class="f">J-Certified 封印シール番号</label><input class="f" id="ik-' + u.unit_id + '" value="' + esc(u.jc_seal_no||"") + '"></div>' +
            "</div>" +
+           (u.number_source ? '<div class="note">前回の記録：' + esc(u.number_source) + "</div>" : "") +
            '<div class="btns">' +
              '<button class="btn ok" data-insp="' + u.unit_id + '" data-result="OK">検品OK</button>' +
              '<button class="btn gray" data-insp="' + u.unit_id + '" data-result="読取不可">番号が読めない</button>' +
              '<button class="btn dang" data-insp="' + u.unit_id + '" data-result="NG">NG（止める）</button>' +
            "</div></div>";
     });
-    h += '<p class="note">番号が読めなくても「番号が読めない」で先に進めます（出荷は止まりません）。<br>' +
+    h += '<p class="note">★<b>写真だけでも進めます。</b>番号を打てば、機械が写真と突き合わせて確かめます。<br>' +
+         "番号が読めなくても「番号が読めない」で先に進めます（出荷は止まりません）。<br>" +
          "型式が違う・傷んでいる等のときだけ「NG」を押してください。出荷が止まり、Sの要対応に出ます。</p></div>";
   });
   return h;
@@ -979,10 +1024,30 @@ function wire(){
         if(note===null) return;
         if(!confirm("この1台をNGにします。出荷は止まり、Sの要対応に出ます。よろしいですか？")) return;
       }
-      b.disabled = true;
-      act({ action:"inspect", unit_id:id, result:result, serial:val("is-"+id), seal:val("ik-"+id), note:note })
-        .then(function(r){ toast("検品 " + result + " を記録しました（" + r.order_no + "／残り" + r.remaining + "台）"); return reload(); })
-        .catch(function(e){ b.disabled=false; toast(e.message, true); });
+      var files = (el("ip-" + id) && el("ip-" + id).files) ? [].slice.call(el("ip-" + id).files) : [];
+      if(files.length > 4){ toast("写真は4枚までにしてください", true); return; }
+      b.disabled = true; var was = b.textContent;
+      b.textContent = files.length ? "写真を送っています…" : "記録中…";
+      shrinkAll(files)
+        .then(function(photos){
+          return act({ action:"inspect", unit_id:id, result:result,
+                       serial:val("is-"+id), seal:val("ik-"+id), note:note, photos:photos });
+        })
+        .then(function(r){
+          var msg = "検品 " + result + " を記録しました（" + r.order_no + "／残り" + r.remaining + "台）";
+          if(r.photos) msg += "／写真" + r.photos + "枚";
+          if(r.mismatches && r.mismatches.length){
+            // ★食い違いは黙って決めない。その場で見せ、Sの要対応にも出る。
+            alert("★番号が写真と食い違っています。記録はしましたが、Sに確認が回ります。\n\n"
+                  + r.mismatches.join("\n")
+                  + "\n\n打った番号はそのまま残してあります（機械の読みで上書きしていません）。");
+          } else if(r.ai_error){
+            msg += "／★写真の読み取りはできませんでした（写真は保存済み）";
+          }
+          toast(msg);
+          return reload();
+        })
+        .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
     });
   });
 
