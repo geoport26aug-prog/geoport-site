@@ -4,7 +4,7 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="google-site-verification" content="YBdYSri15Fg0FNsgVabm-9jlutQDQL7soL1NRojxVhI" />
 <title>GEOPORT | FA機器カタログ</title>
-<meta name="description" content="産業用FA機器の在庫品を扱うGEOPORTの製品カタログ。Siemens・Schneider・ABB・SEWほかのメーカー品を、型番から在庫・お見積りをオンラインで確認できます。新古品（未使用在庫品）を中心にお取り扱いしています。">
+<meta name="description" content="産業用FA機器の在庫品を扱うGEOPORTの製品カタログ。Siemens・Schneider・ABB・SEWほかのメーカー品を、型番から在庫・お見積りをオンラインで確認できます。新古品（未使用在庫品）と、J-Certified規格のリファビッシュ品をお取り扱いしています。">
 <link rel="canonical" href="https://geoport.co.jp/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="GEOPORT">
@@ -232,6 +232,9 @@ function shortenCard(t,brand,article){
   t=t.replace(/です。?$/,"").replace(/[\s　、]+$/,"");
   return t.replace(/^\s+|\s+$/g,"");
 }
+// ★品質区分の呼び名。カードは幅が狭いので括弧書きは付けない。
+// （2026-09-02：ここが「新古品」の決め打ちで、リファビッシュ品にも新古品と出ていた）
+function condLabel(d){var c=d.condition||"";return c.indexOf("リファビッシュ")>=0?"リファビッシュ品":"新古品";}
 function cardDesc(d){var t=cleanDescJa(d.description_ja);if(!t||isRefusalJa(t))return d.description||"";return shortenCard(t,d.brand,d.article);}
 function fetchAll(){
   var all=[], lim=1000;
@@ -350,7 +353,7 @@ function render(){
   var gEl=$("grid"); if(!gEl) return;
   gEl.innerHTML=list.map(function(d){
     return '<div class="card"><div class="thumb'+(d.image_url?' has-img':'')+'"><span class="badge">● 在庫 '+h(d.stock)+' 点</span>'+(d.image_url?'<img class="thumbimg" src="'+h(d.image_url)+'" alt="'+h(d.article)+'" loading="lazy">':'<span class="pn">'+h(d.brand)+'</span>')+'</div>'+
-    '<div class="cbody"><div class="brand">'+h(d.brand)+' · 新古品</div><div class="art"><a class="cardlink" href="p/'+slugify(d.article)+'.html">'+h(d.article)+'</a></div>'+
+    '<div class="cbody"><div class="brand">'+h(d.brand)+' · '+h(condLabel(d))+'</div><div class="art"><a class="cardlink" href="p/'+slugify(d.article)+'.html">'+h(d.article)+'</a></div>'+
     '<div class="desc">'+h(cardDesc(d))+'</div>'+
     '<div class="specrow"><span>'+h(d.family&&d.family!=="None"?d.family:"")+'</span></div>'+
     '<div class="delivery"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'+

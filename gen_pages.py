@@ -441,7 +441,8 @@ def render_list_brand(b):
                      f'<span class="a">{e(nm)}</span>'
                      f'<span class="b">{e(b["name"])}</span></a>')
     body = (f'<p class="lead">{e(b["name"])} の在庫 {b["count"]:,} 点を、シリーズ別に一覧にしています。'
-            f'すべて新古品（未使用在庫品）で、価格はお見積りにてご提示します。</p>'
+            f'新古品（未使用在庫品）と J-Certified規格のリファビッシュ品を扱っており、'
+            f'品質区分は各製品ページに表示しています。価格はお見積りにてご提示します。</p>'
             f'<div class="lgrid">{"".join(cards)}</div>')
     return _shell(f'{b["name"]} 在庫一覧（{b["count"]:,}点）｜GEOPORT',
                   f'{b["name"]} の産業用FA機器 {b["count"]:,} 点の在庫一覧。シリーズ別に型番を確認できます。'
@@ -551,7 +552,11 @@ def render(row, slug, g=None, pos=0):
              [{"@type": "ListItem", "position": len(trail) + 1, "name": art, "item": canon}]}
     crumb_html = " ／ ".join(f'<a href="{href}">{e(nm)}</a>' for nm, _, href in trail) + f" ／ {e(art)}"
     related = related_html(g, pos) if g else ""
-    about = desc_paras(dj) or (f"<p>{e(art)} の新古品（未使用在庫品）です。詳しい仕様・在庫状況は、"
+    # ★2026-09-02：ここは品質区分で文言を変える。
+    #   リファビッシュ品を掲載し始めたのに「新古品（未使用在庫品）です」と固定で書いており、
+    #   説明文が無い 23,465 件（＝ほぼ全部のリファ品）で**お客様に誤った説明**が出ていた。
+    _about_cond = "J-Certified規格のリファビッシュ品" if is_ref else "新古品（未使用在庫品）"
+    about = desc_paras(dj) or (f"<p>{e(art)} の{_about_cond}です。詳しい仕様・在庫状況は、"
                                f"下のボタンよりお問い合わせください。</p>")
     series_html = f'<div class="series">{e(fam)} シリーズ</div>' if fam else ""
     brand_html  = f'<div class="brand">{e(brand)}</div>' if brand else ""
