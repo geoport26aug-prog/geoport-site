@@ -206,23 +206,28 @@ function render(){
 function paneOrder(){
   var h = "";
 
-  // ── ★JCとの約束（12か月で€50,000）の進み具合 ──────────────
-  //   ★数え方が「商品だけ」か「送料込み」かは、まだJCに確認できていないので両方出す。
+  // ── ★JCとの約束（12か月で €50,000）の進み具合 ──────────────
+  //   ★S確定（2026-09-01）＝数えるのは「商品だけ」。送料は含めない。
+  //     （view には送料込みの列も残っているが、画面には出さない。見るたびに迷わないため）
   (function(){
     var j = D.jc_progress; if(!j) return;
     var eur = function(n){ return "€" + Number(n||0).toLocaleString("en-US",{maximumFractionDigits:0}); };
     var mon = Math.max(1, Math.round(j.残り日数 / 30));
+    var pct = Math.min(100, Math.round(Number(j.商品計_eur) / Number(j.目標_eur) * 100));
     h += '<h2>JCとの約束（12か月で €50,000）<span class="cnt">残り ' + j.残り日数 + '日</span></h2>' +
-         '<div class="card"><div class="meta">期限 ' + esc(j.期限) + '（あと約' + mon + 'か月）　請求書 ' + j.件数 + '通</div>' +
-         '<table><tr><th>商品だけで数えた場合</th><td style="text-align:right">' + eur(j.商品計_eur) +
-         ' ／ €50,000　<b>あと ' + eur(j.残り_商品のみ) + '</b>（月あたり ' + eur(j.月あたり必要_商品のみ) + '）</td></tr>' +
-         '<tr><th>送料も含めて数えた場合</th><td style="text-align:right">' + eur(j.総額_eur) +
-         ' ／ €50,000　<b>あと ' + eur(j.残り_送料込み) + '</b>（月あたり ' + eur(j.月あたり必要_送料込み) + '）</td></tr>' +
-         (Number(j.未払い_eur) > 0 ? '<tr><th>うち未払い</th><td style="text-align:right;color:#b23">' + eur(j.未払い_eur) + '</td></tr>' : "") +
+         '<div class="card">' +
+         '<div style="height:10px;background:#e8eef5;border-radius:5px;overflow:hidden;margin:2px 0 10px">' +
+           '<div style="height:100%;width:' + Math.max(pct,1) + '%;background:var(--navy)"></div></div>' +
+         '<table>' +
+         '<tr><th>いままでの仕入（商品のみ・税抜）</th><td style="text-align:right"><b>' + eur(j.商品計_eur) + '</b>　／　€50,000（' + pct + '%）</td></tr>' +
+         '<tr><th>あといくら必要か</th><td style="text-align:right"><b>' + eur(j.残り_商品のみ) + '</b>　（月あたり ' + eur(j.月あたり必要_商品のみ) + '）</td></tr>' +
+         '<tr><th>期限</th><td style="text-align:right">' + esc(j.期限) + '（あと約' + mon + 'か月）　請求書 ' + j.件数 + '通</td></tr>' +
+         (Number(j.未払い_eur) > 0 ? '<tr><th>うちJCへ未払い</th><td style="text-align:right;color:#b23">' + eur(j.未払い_eur) + '</td></tr>' : "") +
          '</table>' +
-         '<p class="note">★どちらの数え方が正しいかは、まだJCに確認できていません（Patrickへの質問に入れてあります）。' +
-         '確認できるまでは、厳しいほう（商品だけ）を目安にしてください。</p></div>';
+         '<p class="note">★数えるのは<b>商品の額だけ</b>です（送料は含みません・2026-09-01 S確定）。' +
+         '送料は請求書ごとに別に記録してあります。</p></div>';
   })();
+
 
   // ── 見積を出した先（受注にできる）─────────────────────────
   h += '<h2>見積を出した先（受注にできます）<span class="cnt">' + D.quotable.length + "件</span></h2>";
