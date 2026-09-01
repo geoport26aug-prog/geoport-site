@@ -206,6 +206,24 @@ function render(){
 function paneOrder(){
   var h = "";
 
+  // ── ★JCとの約束（12か月で€50,000）の進み具合 ──────────────
+  //   ★数え方が「商品だけ」か「送料込み」かは、まだJCに確認できていないので両方出す。
+  (function(){
+    var j = D.jc_progress; if(!j) return;
+    var eur = function(n){ return "€" + Number(n||0).toLocaleString("en-US",{maximumFractionDigits:0}); };
+    var mon = Math.max(1, Math.round(j.残り日数 / 30));
+    h += '<h2>JCとの約束（12か月で €50,000）<span class="cnt">残り ' + j.残り日数 + '日</span></h2>' +
+         '<div class="card"><div class="meta">期限 ' + esc(j.期限) + '（あと約' + mon + 'か月）　請求書 ' + j.件数 + '通</div>' +
+         '<table><tr><th>商品だけで数えた場合</th><td style="text-align:right">' + eur(j.商品計_eur) +
+         ' ／ €50,000　<b>あと ' + eur(j.残り_商品のみ) + '</b>（月あたり ' + eur(j.月あたり必要_商品のみ) + '）</td></tr>' +
+         '<tr><th>送料も含めて数えた場合</th><td style="text-align:right">' + eur(j.総額_eur) +
+         ' ／ €50,000　<b>あと ' + eur(j.残り_送料込み) + '</b>（月あたり ' + eur(j.月あたり必要_送料込み) + '）</td></tr>' +
+         (Number(j.未払い_eur) > 0 ? '<tr><th>うち未払い</th><td style="text-align:right;color:#b23">' + eur(j.未払い_eur) + '</td></tr>' : "") +
+         '</table>' +
+         '<p class="note">★どちらの数え方が正しいかは、まだJCに確認できていません（Patrickへの質問に入れてあります）。' +
+         '確認できるまでは、厳しいほう（商品だけ）を目安にしてください。</p></div>';
+  })();
+
   // ── 見積を出した先（受注にできる）─────────────────────────
   h += '<h2>見積を出した先（受注にできます）<span class="cnt">' + D.quotable.length + "件</span></h2>";
   if(!D.quotable.length) h += '<div class="empty">いまは、受注にできる見積はありません。</div>';
@@ -287,6 +305,24 @@ function paneOrder(){
                  yen(w.shortfall_jpy) + '（' + w.qty + '台ぶん）') + '</div>';
       }
     });
+    // 記録したJCの請求書（★仕入額なのでSのページだけ）
+    (function(){
+      var seen = {}, list = [];
+      (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){
+        if(x.jc_purchases && !seen[x.jc_purchases.id]){ seen[x.jc_purchases.id]=1; list.push(x.jc_purchases); }
+      }); });
+      list.forEach(function(p){
+        h += '<div class="meta"><span class="tag ' + (p.paid_on ? 'g' : '') + '">JC請求書 ' + esc(p.invoice_no) + '</span>' +
+             (p.sales_order_no ? '　JC注文 ' + esc(p.sales_order_no) : "") +
+             '　EUR ' + Number(p.total_eur).toLocaleString("en-US",{minimumFractionDigits:2}) +
+             '（商品 ' + Number(p.goods_eur).toLocaleString("en-US",{minimumFractionDigits:2}) +
+             ' ＋送料 ' + Number(p.shipping_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + '）' +
+             (p.discount_pct!=null ? '　割引 ' + p.discount_pct + '%' : "") +
+             (p.paid_on ? '　支払済 ' + md(p.paid_on)
+                        : '　<span style="color:#b23">★未払い' + (p.due_date ? '（期限 ' + md(p.due_date) + '）' : "") + '</span>') +
+             '</div>';
+      });
+    })();
     // JCへの発注メール（英語）の下書きが出来ているか
     if(o.jc_po_draft_id){
       h += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' +
@@ -311,7 +347,7 @@ function paneOrder(){
     }
     // 番号はインボイスが来てから。発注前でも「先に分かった」なら入れられる
     if(["受注","入金待ち","発注","入荷"].indexOf(o.status)>=0)
-      h += '<button class="btn" data-jcform="' + o.id + '">JCの番号を入れる</button>';
+      h += '<button class="btn" data-jcform="' + o.id + '">JCの請求書を記録する</button>';
     // ★在庫切れは「お客様都合のキャンセル」とは別の道。発注後でも通り、全額返金になる（§A-2①）
     if(["受注","入金待ち","発注","入荷","検品"].indexOf(o.status)>=0)
       h += '<button class="btn dang" data-mark="' + o.id + '" data-what="在庫切れで中止する">在庫切れで中止</button>';
@@ -397,16 +433,39 @@ function orderForm(q){
   return h;
 }
 
-// 「J-Certifiedへ発注した」の入力欄
+// 「JCの請求書を記録する」の入力欄（★2026-09-01：請求書と追跡番号を同じ入口で）
 function jcForm(o){
-  var u = null;
-  (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){ if(!u && x.jc_order_no) u = x; }); });
-  return '<h3>J-Certifiedの番号を入れます（分かったものだけでOK）</h3>' +
-    '<p class="note" style="margin:0 0 4px">発注番号はインボイスが届いてから、追跡番号は出荷連絡が来てから入れられます。<br>' +
-    '空のままにした欄は、いま入っている値を消しません。</p>' +
-    '<label class="f">発注番号</label><input class="f" id="jc-no-' + o.id + '" value="' + esc(u&&u.jc_order_no||"") + '" placeholder="#4471">' +
-    '<label class="f">追跡番号（FedEx）</label><input class="f" id="jc-tr-' + o.id + '" value="' + esc(u&&u.inbound_tracking||"") + '" placeholder="7712 3456 7890">' +
-    '<label class="f">到着予定日</label><input class="f" type="date" id="jc-eta-' + o.id + '" value="' + esc(u&&u.inbound_eta||"") + '">' +
+  var u = null, p = null;
+  (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){
+    if(!u) u = x;
+    if(!p && x.jc_purchases) p = x.jc_purchases;
+  }); });
+  p = p || {};
+  function f(lbl, id, val, ph, type){
+    return '<label class="f">' + lbl + '</label><input class="f" ' + (type?'type="'+type+'" ':'') +
+           'id="jc-' + id + '-' + o.id + '" value="' + esc(val==null?"":val) + '"' +
+           (ph?' placeholder="'+ph+'"':'') + '>';
+  }
+  return '<h3>JCの請求書を記録します（分かったものだけでOK）</h3>' +
+    '<p class="note" style="margin:0 0 4px">請求書が届いたら番号と金額を、出荷連絡が来たら追跡番号を入れてください。<br>' +
+    '★空のままにした欄は、いま入っている値を消しません。合計は入れた金額から計算し、' +
+    '請求書の合計と合わなければ止まります。</p>' +
+    f("請求書番号（Invoice number）", "inv", p.invoice_no, "34017115") +
+    f("JCの注文番号（Sales order nr.）", "so", p.sales_order_no, "30111394") +
+    f("請求日", "idate", p.invoice_date, "", "date") +
+    f("支払期限（Due date）", "due", p.due_date, "", "date") +
+    f("JCが示した納期（Delivery date）", "ddate", p.delivery_date, "", "date") +
+    '<div class="note" style="margin:8px 0 2px">金額（ユーロ・税抜）</div>' +
+    f("商品（Total excl. VAT）", "goods", p.goods_eur, "387.00") +
+    f("送料（Total shipping and charges）", "ship", p.shipping_eur, "35.00") +
+    f("VAT（日本向けは 0）", "vat", p.vat_eur==null?"0":p.vat_eur, "0.00") +
+    f("★請求書に印字された合計（検算に使います）", "tot", p.total_eur, "422.00") +
+    f("割引率 Kort.-%（合意は15）", "disc", p.discount_pct, "15") +
+    f("支払い方法", "pm", p.payment_method, "PayPal / 銀行振込") +
+    f("支払った日", "paid", p.paid_on, "", "date") +
+    '<div class="note" style="margin:8px 0 2px">出荷連絡が来たら</div>' +
+    f("追跡番号（FedEx）", "tr", u&&u.inbound_tracking, "7712 3456 7890") +
+    f("到着予定日", "eta", u&&u.inbound_eta, "", "date") +
     '<div class="btns"><button class="btn pri" data-dojc="' + o.id + '">記録する</button>' +
     '<button class="btn gray" data-closejc="' + o.id + '">やめる</button></div>';
 }
@@ -885,11 +944,22 @@ function wire(){
   root.querySelectorAll("[data-dojc]").forEach(function(b){
     b.addEventListener("click", function(){
       var id = Number(b.getAttribute("data-dojc"));
-      var no = val("jc-no-" + id), tr = val("jc-tr-" + id), eta = val("jc-eta-" + id);
-      if(!no && !tr && !eta){ toast("発注番号・追跡番号・到着予定日のうち、1つは入れてください", true); return; }
+      function g(k){ return val("jc-" + k + "-" + id); }
+      var body = { action:"jc_order", order_id:id,
+        invoice_no:g("inv"), sales_order_no:g("so"), invoice_date:g("idate"),
+        due_date:g("due"), delivery_date:g("ddate"),
+        goods_eur:g("goods"), shipping_eur:g("ship"), vat_eur:g("vat"), total_eur:g("tot"),
+        discount_pct:g("disc"), payment_method:g("pm"), paid_on:g("paid"),
+        tracking:g("tr"), eta:g("eta") };
+      if(!body.invoice_no && !body.tracking && !body.eta){
+        toast("請求書番号・追跡番号・到着予定日のうち、1つは入れてください", true); return; }
       b.disabled = true;
-      act({ action:"jc_order", order_id:id, jc_order_no:no, tracking:tr, eta:eta||null })
-        .then(function(r){ toast(r.order_no + "：番号を記録しました（" + r.units + "台）"); return reload(); })
+      act(body)
+        .then(function(r){
+          toast(r.order_no + "：" + (r.invoice_no ? "請求書 " + r.invoice_no + " を記録しました（EUR " + r.total_eur + "）"
+                                                 : "追跡番号を記録しました"));
+          return reload();
+        })
         .catch(function(e){ b.disabled=false; toast(e.message, true); });
     });
   });
