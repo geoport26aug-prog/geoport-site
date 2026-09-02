@@ -59,6 +59,9 @@
   .ship{font-size:12px;line-height:1;flex:none;color:var(--c0)}
   .ship.c1{color:var(--c1)}.ship.c2{color:var(--c2)}.ship.c3{color:var(--c3)}.ship.c4{color:var(--c4)}.ship.c5{color:var(--c5)}
   .ship.inc{color:var(--ink-soft)}
+  /* ★eBay等（色スロットを使わない仕入先）で出荷済みのとき、仕入先の印を赤くする（2026-09-02 S要望）。
+     色分けは要らないが「もう出荷されたか」は一目で知りたい、という運用のため。 */
+  .sup.shipped{color:var(--c1);font-weight:700}
   .trk{font-size:10.5px;color:var(--ink-faint);text-decoration:none;letter-spacing:.02em}
   .trk:active{color:var(--accent)}
   .qty{text-align:right;font-weight:700;font-size:15px}
@@ -177,7 +180,7 @@
         '<div class="due '+di.cls+'">'+di.t+'<small>'+mmdd(x.due_date)+'</small></div>'+
         '<div class="mid"><div class="kata">'+
           '<span class="ship '+starCls+'">★</span>'+
-          '<span class="sup">'+supMark(x.supplier)+'</span>'+
+          '<span class="sup'+(x.shipped && !x.color ? ' shipped' : '')+'">'+supMark(x.supplier)+'</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
           '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+acc+trk+'</div></div>'+
         '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>';
