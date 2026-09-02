@@ -666,7 +666,7 @@ def render(row, slug, g=None, pos=0):
             btns = "".join(
                 f'<button type="button" class="th{" on" if i == 0 else ""}" '
                 f'onclick="showShot(this,{i})" aria-label="写真{i + 1}">'
-                f'<img src="{e(u)}" alt="" loading="lazy"></button>'
+                f'<img src="{e(u)}" alt="{e(art)} 写真{i + 1}" loading="lazy"></button>'
                 for i, u in enumerate(shots))
             thumbs = f'<div class="thumbs">{btns}</div>'
         photo_html = (f'<div class="gal"><div class="photo zoomable" id="photobox">'
@@ -694,6 +694,25 @@ def render(row, slug, g=None, pos=0):
                 '<div class="lbscroll"><img id="lbimg" alt="" onclick="lbToggle(event)" onload="lbCount()"></div>'
                 '<button class="nav next" type="button" onclick="stepLB(1)" aria-label="次の写真">&#8250;</button>'
                 '<div class="cnt" id="lbcnt"></div></div>')
+    # ★2026-09-02：Googleに「これは商品だ」と伝える印（構造化データ）を足す。
+    #  ⚠️**あえて offers（価格）を入れていない。** Googleの商品リッチリザルトは
+    #    offers に price と priceCurrency を要求する。当社は個別見積で価格を出さないため、
+    #    offers を「価格なし」で入れると Search Console に27,000件の無効エラーが並び、
+    #    本当の問題が埋もれる。価格を偽って書くこともできない（大原則）。
+    #    → 価格を伴わない Product として、名称・メーカー・型番・写真・状態だけを正しく伝える。
+    #      リッチリザルトは出ないが、Googleが商品ページだと理解する助けにはなる。
+    #    ※将来サイトに価格を出す方針になったら、ここに offers を足せばリッチリザルトの対象になる。
+    prod = {"@context": "https://schema.org", "@type": "Product",
+            "name": art, "sku": art, "mpn": art, "url": canon,
+            "itemCondition": ("https://schema.org/RefurbishedCondition" if is_ref
+                              else "https://schema.org/NewCondition")}
+    if brand: prod["brand"] = {"@type": "Brand", "name": brand}
+    if dj:    prod["description"] = dj[:300]
+    if img_url: prod["image"] = shots if len(shots) > 1 else [img_url]
+    if fam:   prod["category"] = fam
+    jsonld = [crumb, prod]
+    # ★SNSやチャットにURLを貼ったとき、写真が出るようにする（無いと味気ない四角だけ）
+    og_image = (f'<meta property="og:image" content="{e(img_url)}">\n' if img_url else "")
     return f"""<!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -707,9 +726,9 @@ def render(row, slug, g=None, pos=0):
 <meta property="og:title" content="{e(ogt)}">
 <meta property="og:description" content="{e(ogd)}">
 <meta property="og:url" content="{e(canon)}">
-<meta name="twitter:card" content="summary">
+{og_image}<meta name="twitter:card" content="{'summary_large_image' if img_url else 'summary'}">
 <script type="application/ld+json">
-{json.dumps(crumb, ensure_ascii=False)}
+{json.dumps(jsonld, ensure_ascii=False)}
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
