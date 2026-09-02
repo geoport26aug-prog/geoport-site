@@ -157,7 +157,7 @@ header{background:#0f2f5c;border-color:#123354}
 <div class="crumb"><span><a href="../">製品カタログ</a> ／ <a href="../list/">メーカー・シリーズ一覧</a> ／ <a href="../list/siemens.html">Siemens</a> ／ <a href="../list/siemens-simotion.html">Simotion</a> ／ 6AU1230-2AA00-0AA0</span><a class="back" href="../">← 製品カタログへ戻る</a></div>
 
 <div class="top">
-  <div class="gal"><div class="photo ph"><span class="pn">6AU1230-2AA00-0AA0</span><span class="note">製品写真は準備中です</span></div></div>
+  <div class="gal"><div class="photo zoomable" id="photobox"><img id="mainshot" src="https://img.geoport.co.jp/6au1230-2aa00-0aa0.jpg" alt="6AU1230-2AA00-0AA0 Siemens" onclick="photoClick()"><div class="inzoom" id="inzoom"></div><div class="pctl"><button type="button" class="mag" id="magbtn" onclick="toggleMag()" title="虫眼鏡（拡大して見る）" aria-label="虫眼鏡"><svg width="17" height="17" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg></button><button type="button" onclick="openLB()" title="全画面で拡大" aria-label="全画面で拡大"><svg width="17" height="17" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg></button></div></div></div>
   <div>
     <div class="brand">Siemens</div>
     <h1>6AU1230-2AA00-0AA0</h1>
@@ -191,7 +191,7 @@ header{background:#0f2f5c;border-color:#123354}
 掲載中の在庫品を短納期でお届けします。価格・お見積りはお問い合わせください。<br>
 <a href="../list/">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
 
-
+<div class="lb" id="lb" onclick="lbBg(event)"><button class="x" type="button" onclick="closeLB()" aria-label="閉じる">&times;</button><button class="nav prev" type="button" onclick="stepLB(-1)" aria-label="前の写真">&#8249;</button><div class="lbscroll"><img id="lbimg" alt="" onclick="lbToggle(event)" onload="lbCount()"></div><button class="nav next" type="button" onclick="stepLB(1)" aria-label="次の写真">&#8250;</button><div class="cnt" id="lbcnt"></div></div>
 
 <div class="overlay" id="ov"><div class="modal">
 <div class="mhead"><div><h3>見積・在庫確認</h3><div class="sub">6AU1230-2AA00-0AA0</div></div><button class="x" type="button" onclick="closeQuote()">&times;</button></div>
@@ -214,7 +214,7 @@ var RELAY="https://vprtbkkqqdfidzvfwhzo.supabase.co/functions/v1/quote-relay";
 var ART="6AU1230-2AA00-0AA0";
 function $(i){return document.getElementById(i);}
 /* ---- 写真の切替・虫眼鏡・全画面拡大 ---- */
-var SHOTS=[], CUR=0;
+var SHOTS=["https://img.geoport.co.jp/6au1230-2aa00-0aa0.jpg"], CUR=0;
 function showShot(b,i){CUR=i;var m=$("mainshot");if(m&&SHOTS[i])m.src=SHOTS[i];
   var t=document.querySelectorAll(".th");for(var k=0;k<t.length;k++)t[k].classList.remove("on");
   if(b)b.classList.add("on");}
