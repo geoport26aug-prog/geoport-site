@@ -39,11 +39,17 @@
   .profit2{position:absolute;right:16px;top:14px;text-align:right}
   .profit2 .pv{font-size:16px;font-weight:700;color:var(--good);letter-spacing:.01em}
   .profit2 .pl{display:block;font-size:10px;color:var(--ink-faint);font-weight:600;margin-top:1px}
+  /* ★利益率（§118・逆ざや検出）。文言は付けず数字だけ。マイナス＝赤、10%未満＝注意色。 */
+  .profit2 .pr{display:block;font-size:11px;font-weight:700;margin-top:2px;color:var(--ink-soft)}
+  .rate{min-width:34px;text-align:right;font-size:11px;font-weight:700;color:var(--ink-faint);padding-left:6px;align-self:center}
+  .rate.warn{color:var(--warn)}
+  .rate.bad{color:var(--crit);font-size:12px}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   h2.sec{font-size:13px;font-weight:700;color:var(--ink-soft);letter-spacing:.04em;margin:0 4px 10px;display:flex;align-items:center;gap:8px}
   h2.sec .count{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:20px;padding:2px 9px}
   .list{padding:4px;margin-bottom:22px}
-  .item{display:grid;grid-template-columns:60px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:11px}
+  /* ★4列目は利益率（§118）。代替品の行は3つしか入れないので、その列は空になる */
+  .item{display:grid;grid-template-columns:60px 1fr auto auto;align-items:center;gap:10px;padding:10px 12px;border-radius:11px}
   .item+.item{border-top:1px solid var(--line)}
   .due{text-align:center;font-size:11px;font-weight:700;border-radius:8px;padding:5px 2px;line-height:1.25}
   .due small{display:block;font-size:9.5px;font-weight:600;opacity:.8}
@@ -72,6 +78,8 @@
   .bar .col{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 70%,transparent));min-height:4px}
   .bar.cur .col{background:linear-gradient(180deg,var(--good),color-mix(in srgb,var(--good) 65%,transparent))}
   .bar .v{font-size:11px;font-weight:700;color:var(--ink-soft)}
+  .bar .r{font-size:10px;font-weight:700;color:var(--ink-faint);margin-top:-4px}
+  .bar .r.warn{color:var(--warn)} .bar .r.bad{color:var(--crit)}
   .bar .m{font-size:11.5px;font-weight:600;color:var(--ink-faint)}.bar.cur .m{color:var(--good)}
   .note{font-size:11.5px;color:var(--ink-faint);line-height:1.6;margin:2px 6px 0;padding-top:14px;border-top:1px dashed var(--line)}
   .gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50}
@@ -110,7 +118,7 @@
         <div class="label"><span class="month" id="mlabel"></span>に受けた注文</div>
         <div class="num tnum" id="oTotal"></div>
         <div class="foot tnum"><span id="oCount"></span> ／ 今月の受注</div>
-        <div class="profit2"><span class="pv tnum" id="profit"></span><span class="pl tnum" id="profitN"></span></div>
+        <div class="profit2"><span class="pv tnum" id="profit"></span><span class="pl tnum" id="profitN"></span><span class="pr tnum" id="profitR"></span></div>
       </div>
       <div class="row2" style="margin-bottom:22px">
         <div class="card stat">
@@ -140,6 +148,15 @@
   var supMark = function(s){ return ({Dong:'●',eBay:'e','ヤフオク':'y','その他':'◆'})[s] || '·'; };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function mmdd(iso){ if(!iso) return ''; var p=iso.split('-'); return (+p[1])+'/'+(+p[2]); }
+  // ★利益率（§118）。原価が分からなければ空欄。マイナス＝逆ざや（赤）、10%未満＝注意。
+  //   文言は付けず数字だけ出す（画面をのぞかれても意味が伝わりにくいように・S案）。
+  function rateInfo(sell, cost){
+    if(cost==null || !(sell>0)) return {cls:'', t:''};
+    // 表示は整数％。色は**表示する数字**で決める（9.9%を「10%」と出しつつ注意色…という食い違いを防ぐ）
+    var r = Math.round((sell - cost) / sell * 100);
+    var cls = r < 0 ? 'bad' : (r < 10 ? 'warn' : '');
+    return {cls:cls, t: (r<0?'−':'') + Math.abs(r) + 'p.c'};
+  }
   function dueInfo(n){
     if(n===null) return {cls:'n',t:'—'};
     if(n<0)  return {cls:'c',t:(-n)+'日超過'};
@@ -156,6 +173,10 @@
     document.getElementById('oCount').textContent = d.order_count + '件';
     document.getElementById('profit').textContent = plain(d.gross_profit);
     document.getElementById('profitN').textContent = d.order_count + ' / ' + d.profit_known_count;
+    // 率＝粗利 ÷「原価が判明している注文の売上」。分母を粗利と同じ範囲に揃える（違う範囲で割ると率が実際より低く出る）
+    var mr = rateInfo(d.profit_known_total, d.profit_known_total - d.gross_profit);
+    var pR = document.getElementById('profitR');
+    pR.textContent = mr.t; pR.className = 'pr tnum' + (mr.cls ? ' ' + mr.cls : '');
     document.getElementById('bill').innerHTML = '<span class="yen">¥</span>' + plain(d.billing_forecast);
     document.getElementById('unCount').innerHTML = d.unshipped_count + '<span style="font-size:14px;color:var(--ink-soft)">件</span>';
     document.getElementById('unTotal').textContent = yen(d.unshipped_total) + ' 分';
@@ -183,7 +204,9 @@
           '<span class="sup'+(x.shipped && !x.color ? ' shipped' : '')+'">'+supMark(x.supplier)+'</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
           '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+acc+trk+'</div></div>'+
-        '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>';
+        '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>'+
+        (function(){ var ri = rateInfo(x.unit_price, x.cost_jpy);
+          return '<div class="rate tnum'+(ri.cls?' '+ri.cls:'')+'">'+ri.t+'</div>'; })();
       L.appendChild(el);
     });
 
@@ -213,7 +236,11 @@
       var h = Math.max(4, Math.round(t.amount/max*100));
       var m = (t.amount/1000000).toFixed(1);
       var el = document.createElement('div'); el.className='bar'+(cur?' cur':'');
-      el.innerHTML = '<div class="v tnum">¥'+m+'M</div><div class="col" style="height:'+h+'%"></div><div class="m">'+esc(t.month)+'</div>';
+      // 率＝粗利 ÷「原価が判明している分の売上」。売上Mの下に数字だけ出す（§118）
+      var tr = rateInfo(t.known_amount, (t.known_amount||0) - (t.gross_profit||0));
+      el.innerHTML = '<div class="v tnum">¥'+m+'M</div>'+
+        '<div class="r tnum'+(tr.cls?' '+tr.cls:'')+'">'+tr.t+'</div>'+
+        '<div class="col" style="height:'+h+'%"></div><div class="m">'+esc(t.month)+'</div>';
       B.appendChild(el);
     });
     document.getElementById('trendNote').innerHTML =
