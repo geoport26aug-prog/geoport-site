@@ -41,6 +41,8 @@
   .profit2 .pl{display:block;font-size:10px;color:var(--ink-faint);font-weight:600;margin-top:1px}
   /* ★利益率（§118・逆ざや検出）。文言は付けず数字だけ。マイナス＝赤、10%未満＝注意色。 */
   .profit2 .pr{display:block;font-size:11px;font-weight:700;margin-top:2px;color:var(--ink-soft)}
+  /* ★お届け予定日「予定9/10」（S要望 2026-09-03）。出荷済みで予定日が分かっている品にだけ出る */
+  .eta{color:var(--good);font-weight:700}
   .rate{min-width:34px;text-align:right;font-size:11px;font-weight:700;color:var(--ink-faint);padding-left:6px;align-self:center}
   .rate.warn{color:var(--warn)}
   .rate.bad{color:var(--crit);font-size:12px}
@@ -196,6 +198,8 @@
         : '';
       var ql = x.quality ? '<span class="ql">'+esc(x.quality)+'</span> ・ ' : '';
       var acc = x.plan_month ? ' ・ 検収 '+esc(x.plan_month) : ''; // ★予定検収月
+      // ★お届け予定日。仕入先から出荷済みで予定日が分かっているときだけ出す（S要望 2026-09-03）
+      var eta = x.eta_date ? ' ・ <span class="eta">予定 '+mmdd(x.eta_date)+'</span>' : '';
       var el = document.createElement('div'); el.className='item';
       el.innerHTML =
         '<div class="due '+di.cls+'">'+di.t+'<small>'+mmdd(x.due_date)+'</small></div>'+
@@ -203,7 +207,7 @@
           '<span class="ship '+starCls+'">★</span>'+
           '<span class="sup'+(x.shipped && !x.color ? ' shipped' : '')+'">'+supMark(x.supplier)+'</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
-          '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+acc+trk+'</div></div>'+
+          '<div class="meta tnum">'+ql+esc(x.item_name)+' ・ 受注 '+mmdd(x.order_date)+eta+acc+trk+'</div></div>'+
         '<div class="qty tnum">'+x.remain_qty+'<small>点</small></div>'+
         (function(){ var ri = rateInfo(x.unit_price, x.cost_jpy);
           return '<div class="rate tnum'+(ri.cls?' '+ri.cls:'')+'">'+ri.t+'</div>'; })();
@@ -224,7 +228,8 @@
         '<div class="mid"><div class="kata">'+
           '<span class="ship '+starCls+'">⟲</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
-          '<div class="meta tnum"><span class="ql">代替品</span>'+(x.note?' ・ '+esc(x.note):'')+trk+'</div></div>'+
+          '<div class="meta tnum"><span class="ql">代替品</span>'+(x.note?' ・ '+esc(x.note):'')+
+            (x.eta_date?' ・ <span class="eta">予定 '+mmdd(x.eta_date)+'</span>':'')+trk+'</div></div>'+
         '<div class="qty tnum">'+x.qty+'<small>点</small></div>';
       L.appendChild(el);
     });
