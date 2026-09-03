@@ -322,9 +322,9 @@ function paneOrder(){
          (o.paid_on ? '　<span class="tag g">入金 ' + md(o.paid_on) + "</span>" : "") + "</div>";
     if(!o.ship_addr) h += '<p class="note"><span class="tag r">納品先が空</span> 出荷の前に住所を入れてください（いまは注文書を見ながら手で入れます）。</p>';
 
-    var inv = (o.documents||[]).filter(function(x){ return x.kind==="ご請求書"; })[0];
+    var inv = (o.documents||[]).filter(function(x){ return x.kind==="お支払いのご案内"||x.kind==="ご請求書"; })[0];
     if(inv){
-      h += '<div class="meta"><span class="tag g">ご請求書 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) +
+      h += '<div class="meta"><span class="tag g">お支払案内 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) +
            '　' + yen(inv.total_jpy) + '　<span class="tag">Gmailの下書きに入っています</span></div>';
     }
     // ★仕入値の見張り（見積のときと、今）。上がった品だけ出る（2026-08-31）
@@ -369,10 +369,10 @@ function paneOrder(){
     }
     h += '<div class="btns">';
     if(o.status==="受注" && !inv){
-      h += '<button class="btn pri" data-invoice="' + o.id + '">ご請求書を作る</button>';
+      h += '<button class="btn pri" data-invoice="' + o.id + '">お支払案内を作る</button>';
       h += '<button class="btn sec" data-invprev="' + o.id + '">先にPDFを見る</button>';
     }
-    if(inv) h += '<button class="btn" data-invoice="' + o.id + '" data-redo="1">ご請求書を作り直す</button>';
+    if(inv) h += '<button class="btn" data-invoice="' + o.id + '" data-redo="1">お支払案内を作り直す</button>';
     if(o.status==="受注" || o.status==="入金待ち"){
       if(!o.paid_on)           h += '<button class="btn ok" data-mark="' + o.id + '" data-what="入金を確認した">入金を確認した</button>';
       // ★JCへの発注メール（英語）。文面を先に読める。送信は人（大原則①）
@@ -826,20 +826,20 @@ function wire(){
     });
   });
 
-  // ご請求書を作る（PDF＋Gmailの下書きまで。★送信はしない）
+  // お支払いのご案内を作る（PDF＋Gmailの下書きまで。★送信はしない）
   root.querySelectorAll("[data-invoice]").forEach(function(b){
     b.addEventListener("click", function(){
       var id = Number(b.getAttribute("data-invoice"));
       var redo = b.getAttribute("data-redo")==="1";
       var o = D.ordered.filter(function(x){ return x.id===id; })[0] || {};
       var msg = redo
-        ? "ご請求書を作り直します。\n\n・新しいPDFと下書きを作り、古い下書きは消します\n・すでにお客様へお送りしている場合は、差し替えのご連絡をお願いします\n\nよろしいですか？"
-        : (o.company_formal || "") + " へのご請求書を作ります。\n\n・PDFを作り、Gmailの【下書き】に入れます\n・★送信はしません。Gmailで中身を見てから、ご自身で送ってください\n・この受注は「入金待ち」になります\n\nよろしいですか？";
+        ? "お支払案内を作り直します。\n\n・新しいPDFと下書きを作り、古い下書きは消します\n・すでにお客様へお送りしている場合は、差し替えのご連絡をお願いします\n\nよろしいですか？"
+        : (o.company_formal || "") + " へのお支払案内を作ります。\n\n・PDFを作り、Gmailの【下書き】に入れます\n・★送信はしません。Gmailで中身を見てから、ご自身で送ってください\n・この受注は「入金待ち」になります\n\nよろしいですか？";
       if(!confirm(msg)) return;
       b.disabled = true; var was = b.textContent; b.textContent = "作成中…（20秒ほど）";
       act({ action:"make_invoice", order_id:id, redo:redo })
         .then(function(r){
-          toast("ご請求書 " + r.doc_no + " を作りました。★Gmailの下書きを確認して、ご自身で送信してください" +
+          toast("お支払案内 " + r.doc_no + " を作りました。★Gmailの下書きを確認して、ご自身で送信してください" +
                 (r.old_draft_left ? "（古い下書きが消せませんでした。Gmailで古いほうを消してください）" : ""));
           return reload();
         })
@@ -920,7 +920,7 @@ function wire(){
             '<span class="tag">下書きは作っていません</span> 見た目の確認用です</div>' +
             '<p class="note">お支払期限 ' + esc(r.due) + '　ご請求金額 ' + yen(r.total_jpy) + '　宛先 ' + esc(r.to) + '</p>' +
             '<div class="btns"><a class="btn pri" href="' + url + '" target="_blank" rel="noopener" ' +
-            'style="text-decoration:none;display:inline-block">▶ ご請求書のPDFを開く</a></div></div>';
+            'style="text-decoration:none;display:inline-block">▶ お支払案内のPDFを開く</a></div></div>';
           b.disabled = false; b.textContent = was;
         })
         .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
@@ -960,7 +960,7 @@ function wire(){
       var id = Number(b.getAttribute("data-mark")), what = b.getAttribute("data-what");
       var o = (D.ordered||[]).concat(D.cancelled||[]).filter(function(x){ return x.id===id; })[0] || {};
       var amt = yen((o.totals||{}).total_jpy);
-      var msg = { "ご請求書を出した":"ご請求書を出したことを記録し、「入金待ち」にします。よろしいですか？",
+      var msg = { "お支払いのご案内を出した":"お支払いのご案内を出したことを記録し、「入金待ち」にします。よろしいですか？",
                   "入金を確認した":"入金を確認したことを、今日の日付で記録します。よろしいですか？",
                   "JCへ発注メールを送った":"J-Certifiedへ発注メールを送ったことを記録します。\n発注番号は、インボイスが届いてから「JCの番号を入れる」で入れてください。\n\nよろしいですか？",
                   "完了にする":"この受注を完了にします。よろしいですか？",
