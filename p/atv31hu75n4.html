@@ -108,6 +108,7 @@ h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:bre
 .row2{display:flex;gap:11px}.row2 .field{flex:1}
 .mnote{font-size:11px;color:var(--muted);background:var(--line);border-radius:8px;padding:10px 12px;line-height:1.5}
 .merr{font-size:12px;color:#e5736b;display:none}
+.hp{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;opacity:0}
 .mfoot{padding:0 20px 20px}
 .mbtn{width:100%;background:var(--accent);color:#ffffff;font-weight:700;font-size:15px;padding:13px;border:none;border-radius:9px;cursor:pointer;font-family:inherit}
 .mbtn:disabled{opacity:.6;cursor:not-allowed}
@@ -183,7 +184,7 @@ header{background:#0f2f5c;border-color:#123354}
 
 <details class="specbox" open><summary>製品仕様</summary><table class="spec2"><tr><th>メーカー</th><td>Schneider Electric</td></tr><tr><th>シリーズ</th><td>Altivar</td></tr><tr><th>型番</th><td>ATV31HU75N4</td></tr><tr><th>外形寸法 (W×D×H)</th><td>17.2 × 24.5 × 17.2 cm</td></tr><tr><th>質量</th><td>6.5 kg</td></tr><tr><th>HSコード</th><td>8504.40.95</td></tr><tr><th>EAN</th><td>3389110587425</td></tr></table></details>
 
-<div class="sec"><h2>同じシリーズの製品</h2><div class="rel"><a href="atv31hu15m2.html"><span class="a">ATV31HU15M2</span><span class="b">Schneider Electric</span></a><a href="atv31hu22m2.html"><span class="a">ATV31HU22M2</span><span class="b">Schneider Electric</span></a><a href="atv31hu22n4.html"><span class="a">ATV31HU22N4</span><span class="b">Schneider Electric</span></a><a href="atv31hu40m3xa.html"><span class="a">ATV31HU40M3XA</span><span class="b">Schneider Electric</span></a><a href="atv31hu40n4.html"><span class="a">ATV31HU40N4</span><span class="b">Schneider Electric</span></a><a href="atv31hu55n4.html"><span class="a">ATV31HU55N4</span><span class="b">Schneider Electric</span></a><a href="atv320d11n4c.html"><span class="a">ATV320D11N4C</span><span class="b">Schneider Electric</span></a><a href="atv320d15n4c.html"><span class="a">ATV320D15N4C</span><span class="b">Schneider Electric</span></a><a href="atv320u02m2c.html"><span class="a">ATV320U02M2C</span><span class="b">Schneider Electric</span></a><a href="atv320u04m2c.html"><span class="a">ATV320U04M2C</span><span class="b">Schneider Electric</span></a><a href="atv320u04n4b.html"><span class="a">ATV320U04N4B</span><span class="b">Schneider Electric</span></a><a href="atv320u04n4c.html"><span class="a">ATV320U04N4C</span><span class="b">Schneider Electric</span></a></div><div class="relmore"><a href="../list/schneider-electric-altivar.html">Schneider Electric Altivar の在庫 276 点をすべて見る →</a></div></div>
+<div class="sec"><h2>同じシリーズの製品</h2><div class="rel"><a href="atv31hu15m2.html"><span class="a">ATV31HU15M2</span><span class="b">Schneider Electric</span></a><a href="atv31hu22m2.html"><span class="a">ATV31HU22M2</span><span class="b">Schneider Electric</span></a><a href="atv31hu22n4.html"><span class="a">ATV31HU22N4</span><span class="b">Schneider Electric</span></a><a href="atv31hu40m3xa.html"><span class="a">ATV31HU40M3XA</span><span class="b">Schneider Electric</span></a><a href="atv31hu40n4.html"><span class="a">ATV31HU40N4</span><span class="b">Schneider Electric</span></a><a href="atv31hu55n4.html"><span class="a">ATV31HU55N4</span><span class="b">Schneider Electric</span></a><a href="atv320d11n4c.html"><span class="a">ATV320D11N4C</span><span class="b">Schneider Electric</span></a><a href="atv320d15n4c.html"><span class="a">ATV320D15N4C</span><span class="b">Schneider Electric</span></a><a href="atv320u02m2c.html"><span class="a">ATV320U02M2C</span><span class="b">Schneider Electric</span></a><a href="atv320u04m2c.html"><span class="a">ATV320U04M2C</span><span class="b">Schneider Electric</span></a><a href="atv320u04n4b.html"><span class="a">ATV320U04N4B</span><span class="b">Schneider Electric</span></a><a href="atv320u04n4c.html"><span class="a">ATV320U04N4C</span><span class="b">Schneider Electric</span></a></div><div class="relmore"><a href="../list/schneider-electric-altivar.html">Schneider Electric Altivar の在庫 278 点をすべて見る →</a></div></div>
 
 <div class="disc">※ 当社は各メーカーの正規代理店ではありません。取り扱う製品はメーカー保証の対象外となりますが、当社保証規定に基づき対応いたします。掲載のメーカー名および商標は各権利者に帰属します。詳細は<a href="../guide.html#warranty" style="color:var(--accent)">サービス案内・保証規定</a>をご確認ください。</div>
 </div>
@@ -204,6 +205,7 @@ header{background:#0f2f5c;border-color:#123354}
 <div class="field"><label>メールアドレス <span class="req">*</span></label><input id="f-mail" type="email"></div>
 <div class="field"><label>お届け先の都道府県 <span class="req">*</span></label><select id="f-pref"><option value="">選択してください</option></select></div>
 <div class="field"><label>ご要望・備考（任意）</label><textarea id="f-note" rows="2"></textarea></div>
+<div class="hp" aria-hidden="true"><label for="f-web">Website</label><input id="f-web" type="text" name="website" tabindex="-1" autocomplete="off"></div>
 <div class="merr" id="m-err"></div></div>
 <div class="mfoot" id="mfoot"><button class="mbtn" id="m-sub" type="button" onclick="submitQuote()">この内容で問い合わせる</button></div>
 <div class="sent" id="m-sent"><div style="font-weight:600;color:var(--text)">送信しました</div><div style="color:var(--muted);font-size:13px;margin-top:6px">担当より折り返しご連絡いたします。</div></div>
@@ -283,7 +285,8 @@ function submitQuote(){
   if(mail.indexOf("@")<0){if(err){err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";}return;}
   if(err)err.style.display="none";
   var b=$("m-sub");if(b){b.disabled=true;b.textContent="送信しています…";}
-  var payload={article:ART,qty:qty,company:co,person:name,email:mail,note:note,pref:pref};
+  var web=($("f-web")||{}).value||"";  /* 罠の欄（人には見えない・空が正常）*/
+  var payload={article:ART,qty:qty,company:co,person:name,email:mail,note:note,pref:pref,website:web};
   fetch(RELAY,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY},body:JSON.stringify(payload)})
   .then(function(r){return r.json();}).then(function(j){
     if(j.success){var f=$("mform");if(f)f.style.display="none";var ft=$("mfoot");if(ft)ft.style.display="none";var s=$("m-sent");if(s)s.classList.add("show");}
