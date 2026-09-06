@@ -308,7 +308,7 @@ function mqPayload(mode){
     terms:{ incoterm:val("mq-incoterm"), place:val("mq-place"), lead_time:val("mq-lead"), warranty_months:Number(val("mq-warranty")||12), validity_days:Number(val("mq-validity")||14), note:val("mq-note") } };
 }
 function mqBasisHtml(b, cur){
-  var fx = 'EUR/JPY ' + b.eur_jpy + '（仲値 ' + b.eur_jpy_mid + '）' + (b.usd_jpy ? '　USD/JPY ' + b.usd_jpy : '　USD/JPY 取得できず');
+  var fx = 'EUR/JPY ' + b.eur_jpy + '（仲値 ' + b.eur_jpy_mid + '・仕入はこれ）' + (b.usd_jpy ? '　USD/JPY 仲値 ' + b.usd_jpy + '→受取は TTB ' + b.usd_jpy_ttb : '　USD/JPY 取得できず');
   var h = '<div class="card" style="margin:10px 0 0"><div class="meta"><span class="tag w">社内用</span> 判断材料（書類には出ません）　' + esc(fx) + '</div><table>' +
     '<tr><th>型番</th><th>状態・在庫</th><th style="text-align:right">仕入の目安</th><th style="text-align:right">JC定価との差</th><th style="text-align:right">粗利（還付込み）</th><th style="text-align:right">粗利（消費税を費用と見て）</th></tr>';
   (b.lines||[]).forEach(function(l){
@@ -320,7 +320,7 @@ function mqBasisHtml(b, cur){
       '<td style="text-align:right">' + (l.margin_refund_jpy==null?"—":yen(l.margin_refund_jpy) + pct(l.margin_refund_pct)) + '</td>' +
       '<td style="text-align:right">' + (l.margin_norefund_jpy==null?"—":yen(l.margin_norefund_jpy) + pct(l.margin_norefund_pct)) + '</td></tr>';
   });
-  h += '</table>' + (b.total_sale_jpy!=null ? '<p class="note">合計 売上 ' + yen(b.total_sale_jpy) + '　粗利（還付込み）' + yen(b.total_margin_refund_jpy) + '　粗利（消費税を費用と見て）' + yen(b.total_margin_norefund_jpy) + '</p>' : '') +
+  h += '</table>' + (b.total_sale_jpy!=null ? '<p class="note">合計 売上（TTB換算）' + yen(b.total_sale_jpy) + '　粗利（還付込み）' + yen(b.total_margin_refund_jpy) + '（' + b.total_margin_refund_pct + '%）　粗利（消費税を費用と見て）' + yen(b.total_margin_norefund_jpy) + '（' + b.total_margin_norefund_pct + '%）</p>' + '<p class="note"><b>受取手数料の目安 ' + yen(b.bank_fee_jpy) + ' を引いたあと：</b>還付込み ' + yen(b.total_margin_refund_after_fee_jpy) + '（' + b.total_margin_refund_after_fee_pct + '%）　消費税を費用と見て ' + yen(b.total_margin_norefund_after_fee_jpy) + '（' + b.total_margin_norefund_after_fee_pct + '%）</p>' : '') +
     '<p class="note">仕入の目安＝JC定価×割引後＋JC→日本の送料＋関税。輸入消費税は輸出で還付されるので「還付込み」が実態、「費用と見て」は固い見方。</p></div>';
   return h;
 }
