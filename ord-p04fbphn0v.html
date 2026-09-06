@@ -199,6 +199,7 @@ function reload(){ return load(getPass()).then(function(d){ D=d; render(); }); }
 function tabs(){
   var all = [
     { id:"order",  name:"受注",     s_only:true,  count: D.quotable.length + D.ordered.length },
+    { id:"manual", name:"手動見積", s_only:true,  count: (D.manual_quotes||[]).length },
     { id:"attn",   name:"要対応",   s_only:true,  count: D.attention.length },
     { id:"arrive", name:"到着待ち", s_only:false, count: D.arriving.length },
     { id:"insp",   name:"検品待ち", s_only:false, count: D.inspecting.reduce(function(a,o){return a+o.units.length;},0) },
@@ -224,6 +225,7 @@ function render(){
 
   var h = "";
   if(TAB==="order")  h = paneOrder();
+  if(TAB==="manual") h = paneManual();
   if(TAB==="attn")   h = paneAttention();
   if(TAB==="arrive") h = paneArriving();
   if(TAB==="insp")   h = paneInspect();
@@ -231,6 +233,135 @@ function render(){
   el("panes").innerHTML = '<section class="pane on">' + h + "</section>";
   el("loading").classList.add("hidden");
   wire();
+}
+
+
+// ══════════════════════════════════════════════════════════════
+//  ①-b 手動見積タブ（Sだけ・2026-09-07）＝英文・USD/JPY・輸出向け
+//   売値はSが打つ。受付係は計算だけ（判断材料は書類に出ない）。
+//   同じ操作をチャットからも呼べる（order-desk の manual_quote）。
+// ══════════════════════════════════════════════════════════════
+function paneManual(){
+  var list = D.manual_quotes || [];
+  var last = list[0], lc = last ? (last.customer||{}) : {};
+  function f(lbl,id,val,ph,type){
+    return '<label class="f">' + lbl + '</label><input class="f" ' + (type?'type="'+type+'" ':'') +
+           'id="mq-' + id + '" value="' + esc(val==null?"":val) + '"' + (ph?' placeholder="'+esc(ph)+'"':'') + '>';
+  }
+  var h = '<h2>手動見積（英文・輸出向け）</h2><div class="card">' +
+    '<p class="note">メールで直接来た海外の引き合いに、<b>英文の見積書（2ページ目に保証条件）</b>と<b>添付つきのGmail下書き</b>を作ります。' +
+    '売値はSさんが決め、機械は計算だけです。「判断材料」は社内用で、書類にもメールにも出ません。</p>' +
+    '<h3>お客様</h3>' +
+    (last ? '<div class="btns"><button class="btn gray" id="mq-lastcust">前回のお客様（' + esc(lc.company||"") + '）を入れる</button></div>' : '') +
+    f("会社名（英文）","company","","NC Advanced Technology Company Limited") +
+    f("宛名（Attn）","attn","","Dr. Kawin Sonthipermpoon, CEO") +
+    '<label class="f">住所（英文・改行可）</label><textarea class="f" id="mq-address" rows="2" placeholder="59/76 Soi Ramindra 34 Yak 22, Tharang, Bangkhen\nBangkok 10230"></textarea>' +
+    f("国","country","","Thailand") +
+    f("税番号（任意）","tax_id","","0105538090425") +
+    f("メール（下書きの宛先）","email","","name@example.com","email") +
+    '<h3>品目（最大3行・空の行は無視）</h3>' +
+    [0,1,2].map(function(i){
+      return '<div style="border-top:1px dashed #d9dfe7;padding-top:6px;margin-top:6px">' +
+        f("型番" + (i?"（任意）":""), "art"+i, "", "HDD02.2-W040N-HD32-01-FW") +
+        f("説明（任意・英文）", "desc"+i, "", "Rexroth (Indramat) DIAX04 servo drive controller, 40 A") +
+        f("数量", "qty"+i, i?"":"1", "1", "number") +
+        f("単価（通貨は下で選ぶ）", "price"+i, "", "6900", "number") +
+        f("行の注記（任意・英文）", "note"+i, "", "Firmware: not included (see note below)") + '</div>';
+    }).join("") +
+    '<label class="f">通貨</label><select class="f" id="mq-currency"><option value="USD">USD（米ドル）</option><option value="JPY">JPY（円）</option></select>' +
+    '<h3>条件（既定のままで輸出の標準形になります）</h3>' +
+    f("引渡し条件","incoterm","FCA") + f("引渡し場所","place","Fukuoka, Japan") +
+    f("納期（英文）","lead","Approx. 2–3 weeks after receipt of payment.") +
+    f("保証（か月）","warranty","12","","number") + f("有効期限（日）","validity","14","","number") +
+    '<label class="f">本文の注記（任意・英文。PDFの枠とメールの両方に出ます）</label><textarea class="f" id="mq-note" rows="3" placeholder="Firmware. Your machine runs FWA-... We are confirming whether the unit can be supplied with this firmware installed ..."></textarea>' +
+    '<div class="btns"><button class="btn gray" id="mq-basis">判断材料を計算</button>' +
+    '<button class="btn gray" id="mq-preview">先にPDFを見る</button>' +
+    '<button class="btn pri" id="mq-create">見積を作る（PDF＋Gmail下書き）</button></div>' +
+    '<div id="mq-out"></div></div>';
+
+  h += '<h2>これまでの手動見積<span class="cnt">' + list.length + '件</span></h2>';
+  if(!list.length) h += '<div class="empty">まだありません。</div>';
+  list.forEach(function(q){
+    var c = q.customer||{}, its = (q.items||[]).map(function(i){ return esc(i.article)+'×'+i.qty; }).join('・');
+    var stTag = q.status==="下書き作成" ? '<span class="tag">下書き作成</span>' : q.status==="送付" ? '<span class="tag ok">送付済み</span>' :
+                q.status==="受注" ? '<span class="tag ok">受注</span>' : '<span class="tag w">' + esc(q.status) + '</span>';
+    h += '<div class="card"><div class="meta"><b>' + esc(q.quote_no) + '</b> ' + stTag + ' <span>' + esc(String(q.created_at).slice(0,10)) + '</span></div>' +
+      '<div>' + esc(c.company||"") + (c.attn ? '（' + esc(c.attn) + '）' : '') + '</div>' +
+      '<div>' + its + '　<b>' + esc(q.currency) + ' ' + Number(q.total).toLocaleString("en-US") + '</b>　有効期限 ' + esc(q.valid_until||"") + '</div>' +
+      '<div class="btns">' +
+      (q.status==="下書き作成" ? '<button class="btn gray" data-mqmark="' + q.id + '" data-st="送付">送付した</button>' : '') +
+      (q.status!=="受注" ? '<button class="btn gray" data-mqmark="' + q.id + '" data-st="受注">受注になった</button>' : '') +
+      (q.status==="下書き作成"||q.status==="送付" ? '<button class="btn gray" data-mqmark="' + q.id + '" data-st="失効">失効・取り下げ</button>' : '') +
+      '</div></div>';
+  });
+  return h;
+}
+function mqPayload(mode){
+  var items = [];
+  [0,1,2].forEach(function(i){
+    var a = val("mq-art"+i); if(!a) return;
+    items.push({ article:a, description:val("mq-desc"+i), qty:Number(val("mq-qty"+i)||0), unit_price:Number(val("mq-price"+i)||0), note:val("mq-note"+i) });
+  });
+  return { action:"manual_quote", mode:mode,
+    customer:{ company:val("mq-company"), attn:val("mq-attn"), address:val("mq-address"), country:val("mq-country"), tax_id:val("mq-tax_id"), email:val("mq-email") },
+    currency: val("mq-currency") || "USD", items: items,
+    terms:{ incoterm:val("mq-incoterm"), place:val("mq-place"), lead_time:val("mq-lead"), warranty_months:Number(val("mq-warranty")||12), validity_days:Number(val("mq-validity")||14), note:val("mq-note") } };
+}
+function mqBasisHtml(b, cur){
+  var fx = 'EUR/JPY ' + b.eur_jpy + '（仲値 ' + b.eur_jpy_mid + '）' + (b.usd_jpy ? '　USD/JPY ' + b.usd_jpy : '　USD/JPY 取得できず');
+  var h = '<div class="card" style="margin:10px 0 0"><div class="meta"><span class="tag w">社内用</span> 判断材料（書類には出ません）　' + esc(fx) + '</div><table>' +
+    '<tr><th>型番</th><th>状態・在庫</th><th style="text-align:right">仕入の目安</th><th style="text-align:right">JC定価との差</th><th style="text-align:right">粗利（還付込み）</th><th style="text-align:right">粗利（消費税を費用と見て）</th></tr>';
+  (b.lines||[]).forEach(function(l){
+    if(!l.found || l.list_eur==null){ h += '<tr><td>' + esc(l.article) + '</td><td colspan="5" style="color:#b23">' + esc(l.note||"") + '</td></tr>'; return; }
+    var pct = function(p){ return p==null ? "" : "（" + p + "%）"; };
+    h += '<tr><td>' + esc(l.article) + '</td><td>' + esc(l.condition||"") + '・在庫' + l.stock + '</td>' +
+      '<td style="text-align:right">' + yen(l.cost_jpy + l.ship_jpy + l.duty_jpy) + '<br><span class="note">€' + l.list_eur + '×' + (b.discount*100).toFixed(0) + '%' + (l.ship_eur ? '＋送料€' + l.ship_eur : '・送料無料') + (l.duty_pct ? '＋関税' + l.duty_pct + '%' : '') + '</span></td>' +
+      '<td style="text-align:right">' + (l.diff_vs_jc_list==null ? "—" : (l.diff_vs_jc_list>0?"+":"") + Number(l.diff_vs_jc_list).toLocaleString("en-US") + ' ' + esc(cur)) + '<br><span class="note">JC定価 ' + (l.jc_list_in_currency==null?"—":Number(l.jc_list_in_currency).toLocaleString("en-US")) + '</span></td>' +
+      '<td style="text-align:right">' + (l.margin_refund_jpy==null?"—":yen(l.margin_refund_jpy) + pct(l.margin_refund_pct)) + '</td>' +
+      '<td style="text-align:right">' + (l.margin_norefund_jpy==null?"—":yen(l.margin_norefund_jpy) + pct(l.margin_norefund_pct)) + '</td></tr>';
+  });
+  h += '</table>' + (b.total_sale_jpy!=null ? '<p class="note">合計 売上 ' + yen(b.total_sale_jpy) + '　粗利（還付込み）' + yen(b.total_margin_refund_jpy) + '　粗利（消費税を費用と見て）' + yen(b.total_margin_norefund_jpy) + '</p>' : '') +
+    '<p class="note">仕入の目安＝JC定価×割引後＋JC→日本の送料＋関税。輸入消費税は輸出で還付されるので「還付込み」が実態、「費用と見て」は固い見方。</p></div>';
+  return h;
+}
+function wireManual(root){
+  if(!el("mq-basis")) return;
+  if(el("mq-lastcust")) el("mq-lastcust").addEventListener("click", function(){
+    var c = ((D.manual_quotes||[])[0]||{}).customer||{};
+    ["company","attn","address","country","tax_id","email"].forEach(function(k){ if(el("mq-"+k)) el("mq-"+k).value = c[k]||""; });
+  });
+  el("mq-basis").addEventListener("click", function(){
+    var b = el("mq-basis"); b.disabled = true;
+    act(mqPayload("basis")).then(function(r){ el("mq-out").innerHTML = mqBasisHtml(r.basis, val("mq-currency")); })
+      .catch(function(e){ toast(e.message, true); }).finally(function(){ b.disabled=false; });
+  });
+  el("mq-preview").addEventListener("click", function(){
+    var b = el("mq-preview"); b.disabled = true; b.textContent = "作成中…";
+    act(mqPayload("preview")).then(function(r){
+      var bin = atob(r.pdf_base64), arr = new Uint8Array(bin.length);
+      for(var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+      var url = URL.createObjectURL(new Blob([arr], {type:"application/pdf"}));
+      el("mq-out").innerHTML = '<div class="card" style="margin:10px 0 0"><div class="meta"><span class="tag">下書きは作っていません</span> 見た目の確認用です</div>' +
+        '<p class="note">宛先 ' + esc(r.to) + '　件名 ' + esc(r.subject) + '　合計 ' + esc(r.currency) + ' ' + Number(r.total).toLocaleString("en-US") + '　有効期限 ' + esc(r.valid_until) + '</p>' +
+        '<div class="btns"><a class="btn pri" href="' + url + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block">▶ 見積書のPDFを開く（2ページ）</a></div>' +
+        '<details><summary>メール本文（英文）</summary><pre style="white-space:pre-wrap;font-size:12px">' + esc(r.body) + '</pre></details></div>' + mqBasisHtml(r.basis, r.currency);
+    }).catch(function(e){ toast(e.message, true); }).finally(function(){ b.disabled=false; b.textContent="先にPDFを見る"; });
+  });
+  el("mq-create").addEventListener("click", function(){
+    if(!confirm("英文の見積書PDFを作り、Gmailの下書き（添付つき）を作ります。送信はしません。よろしいですか？")) return;
+    var b = el("mq-create"); b.disabled = true; b.textContent = "作成中…";
+    act(mqPayload("create")).then(function(r){
+      toast("下書きを作りました：" + r.quote_no + "（宛先 " + r.to + "）。Gmailの下書きを確認して送信してください。");
+      return reload();
+    }).catch(function(e){ toast(e.message, true); b.disabled=false; b.textContent="見積を作る（PDF＋Gmail下書き）"; });
+  });
+  root.querySelectorAll("[data-mqmark]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var st = b.getAttribute("data-st");
+      if(st==="失効" && !confirm("この見積を失効・取り下げにします。よろしいですか？")) return;
+      act({ action:"manual_quote_mark", id:Number(b.getAttribute("data-mqmark")), status:st }).then(reload).catch(function(e){ toast(e.message, true); });
+    });
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -662,6 +793,7 @@ function paneShip(){
 // ══════════════════════════════════════════════════════════════
 function wire(){
   var root = el("panes");
+  wireManual(root);
 
   // 受注フォームを開く／閉じる
   root.querySelectorAll("[data-openform]").forEach(function(b){
