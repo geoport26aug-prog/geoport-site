@@ -378,18 +378,14 @@ function paneOrder(){
     var eur = function(n){ return "€" + Number(n||0).toLocaleString("en-US",{maximumFractionDigits:0}); };
     var mon = Math.max(1, Math.round(j.残り日数 / 30));
     var pct = Math.min(100, Math.round(Number(j.商品計_eur) / Number(j.目標_eur) * 100));
-    h += '<h2>JCとの約束（12か月で €50,000）<span class="cnt">残り ' + j.残り日数 + '日</span></h2>' +
+    // ★2026-09-07 S指示「冗長」→ 見出し1行＋バー＋1行に。表と注意書きは出さない（決まりは台本と上の注釈に）。
+    h += '<h2>JCとの約束<span class="cnt">' + eur(j.商品計_eur) + ' / €50,000（' + pct + '%）・残り ' + j.残り日数 + '日</span></h2>' +
          '<div class="card">' +
-         '<div style="height:10px;background:#e8eef5;border-radius:5px;overflow:hidden;margin:2px 0 10px">' +
+         '<div style="height:10px;background:#e8eef5;border-radius:5px;overflow:hidden;margin:2px 0 8px">' +
            '<div style="height:100%;width:' + Math.max(pct,1) + '%;background:var(--navy)"></div></div>' +
-         '<table>' +
-         '<tr><th>いままでの仕入（商品のみ・税抜）</th><td style="text-align:right"><b>' + eur(j.商品計_eur) + '</b>　／　€50,000（' + pct + '%）</td></tr>' +
-         '<tr><th>あといくら必要か</th><td style="text-align:right"><b>' + eur(j.残り_商品のみ) + '</b>　（月あたり ' + eur(j.月あたり必要_商品のみ) + '）</td></tr>' +
-         '<tr><th>期限</th><td style="text-align:right">' + esc(j.期限) + '（あと約' + mon + 'か月）　請求書 ' + j.件数 + '通</td></tr>' +
-         (Number(j.未払い_eur) > 0 ? '<tr><th>うちJCへ未払い</th><td style="text-align:right;color:#b23">' + eur(j.未払い_eur) + '</td></tr>' : "") +
-         '</table>' +
-         '<p class="note">★数えるのは<b>商品の額だけ</b>です（送料は含みません・2026-09-01 S確定）。' +
-         '送料は請求書ごとに別に記録してあります。</p></div>';
+         '<div class="note" style="margin:0">あと ' + eur(j.残り_商品のみ) + '（月 ' + eur(j.月あたり必要_商品のみ) + '）　期限 ' + esc(j.期限) +
+         (Number(j.未払い_eur) > 0 ? '　<span style="color:#b23">JCへ未払い ' + eur(j.未払い_eur) + '</span>' : "") +
+         '</div></div>';
   })();
 
 
