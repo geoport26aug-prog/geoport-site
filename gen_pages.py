@@ -503,8 +503,8 @@ def render_list_brand(b):
             f'新古品（未使用在庫品）と J-Certified規格のリファビッシュ品を扱っており、'
             f'品質区分は各製品ページに表示しています。価格はお見積りにてご提示します。</p>'
             f'<div class="lgrid">{"".join(cards)}</div>')
-    return _shell(f'{b["name"]} 在庫一覧（{b["count"]:,}点）｜GEOPORT',
-                  f'{b["name"]} の産業用FA機器 {b["count"]:,} 点の在庫一覧。シリーズ別に型番を確認できます。'
+    return _shell(f'{b["name"]} 在庫一覧（{b["count"]:,}点）生産終了品・旧型も｜GEOPORT',
+                  f'{b["name"]} の産業用FA機器 {b["count"]:,} 点、生産終了品・旧型品を含む在庫一覧。シリーズ別に型番を確認できます。'
                   f'初期不良を保証（期間は製品ページに表示）。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
                   f'{SITE}/{LIST}/{b["slug"]}.html', f'{b["name"]} 在庫一覧',
                   f'<a href="../">製品カタログ</a> ／ <a href="./">メーカー・シリーズ一覧</a> ／ {e(b["name"])}',
@@ -528,10 +528,10 @@ def render_list_group(g, page_i, pages_total, items):
             f'型番をクリックすると、仕様・在庫数の確認とお見積りのご依頼ができます。</p>'
             f'<div class="lgrid">{"".join(cards)}</div>{pager}')
     canon = f'{SITE}/{LIST}/{page_slug(g, page_i)}.html'
-    title = f'{label} 型番一覧（{n:,}点）{suffix}｜GEOPORT'
+    title = f'{label} 在庫・型番一覧（{n:,}点）{suffix}｜GEOPORT'
     return _shell(title,
                   f'{label} の在庫 {n:,} 点の型番一覧{suffix}。初期不良を保証（期間は製品ページに表示）。'
-                  f'型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT',
+                  f'型番から在庫確認・お見積りをご依頼いただけます。生産終了品・旧型品も掲載。｜GEOPORT',
                   canon, f'{label} 型番一覧',
                   f'<a href="../">製品カタログ</a> ／ <a href="./">メーカー・シリーズ一覧</a>'
                   f' ／ <a href="{g["bslug"]}.html">{e(g["brand"])}</a> ／ {e(g["name"] if g["name"] != OTHER else "その他の型番")}',
@@ -590,11 +590,17 @@ def render(row, slug, g=None, pos=0):
     relay_json = json.dumps(RELAY)
     art_json   = json.dumps(art)
     canon = f"{SITE}/{OUT}/{slug}.html"
-    title = f"{art} {brand}｜GEOPORT" if brand else f"{art}｜GEOPORT"
-    fam_paren = f"（{fam}）" if fam else ""
+    # ★題名と説明文（2026-09-07・S承認）：検索結果の見出しに「在庫あり」を、説明文に
+    #   「生産終了品・旧型品の在庫も掲載」を入れる。本文の文章は変えない（題名・説明文は
+    #   ページ本文には出ない）。日本では既に平均8.4位＝1ページ目なので、押される率を上げる狙い。
+    #   ⚠️「探して仕入れます」系の言い方は書かない（2026-08-11 撤去済み・ノンリミット対策）。
+    #   ⚠️トップ（index.html）は同じ理由で変えない（S指示）。
+    _brand_fam = " ".join(x for x in (brand, fam) if x)
+    title = f"{art} {_brand_fam} 在庫あり｜GEOPORT" if _brand_fam else f"{art} 在庫あり｜GEOPORT"
+    fam_paren = f"（{fam}）" if fam else (" " if brand else "")   # シリーズ無しでもメーカー名と型番がくっつかないように
     _cond_txt = "リファビッシュ品" if is_ref else "新古品"
     metad = (f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}、初期不良は納品後{wy}年以内保証。"
-             f"型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
+             f"生産終了品・旧型品の在庫も掲載。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
     ogt = f"{art} {brand}｜GEOPORT" if brand else title
     ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}・初期不良{wy}年保証。"
     # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
