@@ -384,6 +384,7 @@ function paneOrder(){
            '<div class="meta"><span class="tag r">' + esc(a.kind) + "</span></div>" +
            '<p class="note">' + esc(a.detail).replace(/\n/g,"<br>") + "</p>" +
            (a.jc_mail_id ? '<div class="btns"><button class="btn ok" data-jcmail="' + a.jc_mail_id + '">確認した</button></div>' : "") +
+           (String(a.key||"").indexOf("jcpay")===0 && a.order_id ? '<div class="btns"><button class="btn ok" data-jcpaid="' + a.order_id + '">JCに払った</button></div>' : "") +
            "</div>";
     });
   }
@@ -473,8 +474,22 @@ function paneOrder(){
       others += '<button class="btn sec" data-jcpoprev="' + o.id + '">発注メールを見る</button>' +
                 '<button class="btn" data-jcpo="' + o.id + '" data-redo="1">発注メールを作り直す</button>';
     } else if(o.status==="発注"){
-      next = "次：JCの請求書が届いたら記録する（S）→ 追跡番号が「到着待ち」に出ます";
-      primary = '<button class="btn pri" data-jcform="' + o.id + '">JCの請求書を記録する</button>';
+      // 2026-09-09：JCの請求書・出荷連絡は自動で台帳に入る（mail_intake）。人がやるのは「JCに払う」だけ。
+      var jp = jcPurchaseOf(o), trk = firstTracking(o);
+      if(!jp){
+        next = "次：JCの請求書を待つ（届くと自動で台帳に入ります。届かないときは「その他」から手で記録）";
+        others += '<button class="btn" data-jcform="' + o.id + '">JCの請求書を手で記録する</button>';
+      } else if(!jp.paid_on){
+        next = "次：JCに支払う（S）。Finance からの支払いリンクで払ったら、下のボタンを押す";
+        primary = '<button class="btn ok" data-jcpaid="' + o.id + '">JCに払った</button>';
+        others += '<button class="btn" data-jcform="' + o.id + '">請求書の内容を直す</button>';
+      } else if(!trk){
+        next = "次：JCの出荷連絡（追跡番号）を待つ。届くと自動で記録され、お客様への納期連絡の下書きができます";
+        others += '<button class="btn" data-jcform="' + o.id + '">追跡番号を手で入れる</button>';
+      } else {
+        next = "次：荷物の到着を待つ（到着待ちタブに出ています）";
+        others += '<button class="btn" data-jcform="' + o.id + '">追跡番号・到着予定を直す</button>';
+      }
     } else if(o.status==="入荷"){
       next = "次：荷物が届いたら検品（奥様・検品待ちタブ）";
     } else if(o.status==="検品"){
@@ -507,13 +522,15 @@ function paneOrder(){
                : '粗利およそ ' + w.tier_pct + '% → ' + w.margin_now + '%　差額 ' + yen(w.shortfall_jpy) + '（' + w.qty + '台ぶん）') + '</div>';
       }
     });
+    // JCの請求書は「その他」に畳まず、カードに見せる（払ったかどうかが、いちばん知りたい状態）
+    var jcline = "";
     (function(){
       var seen = {}, list = [];
       (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){
         if(x.jc_purchases && !seen[x.jc_purchases.id]){ seen[x.jc_purchases.id]=1; list.push(x.jc_purchases); }
       }); });
       list.forEach(function(p){
-        info += '<div class="meta"><span class="tag ' + (p.paid_on ? 'g' : '') + '">JC請求書 ' + esc(p.invoice_no) + '</span>' +
+        jcline += '<div class="meta"><span class="tag ' + (p.paid_on ? 'g' : 'r') + '">JC請求書 ' + esc(p.invoice_no) + '</span>' +
              (p.sales_order_no ? '　JC注文 ' + esc(p.sales_order_no) : "") +
              '　EUR ' + Number(p.total_eur).toLocaleString("en-US",{minimumFractionDigits:2}) +
              '（商品 ' + Number(p.goods_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + ' ＋送料 ' + Number(p.shipping_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + '）' +
@@ -530,6 +547,7 @@ function paneOrder(){
     });
     h += '<div class="meta">合計 <b>' + yen(t.total_jpy) + '</b>' + (o.customer_po_no ? "　先方注番 " + esc(o.customer_po_no) : "") +
          (o.paid_on ? '　<span class="tag g">入金 ' + md(o.paid_on) + "</span>" : "") + '</div>';
+    h += jcline;
     h += stripHtml(idx);
     if(!o.ship_addr) h += '<p class="note"><span class="tag r">納品先が空</span> 出荷の前に住所を入れてください。</p>';
     if(alert) h += '<p class="note" style="color:#b23;font-weight:600">⚠ 仕入値に注意があります（下の「その他」を開いてください）</p>';
@@ -627,6 +645,18 @@ function orderForm(q){
 }
 
 // 「JCの請求書を記録する」の入力欄（★2026-09-01：請求書と追跡番号を同じ入口で）
+// 受注に結びついたJCの請求書（jc_purchases）と最初の追跡番号を取り出す（置き場は order_units の下・1か所）
+function jcPurchaseOf(o){
+  var p = null;
+  (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){ if(!p && x.jc_purchases) p = x.jc_purchases; }); });
+  return p;
+}
+function firstTracking(o){
+  var t = null;
+  (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){ if(!t && x.inbound_tracking) t = x.inbound_tracking; }); });
+  return t;
+}
+
 function jcForm(o){
   var u = null, p = null;
   (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){
@@ -1143,6 +1173,21 @@ function wire(){
       b.disabled = true;
       act({ action:"mark", order_id:id, what:what })
         .then(function(r){ toast(r.order_no + "：" + what + "（いまの状態＝" + r.status + "）"); return reload(); })
+        .catch(function(e){ b.disabled=false; toast(e.message, true); });
+    });
+  });
+
+  // JCに払った（請求書は自動で台帳に入っているので、支払日だけ記録する。他の欄は消えない）
+  root.querySelectorAll("[data-jcpaid]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-jcpaid"));
+      var o = D.ordered.filter(function(x){ return x.id===id; })[0];
+      var p = o ? jcPurchaseOf(o) : null;
+      if(!p){ toast("この受注にJCの請求書が見つかりません", true); return; }
+      if(!confirm("JCの請求書 " + p.invoice_no + "（EUR " + Number(p.total_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + "）を支払ったことを、今日の日付で記録します。\n\n★本当に支払いましたか？")) return;
+      b.disabled = true;
+      act({ action:"jc_order", order_id:id, invoice_no:p.invoice_no, paid_on:D.today, payment_method:p.payment_method || "支払いリンク" })
+        .then(function(r){ toast(r.order_no + "：JCへの支払いを記録しました（" + D.today + "）"); return reload(); })
         .catch(function(e){ b.disabled=false; toast(e.message, true); });
     });
   });
