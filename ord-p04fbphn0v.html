@@ -425,6 +425,17 @@ function paneOrder(){
     } else {
       h += '<div class="meta">見積の有効期限：' + ymd(q.valid_until) + "（あと" + q.days_left + "日）</div>";
     }
+    // ★注文書の自動取り込み（2026-09-08）：届いていれば印と読み取りの要点。受注の入力欄には開いたときに先に入る
+    if(q.po_received_at){
+      var pf = q.po_fields || {}, pw = q.po_warnings || [];
+      h += '<div class="meta"><span class="tag g">📩 注文の返信が届いています</span> ' + esc(String(q.po_received_at).slice(0,16).replace("T"," ")) +
+           (pf.attachment_name ? '　注文書「' + esc(pf.attachment_name) + '」読み取り済み' : '　添付なし（本文のみ）') + '</div>';
+      if(pf.intent_text) h += '<p class="note">本文：' + esc(pf.intent_text) + '</p>';
+      if(pf.customer_po_no || pf.order_date || pf.desired_delivery)
+        h += '<p class="note">' + [pf.customer_po_no ? "先方注番 " + esc(pf.customer_po_no) : "", pf.order_date ? "注文日 " + esc(pf.order_date) : "",
+             pf.desired_delivery ? "希望納期 " + esc(pf.desired_delivery) : ""].filter(Boolean).join("　") + '</p>';
+      pw.forEach(function(w){ h += '<p class="note" style="color:#b02a2a;font-weight:600">⚠️ ' + esc(w).replace(/\n/g,"<br>") + '</p>'; });
+    }
     h += '<div class="btns"><button class="btn ' + (q.expired ? "gray" : "pri") + '" data-openform="' + q.request_id + '">' +
          (q.expired ? "承知のうえで受注にする" : "受注にする") + "</button></div>" +
          '<div id="form-' + q.request_id + '" class="form hidden"></div></div>';
@@ -798,6 +809,11 @@ function wire(){
       var q = D.quotable.filter(function(x){ return String(x.request_id)===id; })[0];
       var box = el("form-" + id);
       box.innerHTML = orderForm(q); box.classList.remove("hidden"); b.disabled = true;
+      // ★自動取り込みで読み取り済みなら、入力欄と注文書の置き場を先に入れる（中身の確認はSがする）
+      if(q.po_fields){
+        Object.keys(q.po_fields).forEach(function(k){ var e = el("of-" + k); if(e && q.po_fields[k] && typeof q.po_fields[k]==="string") e.value = q.po_fields[k]; });
+        var pp = el("pp-" + id); if(pp && q.po_path) pp.value = q.po_path;
+      }
       wire();
     });
   });
