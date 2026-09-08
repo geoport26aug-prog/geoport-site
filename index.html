@@ -42,16 +42,20 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .search input{width:100%;background:var(--panel);border:1.2px solid #0f2f5c;box-shadow:0 0 0 2px rgba(15,47,92,.10);color:var(--text);font-size:16px;padding:16px 16px 16px 48px;border-radius:11px;font-family:inherit}
 .search input:focus{outline:none;border-color:#1d4f96;box-shadow:0 0 0 3px rgba(15,47,92,.18)}
 .search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);stroke:#0f2f5c}
-.brands{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden;min-height:84px}
+/* スマホ＝1行を横にスワイプ（3行目で切れるのをやめた・2026-09-08）。高さを固定してガタつき（CLS）を防ぐ */
+.brands{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;margin-top:14px;height:40px;min-height:40px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.brands::-webkit-scrollbar{display:none}
+.brands .bi{flex:0 0 auto}
 /* ↑↓ メーカーボタンと商品マスは後からJavaScriptで入るため、先に場所を確保しておく。
    確保しないと、入った瞬間に下の要素が全部ずれる（Googleが嫌う「表示のガタつき」＝CLS）。 */
-@media (hover:hover){.brands{min-height:30px}}
+@media (hover:hover){.brands{min-height:30px;height:auto;overflow:visible}}
 /* マウスのある端末では、ボタンから出るポップが切れないように枠の制限を外し、
    余った横幅はボタンで均等に埋める（1行に満遍なく並ぶ） */
+/* パソコン＝2行に均等な格子（列数は brandList() が --bcols に入れる。10社→5列）2026-09-08 */
 @media (hover:hover){
-  .brands{max-height:none;overflow:visible}
-  .brands .bi{flex:1 1 auto}
-  .brands .bi .chip{width:100%}
+  .brands{max-height:none;overflow:visible;display:grid;grid-template-columns:repeat(var(--bcols,5),minmax(0,1fr));gap:8px}
+  .brands .bi{min-width:0}
+  .brands .bi .chip{width:100%;justify-content:center}
 }
 .filterbar{position:sticky;top:56px;z-index:20;background:var(--black);border-bottom:1px solid var(--border);box-shadow:0 5px 14px rgba(15,47,92,.06)}
 .fbinner{max-width:1180px;margin:0 auto;padding:12px 20px}
@@ -254,7 +258,10 @@ try{BSERIES=JSON.parse((document.getElementById("brandseries")||{}).textContent|
 /* メーカーごとの点数は、焼き込み分を数えるのではなく BSERIES の全在庫の数を使う。
    （焼き込みは上位だけなので、数えると実際より少ない数が出てしまう） */
 function buildBrands(){
-  BC={}; for(var b in BSERIES){ if(BSERIES[b]&&BSERIES[b].n) BC[b]=BSERIES[b].n; }
+  // ★在庫が少ないメーカー（MIN_BRAND_N 未満）はボタンに出さない（2026-09-08 S指示「並びのバランス」）。
+  //   検索と一覧ページ（list/）では引き続き見つかる。数字はここ1か所。
+  var MIN_BRAND_N=20;
+  BC={}; for(var b in BSERIES){ if(BSERIES[b]&&BSERIES[b].n>=MIN_BRAND_N) BC[b]=BSERIES[b].n; }
   BRANDS=Object.keys(BC).sort(function(a,b){return BC[b]-BC[a];});
 }
 /* メーカーボタンに重ねると出るシリーズ一覧。スクロール不要な段組みにする */
@@ -273,6 +280,8 @@ function brandList(){
         + h(b)+'<small>'+(BC[b]||0).toLocaleString()+'</small></button>'+popHtml(b)+'</span>';
   });
   el.innerHTML=html;
+  // パソコンでは2行に均等に割る（10社→5列・11〜12社→6列）
+  var n=BRANDS.length, cols=n<=5?n:Math.min(6,Math.ceil(n/2)); el.style.setProperty("--bcols",cols);
 }
 function setBrand(b){activeBrand=(b===activeBrand?"ALL":b);brandList();apply();}
 /* --- 検索の言葉のゆれを吸収する ---------------------------------------
