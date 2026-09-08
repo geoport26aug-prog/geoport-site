@@ -32,6 +32,14 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .hnav a:hover{background:rgba(255,255,255,.14);border-color:#7fb0e8;color:#fff}
 .hnav svg{fill:none;stroke:currentColor;stroke-width:2}
 @media(max-width:640px){.hnav{display:none}}
+/* ★ヘッダーの検索窓（2026-09-08 S指示）。送るとトップ（?q=）で検索した状態になる。スマホは幅いっぱい */
+.hsearch{display:flex;align-items:center;flex:1;max-width:380px;margin-left:auto;border:1.2px solid rgba(255,255,255,.85);border-radius:20px;background:rgba(255,255,255,.07);padding:0 4px 0 12px}
+.hsearch input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font-size:14px;padding:7px 4px;outline:none;font-family:inherit}
+.hsearch input::placeholder{color:#b9c6d6}
+.hsearch button{background:transparent;border:0;color:#fff;padding:6px;cursor:pointer;display:flex}
+.hsearch button svg{fill:none;stroke:currentColor;stroke-width:2.2}
+.hsearch + .hnav{margin-left:0}
+@media(max-width:640px){.hsearch{max-width:none}}
 .wrap{max-width:900px;margin:0 auto;padding:20px}
 .crumb{font-size:12px;color:var(--muted);margin-bottom:16px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
 .crumb a{color:var(--muted);text-decoration:none}.crumb a:hover{color:var(--accent)}
@@ -318,7 +326,11 @@ ICON_COMPANY = ('<svg width="14" height="14" viewBox="0 0 24 24"><path d="M3 21h
 
 def hnav(updir):
     """ヘッダー右端の案内ボタン（サービス案内／会社情報）"""
-    return (f'<span class="hnav">'
+    search = (f'<form class="hsearch" action="{updir}" method="get" role="search">'
+              f'<input type="search" name="q" placeholder="型番で検索" aria-label="型番で検索">'
+              f'<button type="submit" aria-label="検索"><svg width="18" height="18" viewBox="0 0 24 24">'
+              f'<circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg></button></form>')
+    return (search + f'<span class="hnav">'
             f'<a href="{updir}guide.html">{ICON_GUIDE}サービス案内</a>'
             f'<a href="{updir}company.html">{ICON_COMPANY}会社情報</a></span>')
 

@@ -39,9 +39,9 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .homenav .tx span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 .slead{font-size:13px;color:var(--muted);margin-bottom:8px}
 .search{position:relative}
-.search input{width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);font-size:16px;padding:16px 16px 16px 48px;border-radius:11px;font-family:inherit}
-.search input:focus{outline:none;border-color:var(--accent)}
-.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);stroke:var(--muted)}
+.search input{width:100%;background:var(--panel);border:1.2px solid #0f2f5c;box-shadow:0 0 0 2px rgba(15,47,92,.10);color:var(--text);font-size:16px;padding:16px 16px 16px 48px;border-radius:11px;font-family:inherit}
+.search input:focus{outline:none;border-color:#1d4f96;box-shadow:0 0 0 3px rgba(15,47,92,.18)}
+.search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);stroke:#0f2f5c}
 .brands{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;max-height:84px;overflow:hidden;min-height:84px}
 /* ↑↓ メーカーボタンと商品マスは後からJavaScriptで入るため、先に場所を確保しておく。
    確保しないと、入った瞬間に下の要素が全部ずれる（Googleが嫌う「表示のガタつき」＝CLS）。 */
@@ -530,6 +530,9 @@ fitStick(); window.addEventListener("resize",fitStick); window.addEventListener(
 (function(){
   var ld=$("loading"); if(ld) ld.style.display="none";
   var qel=$("q"); if(qel) qel.disabled=false;
+  // ★型番ページのヘッダー検索（2026-09-08）から ?q=… で来たら、その語で検索した状態で開く
+  var mq=(location.search||"").match(/[?&]q=([^&]+)/);
+  if(mq && qel){ var qv; try{qv=decodeURIComponent(mq[1].replace(/\+/g," "));}catch(e){qv=mq[1];} if(qv){ qel.value=qv; runSearch(true); qel.focus(); } }
   var sn=$("slead-n"); if(sn&&TOTAL) sn.textContent=TOTAL.toLocaleString();
   buildBrands();brandList();apply();
   var st=$("sync-t");
