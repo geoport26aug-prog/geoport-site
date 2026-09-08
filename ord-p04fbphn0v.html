@@ -377,9 +377,17 @@ function paneOrder(){
   // ══ ①要対応（あれば先頭に。別タブにしない）══════════════════════════
   //   2026-09-08 作り直し（S指示「画面がやや複雑」）：受注タブは「いま何がどこにあって、次は誰が何をするか」だけを見せる。
   //   ボタンは1件につき「次の1手」だけ。それ以外は「その他」に畳む（機能は減らさない＝iPhoneからも全部できる）。
-  if(D.attention.length){
-    h += '<h2>要対応<span class="cnt">' + D.attention.length + "件</span></h2>";
-    D.attention.forEach(function(a){
+  // 2026-09-09 S指摘「モリヤの枠だけで4つもある」：受注1件に関わる要対応（JC書類の確認・JCへの支払い）は
+  //   別の枠にせず、その受注のカードの中に畳み込む。ここに残すのは、受注カードに結びつかないものだけ。
+  var orderNos = {}; (D.ordered||[]).forEach(function(o){ orderNos[o.order_no] = o.id; });
+  var attnByOrder = {}, attnRest = [];
+  D.attention.forEach(function(a){
+    var oid = a.order_id || orderNos[a.no];
+    if(oid){ (attnByOrder[oid] = attnByOrder[oid] || []).push(a); } else attnRest.push(a);
+  });
+  if(attnRest.length){
+    h += '<h2>要対応<span class="cnt">' + attnRest.length + "件</span></h2>";
+    attnRest.forEach(function(a){
       h += '<div class="card ngc"><div class="top"><span class="co">' + esc(a.who||"") + '</span><span class="no">' + esc(a.no||"") + "</span></div>" +
            '<div class="meta"><span class="tag r">' + esc(a.kind) + "</span></div>" +
            '<p class="note">' + esc(a.detail).replace(/\n/g,"<br>") + "</p>" +
@@ -550,6 +558,17 @@ function paneOrder(){
     h += jcline;
     h += stripHtml(idx);
     if(!o.ship_addr) h += '<p class="note"><span class="tag r">納品先が空</span> 出荷の前に住所を入れてください。</p>';
+    // この受注に関わる要対応を、カードの中に畳み込む（JC書類の「確認した」だけ。支払いは「次の1手」に出るので重ねない）
+    var mine = (attnByOrder[o.id]||[]).filter(function(a){ return a.jc_mail_id; });
+    if(mine.length){
+      h += '<div class="next" style="background:#fff4f4;border-left-color:var(--ng)">確認してください（' + mine.length + '件）';
+      mine.forEach(function(a){
+        var lines = String(a.detail||"").split("\n").filter(function(x){ return x && x.indexOf("押してください")<0; });
+        h += '<div style="margin-top:6px;font-weight:400">' + esc(a.kind) + '<br><span style="color:var(--sub);font-size:12px">' + esc(lines.join("　")) + '</span>' +
+             '<div class="btns" style="margin-top:4px"><button class="btn ok" data-jcmail="' + a.jc_mail_id + '">確認した</button></div></div>';
+      });
+      h += '</div>';
+    }
     if(alert) h += '<p class="note" style="color:#b23;font-weight:600">⚠ 仕入値に注意があります（下の「その他」を開いてください）</p>';
     h += '<div class="next">' + esc(next || "次：機械が進めます") + '</div>';
     h += '<div class="btns">' + primary + '</div>';
