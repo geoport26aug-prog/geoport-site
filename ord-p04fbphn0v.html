@@ -81,6 +81,11 @@ input.f,select.f{width:100%;font:inherit;font-size:15px;padding:9px 10px;border:
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);max-width:92%;background:#212529;color:#fff;
   padding:12px 18px;border-radius:9px;font-size:14px;line-height:1.6;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 #toast.bad{background:#7a1f1f}
+.steps{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:#8a97a6;margin:6px 0 2px}
+.steps .done{color:var(--navy)} .steps .cur{color:var(--navy);font-weight:700}
+.next{margin:6px 0 2px;padding:8px 10px;background:#f3f6fa;border-left:4px solid var(--navy);border-radius:6px;font-size:14px;font-weight:600}
+details.more{margin:8px 0 2px} details.more summary{cursor:pointer;color:var(--sub);font-size:13px;padding:6px 0}
+details.more[open] summary{margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -198,9 +203,8 @@ function reload(){ return load(getPass()).then(function(d){ D=d; render(); }); }
 // ══════════════════════════════════════════════════════════════
 function tabs(){
   var all = [
-    { id:"order",  name:"受注",     s_only:true,  count: D.quotable.length + D.ordered.length },
-    { id:"manual", name:"手動見積", s_only:true,  count: (D.manual_quotes||[]).length },
-    { id:"attn",   name:"要対応",   s_only:true,  count: D.attention.length },
+    // 2026-09-08：手動見積タブは外した（頻度が増えたら戻す。裏の仕組みとチャット操作は残る）。要対応は受注タブの先頭に出す。
+    { id:"order",  name:"受注",     s_only:true,  count: D.quotable.length + D.ordered.length + (D.attention.length ? 0 : 0) },
     { id:"arrive", name:"到着待ち", s_only:false, count: D.arriving.length },
     { id:"insp",   name:"検品待ち", s_only:false, count: D.inspecting.reduce(function(a,o){return a+o.units.length;},0) },
     { id:"ship",   name:"出荷待ち", s_only:false, count: D.shipping.length }
@@ -370,175 +374,177 @@ function wireManual(root){
 function paneOrder(){
   var h = "";
 
-  // ── ★JCとの約束（12か月で €50,000）の進み具合 ──────────────
-  //   ★S確定（2026-09-01）＝数えるのは「商品だけ」。送料は含めない。
-  //     （view には送料込みの列も残っているが、画面には出さない。見るたびに迷わないため）
-  (function(){
-    var j = D.jc_progress; if(!j) return;
-    var eur = function(n){ return "€" + Number(n||0).toLocaleString("en-US",{maximumFractionDigits:0}); };
-    var mon = Math.max(1, Math.round(j.残り日数 / 30));
-    var pct = Math.min(100, Math.round(Number(j.商品計_eur) / Number(j.目標_eur) * 100));
-    // ★2026-09-07 S指示「冗長」→ 見出し1行＋バー＋1行に。表と注意書きは出さない（決まりは台本と上の注釈に）。
-    h += '<h2>JCとの約束<span class="cnt">' + eur(j.商品計_eur) + ' / €50,000（' + pct + '%）・残り ' + j.残り日数 + '日</span></h2>' +
-         '<div class="card">' +
-         '<div style="height:10px;background:#e8eef5;border-radius:5px;overflow:hidden;margin:2px 0 8px">' +
-           '<div style="height:100%;width:' + Math.max(pct,1) + '%;background:var(--navy)"></div></div>' +
-         '<div class="note" style="margin:0">あと ' + eur(j.残り_商品のみ) + '（月 ' + eur(j.月あたり必要_商品のみ) + '）　期限 ' + esc(j.期限) +
-         (Number(j.未払い_eur) > 0 ? '　<span style="color:#b23">JCへ未払い ' + eur(j.未払い_eur) + '</span>' : "") +
-         '</div></div>';
-  })();
-
-
-  // ── 見積を出した先（受注にできる）─────────────────────────
-  h += '<h2>見積を出した先（受注にできます）<span class="cnt">' + D.quotable.length + "件</span></h2>";
-  if(!D.quotable.length) h += '<div class="empty">いまは、受注にできる見積はありません。</div>';
-  if(D.quotable.length > 1){
-    h += '<div class="card" id="mergebox" style="border-left:4px solid var(--navy)">' +
-      '<div class="meta"><b>同じお客様の見積を、1つの受注にまとめられます</b></div>' +
-      '<p class="note">下の見積に「まとめる」のチェックを付けてください。<br>' +
-      'まとめると<b>請求書が1通</b>になり、<b>国内送料も1個口ぶん</b>で済みます（別々に送るより安くなります）。</p>' +
-      '<div id="mergeinfo"></div>' +
-      '<div class="btns"><button class="btn pri" id="domerge" disabled>選んだ見積をまとめて受注にする</button></div></div>';
+  // ══ ①要対応（あれば先頭に。別タブにしない）══════════════════════════
+  //   2026-09-08 作り直し（S指示「画面がやや複雑」）：受注タブは「いま何がどこにあって、次は誰が何をするか」だけを見せる。
+  //   ボタンは1件につき「次の1手」だけ。それ以外は「その他」に畳む（機能は減らさない＝iPhoneからも全部できる）。
+  if(D.attention.length){
+    h += '<h2>要対応<span class="cnt">' + D.attention.length + "件</span></h2>";
+    D.attention.forEach(function(a){
+      h += '<div class="card ngc"><div class="top"><span class="co">' + esc(a.who||"") + '</span><span class="no">' + esc(a.no||"") + "</span></div>" +
+           '<div class="meta"><span class="tag r">' + esc(a.kind) + "</span></div>" +
+           '<p class="note">' + esc(a.detail) + "</p></div>";
+    });
   }
 
+  // ══ ②見積を出した先（受注にできる）════════════════════════════════
+  h += '<h2>見積を出した先<span class="cnt">' + D.quotable.length + "件</span></h2>";
+  if(!D.quotable.length) h += '<div class="empty">いまは、返事待ちの見積はありません。</div>';
+  var multi = D.quotable.length > 1;
+  if(multi){
+    h += '<details class="more" id="mergebox"><summary>同じお客様の見積を1つの受注にまとめる</summary>' +
+      '<p class="note">下の見積の「まとめる」にチェックを付けると、請求書が1通・国内送料も1個口ぶんになります。</p>' +
+      '<div id="mergeinfo"></div>' +
+      '<div class="btns"><button class="btn pri" id="domerge" disabled>選んだ見積をまとめて受注にする</button></div></details>';
+  }
   D.quotable.forEach(function(q){
+    var pf = q.po_fields || {}, pw = q.po_warnings || [];
     h += '<div class="card' + (q.expired ? " warnc" : "") + '">' +
-         '<div class="top"><span class="co">' +
-           '<label style="font-weight:400;font-size:13px;color:var(--sub);margin-right:8px">' +
-           '<input type="checkbox" class="qsel" value="' + q.request_id + '" data-mail="' + esc(q.email||"") +
-           '" data-exp="' + (q.expired?"1":"0") + '" style="width:18px;height:18px;vertical-align:-3px"> まとめる</label>' +
-           esc(q.company) + '</span><span class="no">' + esc(q.quote_no) + "</span></div>";
+         '<div class="top"><span class="co">' + (q.po_received_at ? '📩 ' : '') + esc(q.company) + '</span><span class="no">' + esc(q.quote_no) + "</span></div>";
     q.items.forEach(function(i){
       h += '<div class="it"><span class="kata">' + esc(i.article) + "</span> × " + i.qty +
            '　<span class="sn">' + esc([i.brand, i.condition, "保証" + (i.warranty_years||1) + "年"].filter(Boolean).join("／")) + "</span></div>";
     });
-    h += '<table class="sum">' +
-         "<tr><td>商品計</td><td>" + yen(q.goods_jpy) + "</td></tr>" +
-         "<tr><td>国内送料" + (q.pref ? "（" + esc(q.pref) + "）" : "") + "</td><td>" + yen(q.ship_jpy) + "</td></tr>" +
-         "<tr><td>消費税(10%)</td><td>" + yen(q.tax_jpy) + "</td></tr>" +
-         '<tr class="tot"><td>合計</td><td>' + yen(q.total_jpy) + "</td></tr></table>";
-
-    if(q.expired){
-      h += '<div class="meta"><span class="tag w">有効期限切れ</span> 期限 ' + ymd(q.valid_until) + "（" + (-q.days_left) + "日前）</div>" +
-           '<p class="note">為替で価格が動くため、このままでは受注にできません。再見積を出してください。<br>' +
-           "どうしてもこの価格で受注する場合は、下のボタンを押すと進めますが、台帳に「期限切れの見積で受注した」と必ず記録が残ります。</p>";
-    } else {
-      h += '<div class="meta">見積の有効期限：' + ymd(q.valid_until) + "（あと" + q.days_left + "日）</div>";
-    }
-    // ★注文書の自動取り込み（2026-09-08）：届いていれば印と読み取りの要点。受注の入力欄には開いたときに先に入る
+    h += '<div class="meta">合計 <b>' + yen(q.total_jpy) + '</b>（税込・送料' + yen(q.ship_jpy) + (q.pref ? "・" + esc(q.pref) : "") + '）　' +
+         (q.expired ? '<span class="tag w">有効期限切れ ' + ymd(q.valid_until) + '</span>' : '期限 ' + ymd(q.valid_until) + "（あと" + q.days_left + "日）") +
+         (multi ? '　<label style="font-weight:400;font-size:12px;color:var(--sub)"><input type="checkbox" class="qsel" value="' + q.request_id +
+                  '" data-mail="' + esc(q.email||"") + '" data-exp="' + (q.expired?"1":"0") + '" style="width:16px;height:16px;vertical-align:-3px"> まとめる</label>' : "") +
+         '</div>';
     if(q.po_received_at){
-      var pf = q.po_fields || {}, pw = q.po_warnings || [];
-      h += '<div class="meta"><span class="tag g">📩 注文の返信が届いています</span> ' + esc(String(q.po_received_at).slice(0,16).replace("T"," ")) +
-           (pf.attachment_name ? '　注文書「' + esc(pf.attachment_name) + '」読み取り済み' : '　添付なし（本文のみ）') + '</div>';
+      h += '<div class="next">📩 注文の返信が届いています（' + esc(String(q.po_received_at).slice(0,16).replace("T"," ")) + '）' +
+           (pf.attachment_name ? '　注文書「' + esc(pf.attachment_name) + '」読み取り済み' : '　添付なし') +
+           (pf.customer_po_no ? '　先方注番 ' + esc(pf.customer_po_no) : '') + '</div>';
       if(pf.intent_text) h += '<p class="note">本文：' + esc(pf.intent_text) + '</p>';
-      if(pf.customer_po_no || pf.order_date || pf.desired_delivery)
-        h += '<p class="note">' + [pf.customer_po_no ? "先方注番 " + esc(pf.customer_po_no) : "", pf.order_date ? "注文日 " + esc(pf.order_date) : "",
-             pf.desired_delivery ? "希望納期 " + esc(pf.desired_delivery) : ""].filter(Boolean).join("　") + '</p>';
+      if(pf.reply_text)  h += '<p class="note">返信：' + esc(pf.reply_text) + '</p>';
       pw.forEach(function(w){ h += '<p class="note" style="color:#b02a2a;font-weight:600">⚠️ ' + esc(w).replace(/\n/g,"<br>") + '</p>'; });
+    } else {
+      h += '<div class="next">次：お客様の返事待ち（返信が届くと自動でここに出ます）</div>';
     }
+    if(q.expired) h += '<p class="note">為替で価格が動くため、再見積を出してから受注にしてください。どうしてもこの価格で受注する場合は、台帳に「期限切れの見積で受注した」と記録が残ります。</p>';
     h += '<div class="btns"><button class="btn ' + (q.expired ? "gray" : "pri") + '" data-openform="' + q.request_id + '">' +
          (q.expired ? "承知のうえで受注にする" : "受注にする") + "</button></div>" +
          '<div id="form-' + q.request_id + '" class="form hidden"></div></div>';
   });
-  if(D.quotable.length > 1) h += '<div id="mergeform" class="form hidden"></div>';
+  if(multi) h += '<div id="mergeform" class="form hidden"></div>';
 
-  // ── 受注済み ─────────────────────────────────────────────
-  h += '<h2>受注済み<span class="cnt">' + D.ordered.length + "件</span></h2>";
-  if(!D.ordered.length) h += '<div class="empty">まだ受注はありません。</div>';
+  // ══ ③受注（進行中）＝1件1枚・進み具合の帯・次の1手 ═══════════════════
+  h += '<h2>受注<span class="cnt">' + D.ordered.length + "件</span></h2>";
+  if(!D.ordered.length) h += '<div class="empty">まだ進行中の受注はありません。</div>';
+
+  var STEPS = ["受注","入金","発注","到着","検品","出荷","完了"];
+  function stepIndex(o, inv){
+    if(o.status==="完了") return 6;
+    if(o.status==="出荷") return 5;
+    if(o.status==="検品") return 4;
+    if(o.status==="入荷") return 3;
+    if(o.status==="発注") return 2;
+    if(o.paid_on) return 1;                 // 入金済み → 次は発注
+    return 0;                               // 受注（案内の発行〜入金待ち）
+  }
+  function stripHtml(idx){
+    return '<div class="steps">' + STEPS.map(function(s,i){
+      return '<span class="' + (i<idx ? "done" : i===idx ? "cur" : "") + '">' + (i<idx ? "●" : i===idx ? "◉" : "○") + s + '</span>';
+    }).join("") + '</div>';
+  }
 
   D.ordered.forEach(function(o){
     var t = o.totals || {};
-    var tagCls = (o.status==="受注"||o.status==="入金待ち") ? "" : "g";
-    h += '<div class="card"><div class="top"><span class="co">' + esc(o.company_formal) + '</span><span class="no">' + esc(o.order_no) + "</span></div>";
-    (o.order_items||[]).forEach(function(i){
-      h += '<div class="it"><span class="kata">' + esc(i.article) + "</span> × " + i.qty +
-           '　<span class="sn">' + yen(i.unit_price_jpy) + "／台・保証" + (i.warranty_years||1) + "年</span></div>";
-    });
-    h += '<div class="meta"><span class="tag ' + tagCls + '">' + esc(o.status) + "</span> 合計 " + yen(t.total_jpy) +
-         (o.customer_po_no ? "　先方注番 " + esc(o.customer_po_no) : "") +
-         "　" + esc(o.payment_terms||"") +
-         (o.paid_on ? '　<span class="tag g">入金 ' + md(o.paid_on) + "</span>" : "") + "</div>";
-    if(!o.ship_addr) h += '<p class="note"><span class="tag r">納品先が空</span> 出荷の前に住所を入れてください（いまは注文書を見ながら手で入れます）。</p>';
-
     var inv = (o.documents||[]).filter(function(x){ return x.kind==="お支払いのご案内"||x.kind==="ご請求書"; })[0];
-    if(inv){
-      h += '<div class="meta"><span class="tag g">お支払案内 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) +
-           '　' + yen(inv.total_jpy) + '　<span class="tag">Gmailの下書きに入っています</span></div>';
+    var idx = stepIndex(o, inv);
+    var early = (o.status==="受注" || o.status==="入金待ち");
+
+    // ── 次の1手（文とボタン）。それ以外の操作は「その他」へ ──
+    var next = "", primary = "", others = "";
+    if(o.status==="受注" && !inv){
+      next = "次：お支払いのご案内を作って送る（S）";
+      primary = '<button class="btn pri" data-invoice="' + o.id + '">お支払案内を作る</button>';
+      others += '<button class="btn sec" data-invprev="' + o.id + '">先にPDFを見る</button>';
+    } else if(early && !o.paid_on){
+      next = "次：入金を確認する（S）" + (inv && inv.issued_on ? "　お支払期限 " + md(new Date(Date.parse(inv.issued_on)+14*86400000).toISOString().slice(0,10)) : "");
+      primary = '<button class="btn ok" data-mark="' + o.id + '" data-what="入金を確認した">入金を確認した</button>';
+    } else if(early && o.paid_on && !o.jc_po_draft_id){
+      next = "次：JCへの発注メールの下書きを作る（S）";
+      primary = '<button class="btn pri" data-jcpo="' + o.id + '">発注メールの下書きを作る</button>';
+      others += '<button class="btn sec" data-jcpoprev="' + o.id + '">発注メールを見る</button>';
+    } else if(early && o.paid_on && o.jc_po_draft_id){
+      next = "次：Gmailの下書き（JC宛の発注メール）を送って、下のボタンを押す（S）";
+      primary = '<button class="btn pri" data-mark="' + o.id + '" data-what="JCへ発注メールを送った">JCへ発注メールを送った</button>';
+      others += '<button class="btn sec" data-jcpoprev="' + o.id + '">発注メールを見る</button>' +
+                '<button class="btn" data-jcpo="' + o.id + '" data-redo="1">発注メールを作り直す</button>';
+    } else if(o.status==="発注"){
+      next = "次：JCの請求書が届いたら記録する（S）→ 追跡番号が「到着待ち」に出ます";
+      primary = '<button class="btn pri" data-jcform="' + o.id + '">JCの請求書を記録する</button>';
+    } else if(o.status==="入荷"){
+      next = "次：荷物が届いたら検品（奥様・検品待ちタブ）";
+    } else if(o.status==="検品"){
+      next = "次：出荷（奥様・出荷待ちタブ）";
+    } else if(o.status==="出荷"){
+      next = "次：納品書の下書き（Gmail）を送ってから、完了にする（S）";
+      primary = '<button class="btn ok" data-mark="' + o.id + '" data-what="完了にする">完了にする</button>';
     }
-    // ★仕入値の見張り（見積のときと、今）。上がった品だけ出る（2026-08-31）
+    // その他に入れる残りの操作（表示条件は従来どおり）
+    if(inv) others += '<button class="btn" data-invoice="' + o.id + '" data-redo="1">お支払案内を作り直す</button>';
+    if(["受注","入金待ち","発注","入荷"].indexOf(o.status)>=0 && o.status!=="発注")
+      others += '<button class="btn" data-jcform="' + o.id + '">JCの請求書を記録する</button>';
+    if(early) others += '<button class="btn dang" data-mark="' + o.id + '" data-what="キャンセルする">お客様都合のキャンセル</button>';
+    if(["受注","入金待ち","発注","入荷","検品"].indexOf(o.status)>=0)
+      others += '<button class="btn dang" data-mark="' + o.id + '" data-what="在庫切れで中止する">在庫切れで中止</button>';
+
+    // ── 「その他」に入れる情報（書類・仕入値の見張り・JC請求書・発注メール）──
+    var info = "";
+    if(inv) info += '<div class="meta"><span class="tag g">お支払案内 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) + '　' + yen(inv.total_jpy) + '　Gmailの下書きに入っています</div>';
+    if(o.jc_po_draft_id) info += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' + (o.jc_po_drafted_at ? '　' + md(String(o.jc_po_drafted_at).slice(0,10)) : "") + '</div>';
     (o.price_watch||[]).forEach(function(w){
       if(w.gone){
-        h += '<div class="meta" style="color:#b23">⚠ ' + esc(w.article) +
-             ' は今のJCの一覧に見つかりません（品切れか型番変更の可能性）。発注前にJCへ確認してください</div>';
+        info += '<div class="meta" style="color:#b23">⚠ ' + esc(w.article) + ' は今のJCの一覧に見つかりません（品切れか型番変更の可能性）。発注前にJCへ確認してください</div>';
       }else{
         var thin = w.margin_now !== null && w.margin_now < 20;
-        h += '<div class="meta"' + (thin ? ' style="color:#b23"' : '') + '>' + (thin ? '⚠ ' : '') +
-             esc(w.article) + '　見積時 ' + yen(w.then_jpy) + '／台 → 今なら ' + yen(w.now_jpy) +
-             '／台（+' + w.up_pct + '%）　' +
+        info += '<div class="meta"' + (thin ? ' style="color:#b23"' : '') + '>' + (thin ? '⚠ ' : '') +
+             esc(w.article) + '　見積時 ' + yen(w.then_jpy) + '／台 → 今なら ' + yen(w.now_jpy) + '／台（+' + w.up_pct + '%）　' +
              (w.loss_jpy !== null && w.loss_jpy !== undefined
                ? '★このまま出すと赤字（およそ ' + yen(w.loss_jpy) + ' の持ち出し・' + w.qty + '台ぶん）'
-               : '粗利およそ ' + w.tier_pct + '% → ' + w.margin_now + '%　差額 ' +
-                 yen(w.shortfall_jpy) + '（' + w.qty + '台ぶん）') + '</div>';
+               : '粗利およそ ' + w.tier_pct + '% → ' + w.margin_now + '%　差額 ' + yen(w.shortfall_jpy) + '（' + w.qty + '台ぶん）') + '</div>';
       }
     });
-    // 記録したJCの請求書（★仕入額なのでSのページだけ）
     (function(){
       var seen = {}, list = [];
       (o.order_items||[]).forEach(function(i){ (i.order_units||[]).forEach(function(x){
         if(x.jc_purchases && !seen[x.jc_purchases.id]){ seen[x.jc_purchases.id]=1; list.push(x.jc_purchases); }
       }); });
       list.forEach(function(p){
-        h += '<div class="meta"><span class="tag ' + (p.paid_on ? 'g' : '') + '">JC請求書 ' + esc(p.invoice_no) + '</span>' +
+        info += '<div class="meta"><span class="tag ' + (p.paid_on ? 'g' : '') + '">JC請求書 ' + esc(p.invoice_no) + '</span>' +
              (p.sales_order_no ? '　JC注文 ' + esc(p.sales_order_no) : "") +
              '　EUR ' + Number(p.total_eur).toLocaleString("en-US",{minimumFractionDigits:2}) +
-             '（商品 ' + Number(p.goods_eur).toLocaleString("en-US",{minimumFractionDigits:2}) +
-             ' ＋送料 ' + Number(p.shipping_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + '）' +
+             '（商品 ' + Number(p.goods_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + ' ＋送料 ' + Number(p.shipping_eur).toLocaleString("en-US",{minimumFractionDigits:2}) + '）' +
              (p.discount_pct!=null ? '　割引 ' + p.discount_pct + '%' : "") +
-             (p.paid_on ? '　支払済 ' + md(p.paid_on)
-                        : '　<span style="color:#b23">★未払い' + (p.due_date ? '（期限 ' + md(p.due_date) + '）' : "") + '</span>') +
-             '</div>';
+             (p.paid_on ? '　支払済 ' + md(p.paid_on) : '　<span style="color:#b23">★未払い' + (p.due_date ? '（期限 ' + md(p.due_date) + '）' : "") + '</span>') + '</div>';
       });
     })();
-    // JCへの発注メール（英語）の下書きが出来ているか
-    if(o.jc_po_draft_id){
-      h += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' +
-           (o.jc_po_drafted_at ? '　' + md(String(o.jc_po_drafted_at).slice(0,10)) : "") +
-           '　<span class="tag">Gmailの下書きに入っています。送ったら右の「JCへ発注メールを送った」を押してください</span></div>';
+    // 仕入値の警告だけは畳まずに見せる（発注前に気づく必要がある）
+    var alert = (o.price_watch||[]).some(function(w){ return w.gone || (w.margin_now !== null && w.margin_now < 20); });
+
+    h += '<div class="card"><div class="top"><span class="co">' + esc(o.company_formal) + '</span><span class="no">' + esc(o.order_no) + "</span></div>";
+    (o.order_items||[]).forEach(function(i){
+      h += '<div class="it"><span class="kata">' + esc(i.article) + "</span> × " + i.qty + '　<span class="sn">' + yen(i.unit_price_jpy) + "／台・保証" + (i.warranty_years||1) + "年</span></div>";
+    });
+    h += '<div class="meta">合計 <b>' + yen(t.total_jpy) + '</b>' + (o.customer_po_no ? "　先方注番 " + esc(o.customer_po_no) : "") +
+         (o.paid_on ? '　<span class="tag g">入金 ' + md(o.paid_on) + "</span>" : "") + '</div>';
+    h += stripHtml(idx);
+    if(!o.ship_addr) h += '<p class="note"><span class="tag r">納品先が空</span> 出荷の前に住所を入れてください。</p>';
+    if(alert) h += '<p class="note" style="color:#b23;font-weight:600">⚠ 仕入値に注意があります（下の「その他」を開いてください）</p>';
+    h += '<div class="next">' + esc(next || "次：機械が進めます") + '</div>';
+    h += '<div class="btns">' + primary + '</div>';
+    if(others || info){
+      h += '<details class="more"><summary>その他（書類・仕入値・記録・取消）</summary>' + info +
+           (others ? '<div class="btns">' + others + '</div>' : '') + '</details>';
     }
-    h += '<div class="btns">';
-    if(o.status==="受注" && !inv){
-      h += '<button class="btn pri" data-invoice="' + o.id + '">お支払案内を作る</button>';
-      h += '<button class="btn sec" data-invprev="' + o.id + '">先にPDFを見る</button>';
-    }
-    if(inv) h += '<button class="btn" data-invoice="' + o.id + '" data-redo="1">お支払案内を作り直す</button>';
-    if(o.status==="受注" || o.status==="入金待ち"){
-      if(!o.paid_on)           h += '<button class="btn ok" data-mark="' + o.id + '" data-what="入金を確認した">入金を確認した</button>';
-      // ★JCへの発注メール（英語）。文面を先に読める。送信は人（大原則①）
-      h += '<button class="btn sec" data-jcpoprev="' + o.id + '">JCへの発注メールを見る</button>';
-      h += '<button class="btn" data-jcpo="' + o.id + '"' + (o.jc_po_draft_id ? ' data-redo="1"' : '') + '>' +
-           (o.jc_po_draft_id ? "発注メールを作り直す" : "発注メールの下書きを作る") + "</button>";
-      // ★発注メールを送った時点では、JCの発注番号はまだ分からない（S確認 2026-08-30）
-      h += '<button class="btn pri" data-mark="' + o.id + '" data-what="JCへ発注メールを送った">JCへ発注メールを送った</button>';
-      h += '<button class="btn dang" data-mark="' + o.id + '" data-what="キャンセルする">お客様都合のキャンセル</button>';
-    }
-    // 番号はインボイスが来てから。発注前でも「先に分かった」なら入れられる
-    if(["受注","入金待ち","発注","入荷"].indexOf(o.status)>=0)
-      h += '<button class="btn" data-jcform="' + o.id + '">JCの請求書を記録する</button>';
-    // ★在庫切れは「お客様都合のキャンセル」とは別の道。発注後でも通り、全額返金になる（§A-2①）
-    if(["受注","入金待ち","発注","入荷","検品"].indexOf(o.status)>=0)
-      h += '<button class="btn dang" data-mark="' + o.id + '" data-what="在庫切れで中止する">在庫切れで中止</button>';
-    if(o.status==="出荷")      h += '<button class="btn ok" data-mark="' + o.id + '" data-what="完了にする">完了にする</button>';
-    h += "</div>";
-    h += '<div id="jc-' + o.id + '" class="form hidden"></div>';
-    h += '<div id="po-' + o.id + '"></div>';
-    h += '<div id="iv-' + o.id + '"></div>';
-    h += "</div>";
+    h += '<div id="jc-' + o.id + '" class="form hidden"></div><div id="po-' + o.id + '"></div><div id="iv-' + o.id + '"></div></div>';
   });
 
-  // ── 中止した受注（返金がまだのものを目立たせる）─────────────────
-  var cx = D.cancelled || [];
-  if(cx.length){
-    h += '<h2>中止した受注<span class="cnt">' + cx.length + "件</span></h2>";
+  // ══ ④中止・おわった受注（畳む）═══════════════════════════════════
+  var cx = D.cancelled || [], cl = D.closed || [];
+  if(cx.length || cl.length){
+    var needRefund = cx.some(function(o){ return o.paid_on && !o.refunded_on; });
+    h += '<details class="more"' + (needRefund ? ' open' : '') + '><summary>中止 ' + cx.length + '件・おわった受注 ' + cl.length + '件</summary>';
     cx.forEach(function(o){
       var need = o.paid_on && !o.refunded_on;
       h += '<div class="card' + (need ? " ngc" : "") + '">' +
@@ -547,21 +553,30 @@ function paneOrder(){
            (o.paid_on ? "　入金 " + md(o.paid_on) : "　入金なし") +
            (o.refunded_on ? '　<span class="tag g">返金 ' + md(o.refunded_on) + "</span>" : "") + "</div>";
       if(need){
-        h += '<p class="note">★<b>全額を返金してください。振込手数料も当社負担です</b>（規約どおり）。<br>' +
-             "返金の振込が済んだら、下のボタンを押してください。</p>" +
+        h += '<p class="note">★<b>全額を返金してください。振込手数料も当社負担です</b>（規約どおり）。返金の振込が済んだら押してください。</p>' +
              '<div class="btns"><button class="btn ok" data-mark="' + o.id + '" data-what="返金した">返金した</button></div>';
       }
       h += "</div>";
     });
-  }
-
-  if(D.closed && D.closed.length){
-    h += '<h2>おわった受注（新しい順に10件）<span class="cnt">' + D.closed.length + "件</span></h2>";
-    D.closed.forEach(function(o){
+    cl.forEach(function(o){
       h += '<div class="card"><div class="top"><span class="co">' + esc(o.company_formal) + '</span><span class="no">' + esc(o.order_no) + "</span></div>" +
            '<div class="meta"><span class="tag">' + esc(o.status) + "</span> 合計 " + yen((o.totals||{}).total_jpy) + "</div></div>";
     });
+    h += '</details>';
   }
+
+  // ══ ⑤JCとの約束（一番下に1行）═══════════════════════════════════
+  (function(){
+    var j = D.jc_progress; if(!j) return;
+    var eur = function(n){ return "€" + Number(n||0).toLocaleString("en-US",{maximumFractionDigits:0}); };
+    var pct = Math.min(100, Math.round(Number(j.商品計_eur) / Number(j.目標_eur) * 100));
+    h += '<h2>JCとの約束<span class="cnt">' + eur(j.商品計_eur) + ' / €50,000（' + pct + '%）・残り ' + j.残り日数 + '日</span></h2>' +
+         '<div class="card"><div style="height:10px;background:#e8eef5;border-radius:5px;overflow:hidden;margin:2px 0 8px">' +
+           '<div style="height:100%;width:' + Math.max(pct,1) + '%;background:var(--navy)"></div></div>' +
+         '<div class="note" style="margin:0">あと ' + eur(j.残り_商品のみ) + '（月 ' + eur(j.月あたり必要_商品のみ) + '）　期限 ' + esc(j.期限) +
+         (Number(j.未払い_eur) > 0 ? '　<span style="color:#b23">JCへ未払い ' + eur(j.未払い_eur) + '</span>' : "") + '</div></div>';
+  })();
+
   return h;
 }
 
