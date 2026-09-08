@@ -382,7 +382,9 @@ function paneOrder(){
     D.attention.forEach(function(a){
       h += '<div class="card ngc"><div class="top"><span class="co">' + esc(a.who||"") + '</span><span class="no">' + esc(a.no||"") + "</span></div>" +
            '<div class="meta"><span class="tag r">' + esc(a.kind) + "</span></div>" +
-           '<p class="note">' + esc(a.detail) + "</p></div>";
+           '<p class="note">' + esc(a.detail).replace(/\n/g,"<br>") + "</p>" +
+           (a.jc_mail_id ? '<div class="btns"><button class="btn ok" data-jcmail="' + a.jc_mail_id + '">確認した</button></div>' : "") +
+           "</div>";
     });
   }
 
@@ -1114,6 +1116,15 @@ function wire(){
   });
 
   // 状態を進める（入金を確認した／完了／キャンセル 等）
+  // ★JC書類の読み取りを確認した（2026-09-09）
+  root.querySelectorAll("[data-jcmail]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-jcmail"));
+      b.disabled = true;
+      act({ action:"jc_mail_confirm", id:id }).then(function(){ toast("確認済みにしました"); reload(); })
+        .catch(function(e){ b.disabled=false; toast(e.message, true); });
+    });
+  });
   root.querySelectorAll("[data-mark]").forEach(function(b){
     b.addEventListener("click", function(){
       var id = Number(b.getAttribute("data-mark")), what = b.getAttribute("data-what");
