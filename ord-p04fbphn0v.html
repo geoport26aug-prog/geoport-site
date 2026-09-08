@@ -1313,8 +1313,22 @@ function refresh(){
   if(saved) load(saved).then(function(d){ D=d; openApp(); render(); }).catch(function(){});
 }
 refresh();
-document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible" && D && !busy) refresh(); });
-window.addEventListener("pageshow", function(e){ if(e.persisted && !busy) refresh(); });
+
+// ★画面そのもの（このHTML）が新しくなっていたら読み直す（2026-09-09・S「画面が変化していません」）
+//   ホーム画面に置いたアプリは、アプリを完全に終了するまで古いHTMLを持ち続ける。データは refresh() で新しくなるが、
+//   ボタンや文言は古いまま。→ 前に出たときにサーバーの版（ETag）を見比べ、違えば1回だけ読み直す。
+var PAGE_TAG = null;
+function checkPageVersion(){
+  fetch(location.pathname, { method:"HEAD", cache:"no-store" }).then(function(r){
+    var tag = r.headers.get("etag") || r.headers.get("last-modified") || "";
+    if(!tag) return;
+    if(PAGE_TAG === null){ PAGE_TAG = tag; return; }
+    if(tag !== PAGE_TAG && !busy){ PAGE_TAG = tag; location.reload(); }
+  }).catch(function(){});
+}
+checkPageVersion();
+document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible" && D && !busy){ checkPageVersion(); refresh(); } });
+window.addEventListener("pageshow", function(e){ if(e.persisted && !busy){ checkPageVersion(); refresh(); } });
 
 })();
 </script>
