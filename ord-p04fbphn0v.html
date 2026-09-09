@@ -800,15 +800,15 @@ function paneInspect(){
       h += '<div class="it"><span class="kata">' + esc(u.article) + "</span>　" + u.unit_no + "台目" +
            (u.description ? '　<span class="sn">' + esc(u.description) + "</span>" : "") +
            // ★写真が先。ラベルと封印シールの2枚。
-           '<label class="f" style="margin-top:8px">① 写真をとる（型式ラベル・封印シール）★これがいちばん大事な記録です</label>' +
+           '<label class="f" style="margin-top:8px">① 写真をとる（銘板・封印シール）★これがいちばん大事な記録です</label>' +
            '<input class="f" type="file" accept="image/*" capture="environment" multiple id="ip-' + u.unit_id + '">' +
            '<div class="note" id="ipn-' + u.unit_id + '">' +
              (done ? '保存済みの写真 ' + done + ' 枚（撮り直すと足されます。前の写真は消えません）'
                    : 'スマホなら、その場で撮れます。2枚まとめて選べます。') + '</div>' +
            '<label class="f" style="margin-top:10px">② 番号（読めたときだけでOK。空でもかまいません）</label>' +
            '<div class="grid2">' +
-             '<div><label class="f">メーカーのシリアル番号</label><input class="f" id="is-' + u.unit_id + '" value="' + esc(u.serial_no||"") + '"></div>' +
-             '<div><label class="f">J-Certified 封印シール番号</label><input class="f" id="ik-' + u.unit_id + '" value="' + esc(u.jc_seal_no||"") + '"></div>' +
+             '<div><label class="f">製造番号（銘板の Serial No.。4桁以下なら Id.-No. を前に：例 13142075-0187）</label><input class="f" id="is-' + u.unit_id + '" value="' + esc(u.serial_no||"") + '"></div>' +
+             '<div><label class="f">J-Certified 封印シールの番号（あれば）</label><input class="f" id="ik-' + u.unit_id + '" value="' + esc(u.jc_seal_no||"") + '"></div>' +
            "</div>" +
            (u.number_source ? '<div class="note">前回の記録：' + esc(u.number_source) + "</div>" : "") +
            '<div class="btns">' +
@@ -844,7 +844,7 @@ function paneShip(){
       h += '<div class="uline"><input type="checkbox" checked data-ship="' + o.order_id + '" value="' + u.unit_id + '">' +
            '<div><span class="kata">' + esc(u.article) + "</span>　" + u.unit_no + "台目" +
            (u.inspect_status==="読取不可" ? '　<span class="tag w">番号読取不可</span>' : "") + "<br>" +
-           '<span class="sn">S/N ' + esc(u.serial_no || "（未記録）") + "　封印 " + esc(u.jc_seal_no || "（未記録）") + "</span></div></div>";
+           '<span class="sn">製造番号 ' + esc(u.serial_no || "（未記録）") + "　封印 " + esc(u.jc_seal_no || "（未記録）") + "</span></div></div>";
     });
     h += '<div class="meta">' + (o.customer_po_no ? "先方注番 " + esc(o.customer_po_no) + "　" : "") +
          (o.pending_inspection ? '<span class="tag w">検品がまだの品が' + o.pending_inspection + "台あります（ここには出ていません）</span>" : "検品はすべて済んでいます") + "</div>";
