@@ -15,6 +15,30 @@ LIST   = "list"        # 一覧（目次）ページの出力先
 LIST_PER = 150         # 一覧1ページあたりの型番数
 RELATED_N = 12         # 型番ページに出す「関連製品」の数
 
+# ★2026-09-10 S指示：**社内（Sと、Claudeのブラウザ）のアクセスを計測から外す。**
+#   理由＝訪問者数の大半が自分たちだと、集客が伸びているのか分からない（台本 §0-y）。
+#   仕組み＝その端末に印（localStorage の gp_noan）を付け、印のある端末では
+#           Cloudflareの計測タグを読み込まない／サイト内検索も記録しない。
+#     ・除外する：https://geoport.co.jp/?noanalytics=1 を1回開く（端末ごと・1回だけ）
+#     ・戻す　　：https://geoport.co.jp/?analytics=1
+#   ⚠️localStorageが使えない環境（プライベートモード等）では**普通に計測する**（安全側）。
+#   ⚠️curl や機械的な取得は元々JavaScriptを実行しないので、最初から計測に入らない。
+#   ★この印は「その端末のそのブラウザ」だけに効く。端末を替えたら付け直すこと。
+#   ★同じ印を index.html（トップの検索）と 404.html（見つからない型番）でも見ている。
+#     計測に関わる場所を増やすときは、必ずこの印を見ること。
+BEACON = ('<!-- Cloudflare Web Analytics（社内アクセスは除外・2026-09-10）-->'
+          '<script>(function(){try{'
+          'var p=new URLSearchParams(location.search);'
+          'if(p.has("noanalytics")){localStorage.setItem("gp_noan","1");}'
+          'else if(p.has("analytics")){localStorage.removeItem("gp_noan");}'
+          'if(localStorage.getItem("gp_noan"))return;'
+          '}catch(e){}'
+          'var s=document.createElement("script");s.defer=true;'
+          's.src="https://static.cloudflareinsights.com/beacon.min.js";'
+          's.setAttribute("data-cf-beacon",\'{"token": "1f55d2e30afe4d8a806863540932191d"}\');'
+          'document.head.appendChild(s);})();</script>'
+          '<!-- End Cloudflare Web Analytics -->')
+
 CSS = """:root{--black:#f5f7fa;--dark:#eef2f7;--panel:#ffffff;--border:#e2e8f0;--accent:#1c5fb0;--accent2:#2b74cf;--text:#1a2634;--muted:#5b6b7d;--green:#15803d;--line:#f1f4f8}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--black);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}
@@ -502,7 +526,7 @@ def _shell(title, metad, canon, h1, crumb_html, body, jsonld, updir="../"):
 <footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
 掲載中の在庫品を短納期でお届けします。価格・お見積りはお問い合わせください。<br>
 <a href="{updir}list/">メーカー・シリーズ一覧</a> ｜ <a href="{updir}guide.html">サービス案内・保証規定</a> ｜ <a href="{updir}company.html">会社情報</a></footer>
-<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "1f55d2e30afe4d8a806863540932191d"}}'></script><!-- End Cloudflare Web Analytics -->
+{BEACON}
 </body></html>
 """
 
@@ -973,7 +997,7 @@ var ART={art_json};
 var SHOTS={shots_json};
 </script>
 <script src="../assets/p.js?v={PJS_V}"></script>
-<!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "1f55d2e30afe4d8a806863540932191d"}}'></script><!-- End Cloudflare Web Analytics -->
+{BEACON}
 </body></html>
 """
 

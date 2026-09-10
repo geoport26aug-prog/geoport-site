@@ -122,6 +122,8 @@ function slugify(a){
 
 /* 探されていた型番を記録する（0件検索と同じ扱い。毎朝の点検メールに出る） */
 function logNotFound(q){
+  /* ★社内（Sと Claude のブラウザ）の検索は記録しない（2026-09-10 S指示）。印は /?noanalytics=1 で付ける */
+  try{ if(localStorage.getItem("gp_noan")) return; }catch(e){}
   try{
     fetch(SB_URL+"/rest/v1/search_log",{method:"POST",keepalive:true,
       headers:{apikey:SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},
