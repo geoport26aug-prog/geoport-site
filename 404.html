@@ -50,13 +50,12 @@ footer a{color:var(--muted)}
 <main>
   <h1 id="head">お探しのページが見つかりません</h1>
   <p class="lead" id="lead">お探しの型番は、現在お取り扱いがありません。</p>
-  <p class="lead" id="lead2">お探しの型番の一部を入れて、ほかの在庫をご検索いただけます。</p>
+  <p class="lead hidden" id="lead2"></p>
 
   <form class="sbox" id="sform" action="/" method="get">
     <input id="q" name="q" type="search" placeholder="型番・メーカーで検索（例: 6ES7315 / Fanuc）" autocomplete="off">
     <button type="submit">検索</button>
   </form>
-  <p class="hint">型番の一部だけでも探せます。</p>
 
   <section id="near" class="hidden">
     <h2>型番の近い在庫品<span class="sub">在庫のあるものだけを表示しています</span></h2>
@@ -155,6 +154,7 @@ function findNear(slug){
   if(!SLUG){
     $("lead").textContent="お探しのページは、移動または削除された可能性があります。";
     $("lead2").textContent="型番やメーカー名でご検索いただけます。";
+    $("lead2").classList.remove("hidden");
     logNotFound((location.pathname||"/").slice(0,60));
     return;
   }
@@ -162,12 +162,16 @@ function findNear(slug){
   /* 型番らしきものを見出しに出す（スラッグは小文字なので、実在する型番が見つかればその表記を使う） */
   var shown=SLUG.toUpperCase();
   $("head").innerHTML='<span class="kata">'+esc(shown)+'</span> は現在お取り扱いがありません';
-  $("lead").textContent="この型番は、現在在庫がありません。在庫は毎日入れ替わります。";
+  $("lead").textContent="この型番は、現在在庫がありません。再入荷されましたら再び掲載されます。";
   $("q").value=SLUG;
   logNotFound(SLUG);
 
   findNear(SLUG).then(function(res){
-    if(!res.rows.length) return;
+    if(!res.rows.length){          /* 近い在庫が1件も無いときだけ、検索の案内を出す */
+      $("lead2").textContent="型番の一部やメーカー名で、ほかの在庫をご検索いただけます。";
+      $("lead2").classList.remove("hidden");
+      return;
+    }
     /* 完全一致が戻っていたら（在庫が復活した直後など）、その1件を先頭に出す */
     var exact=res.rows.filter(function(x){return slugify(x.article)===SLUG;});
     if(exact.length){
