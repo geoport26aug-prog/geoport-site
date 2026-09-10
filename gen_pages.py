@@ -739,7 +739,11 @@ def render(row, slug, g=None, pos=0, gone=False):
     else:
         badge_cls = ""
         price_row = ('<tr><th>価格</th><td><button class="cta" type="button" '
-                     'onclick="openQuote()">この製品の見積を確認する</button></td></tr>')
+                     # ★2026-09-10 S決定：「この製品の見積を確認する」→「お見積り」。
+                     #   短くするのと、「確認する」だと値段が既に載っているように読めるため
+                     #   （実際に開くのは依頼フォーム）。送り仮名はサイト・見積メール・
+                     #   見積書PDFで使っている「お見積り」に揃える（「お見積もり」は使わない）。
+                     'onclick="openQuote()">お見積り</button></td></tr>')
     sbkey_json = json.dumps(SB_KEY)
     relay_json = json.dumps(RELAY)
     art_json   = json.dumps(art)
