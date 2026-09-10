@@ -2,7 +2,7 @@
 # 型番ページ Phase 2 — 公開ページ自動生成（AI費用ゼロ）
 # 公開カタログ(catalog ビュー・publishable key)だけを読む。JC痕跡・ユーロ・価格は一切出さない。
 # 生成物: p/<slug>.html（型番ごと）＋ sitemap.xml。在庫から消えた型番の p/*.html は削除。
-import os, re, json, html, datetime
+import os, hashlib, re, json, html, datetime
 import urllib.request, urllib.parse, urllib.error
 
 SB_URL = os.environ.get("SB_URL", "https://vprtbkkqqdfidzvfwhzo.supabase.co")
@@ -324,6 +324,32 @@ ICON_GUIDE = ('<svg width="14" height="14" viewBox="0 0 24 24"><path d="M9 11l3 
 ICON_COMPANY = ('<svg width="14" height="14" viewBox="0 0 24 24"><path d="M3 21h18"/>'
                 '<path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>')
 
+# ── 共通ファイル（CSS・JS）─────────────────────────────────────────
+#  ★2026-09-10：同じCSS(12.9KB)とJS(7.0KB)を26,630ページに焼き込んでいたため、公開サイトが810MBに達し
+#    GitHub Pages の上限1GBの79%を使っていた。共通ファイルに出して各ページから読む形にする。
+#    ・容量 810MB→約293MB（在庫切れページを残す余地ができる）
+#    ・2ページ目からはブラウザが覚えているので表示が速い
+#    ・版(?v=)は中身のハッシュ。中身が変われば版も変わるので、古いものが残り続けない。
+PJS = 'function $(i){return document.getElementById(i);}\n/* ---- 写真の切替・虫眼鏡・全画面拡大 ---- */\nvar CUR=0;\nfunction showShot(b,i){CUR=i;var m=$("mainshot");if(m&&SHOTS[i])m.src=SHOTS[i];\n  var t=document.querySelectorAll(".th");for(var k=0;k<t.length;k++)t[k].classList.remove("on");\n  if(b)b.classList.add("on");}\nfunction lbToggle(ev){if(ev)ev.stopPropagation();var im=$("lbimg");if(im)im.classList.toggle("full");lbCount();}\nfunction lbCount(){var im=$("lbimg"),tip="";\n  /* 画面いっぱいでも実寸に届かないときだけ「原寸で見る」を案内する（PCでは元々原寸のことが多い） */\n  if(im&&im.naturalWidth){\n    if(im.classList.contains("full")) tip="画像を押すと全体表示";\n    else if(im.naturalWidth>im.getBoundingClientRect().width+2) tip="画像を押すと原寸";\n  }\n  var head=(SHOTS.length>1?((CUR+1)+" / "+SHOTS.length):"");\n  var c=$("lbcnt");if(c)c.textContent=head+((head&&tip)?"\u3000・\u3000":"")+tip;\n  var n=document.querySelectorAll(".lb .nav");\n  for(var i=0;i<n.length;i++)n[i].style.display=SHOTS.length>1?"block":"none";}\nfunction openLB(){if(!SHOTS.length)return;var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}\n  var l=$("lb");if(l)l.classList.add("show");lbCount();}\nfunction closeLB(){var l=$("lb");if(l)l.classList.remove("show");}\nfunction lbBg(ev){if(ev.target&&ev.target.id==="lb")closeLB();}\nfunction stepLB(d){if(SHOTS.length<2)return;CUR=(CUR+d+SHOTS.length)%SHOTS.length;\n  var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}\n  var m=$("mainshot");if(m)m.src=SHOTS[CUR];\n  var t=document.querySelectorAll(".th");\n  for(var i=0;i<t.length;i++){if(i===CUR)t[i].classList.add("on");else t[i].classList.remove("on");}\n  lbCount();}\ndocument.addEventListener("keydown",function(ev){\n  var l=$("lb");if(!l||!l.classList.contains("show"))return;\n  if(ev.key==="Escape")closeLB();\n  else if(ev.key==="ArrowRight")stepLB(1);\n  else if(ev.key==="ArrowLeft")stepLB(-1);});\n/* 虫眼鏡：右下のボタンでON/OFF。写真の枠ごと約2.3倍（実サイズ÷表示サイズ）に拡大する */\nvar MAGON=false;\nfunction hideMag(){var z=$("inzoom"),b=$("photobox");if(z)z.style.display="none";if(b)b.classList.remove("magon");}\nfunction toggleMag(){MAGON=!MAGON;var b=$("magbtn");if(b)b.classList.toggle("on",MAGON);if(!MAGON)hideMag();}\nfunction photoClick(){if(!MAGON)openLB();}\n(function(){\n  if(!window.matchMedia||!matchMedia("(hover:hover)").matches)return;\n  var box=$("photobox"),img=$("mainshot");if(!box||!img)return;\n  box.addEventListener("mousemove",function(ev){\n    if(!MAGON||!img.naturalWidth)return;\n    var r=img.getBoundingClientRect(),br=box.getBoundingClientRect();\n    if(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom){hideMag();return;}\n    var zx=img.naturalWidth/r.width,zy=img.naturalHeight/r.height;\n    var x=ev.clientX-r.left,y=ev.clientY-r.top;\n    var z=$("inzoom");z.style.display="block";box.classList.add("magon");\n    z.style.backgroundImage=\'url("\'+img.src+\'")\';\n    z.style.backgroundSize=img.naturalWidth+"px "+img.naturalHeight+"px";\n    z.style.backgroundPosition=(-(x*zx-br.width/2))+"px "+(-(y*zy-br.height/2))+"px";\n  });\n  box.addEventListener("mouseleave",hideMag);\n})();\nfunction openQuote(){var e=$("m-err");if(e)e.style.display="none";var f=$("mform");if(f)f.style.display="flex";var ft=$("mfoot");if(ft)ft.style.display="block";var s=$("m-sent");if(s)s.classList.remove("show");var b=$("m-sub");if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}["f-qty","f-co","f-name","f-mail","f-note","f-pref"].forEach(function(id){var el=$(id);if(el)el.value=(id==="f-qty"?"1":"");});fillPrefs();var ov=$("ov");if(ov)ov.classList.add("show");}\nfunction closeQuote(){var ov=$("ov");if(ov)ov.classList.remove("show");}\n// お届け先の都道府県（国内送料の計算に使う）\nvar PREFS=["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];\nfunction fillPrefs(){var el=$("f-pref");if(!el||el.options.length>1)return;for(var i=0;i<PREFS.length;i++){var o=document.createElement("option");o.value=PREFS[i];o.textContent=PREFS[i];el.appendChild(o);}}\nfunction submitQuote(){\n  var qty=($("f-qty")||{}).value;qty=qty?qty.trim():"";\n  var co=($("f-co")||{}).value;co=co?co.trim():"";\n  var name=($("f-name")||{}).value;name=name?name.trim():"";\n  var mail=($("f-mail")||{}).value;mail=mail?mail.trim():"";\n  var note=($("f-note")||{}).value;note=note?note.trim():"";\n  var pref=($("f-pref")||{}).value;pref=pref?pref.trim():"";\n  var err=$("m-err");\n  if(!co||!name||!mail||!qty||!pref){if(err){err.textContent="会社名・ご担当者名・メールアドレス・数量・お届け先の都道府県は必須です。";err.style.display="block";}return;}\n  if(mail.indexOf("@")<0){if(err){err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";}return;}\n  if(err)err.style.display="none";\n  var b=$("m-sub");if(b){b.disabled=true;b.textContent="送信しています…";}\n  var web=($("f-web")||{}).value||"";  /* 罠の欄（人には見えない・空が正常）*/\n  var payload={article:ART,qty:qty,company:co,person:name,email:mail,note:note,pref:pref,website:web};\n  fetch(RELAY,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY},body:JSON.stringify(payload)})\n  .then(function(r){return r.json();}).then(function(j){\n    if(j.success){var f=$("mform");if(f)f.style.display="none";var ft=$("mfoot");if(ft)ft.style.display="none";var s=$("m-sent");if(s)s.classList.add("show");}\n    else{throw new Error(j.error||"送信に失敗しました");}\n  }).catch(function(e){if(err){err.textContent="送信に失敗しました。時間をおいて再度お試しください。";err.style.display="block";}if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}});\n}\n(function(){var ov=$("ov");if(ov)ov.addEventListener("click",function(e){if(e.target.id==="ov")closeQuote();});})();'
+CSS_V = hashlib.md5(CSS.encode()).hexdigest()[:8]
+PJS_V = hashlib.md5(PJS.encode()).hexdigest()[:8]
+
+def write_assets():
+    """assets/p.css と assets/p.js を書く（中身が同じなら触らない）。"""
+    os.makedirs("assets", exist_ok=True)
+    n = 0
+    for path, body in (("assets/p.css", CSS), ("assets/p.js", PJS)):
+        try:
+            with open(path, encoding="utf-8") as f:
+                if f.read() == body:
+                    continue
+        except OSError:
+            pass
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(body)
+        n += 1
+    return n
+
 def hnav(updir):
     """ヘッダー右端の案内ボタン（サービス案内／会社情報）"""
     search = (f'<form class="hsearch" action="{updir}" method="get" role="search">'
@@ -354,9 +380,7 @@ def _shell(title, metad, canon, h1, crumb_html, body, jsonld, updir="../"):
 {json.dumps(jsonld, ensure_ascii=False)}
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-{CSS}
-</style></head><body>
+<link rel="stylesheet" href="{updir}assets/p.css?v={CSS_V}"></head><body>
 <header><div class="bar">
 <a class="logo" href="{updir}"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
 {hnav(updir)}
@@ -750,9 +774,7 @@ def render(row, slug, g=None, pos=0):
 {json.dumps(jsonld, ensure_ascii=False)}
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-{CSS}
-</style></head><body>
+<link rel="stylesheet" href="../assets/p.css?v={CSS_V}"></head><body>
 <header><div class="bar">
 <a class="logo" href="../"><svg class="gmark" width="28" height="28" viewBox="0 0 36 36" fill="none" stroke="#7fb0e8" stroke-width="2.3"><circle cx="18" cy="18" r="13"/><ellipse cx="18" cy="18" rx="5.6" ry="13" stroke-width="1.5"/><line x1="5.2" y1="18" x2="30.8" y2="18" stroke-width="1.5"/><line x1="7.5" y1="11.5" x2="28.5" y2="11.5" stroke-width="1.2"/><line x1="7.5" y1="24.5" x2="28.5" y2="24.5" stroke-width="1.2"/></svg>GEO<b>PORT</b></a>
 {hnav("../")}
@@ -815,86 +837,9 @@ def render(row, slug, g=None, pos=0):
 var SB_KEY={sbkey_json};
 var RELAY={relay_json};
 var ART={art_json};
-function $(i){{return document.getElementById(i);}}
-/* ---- 写真の切替・虫眼鏡・全画面拡大 ---- */
-var SHOTS={shots_json}, CUR=0;
-function showShot(b,i){{CUR=i;var m=$("mainshot");if(m&&SHOTS[i])m.src=SHOTS[i];
-  var t=document.querySelectorAll(".th");for(var k=0;k<t.length;k++)t[k].classList.remove("on");
-  if(b)b.classList.add("on");}}
-function lbToggle(ev){{if(ev)ev.stopPropagation();var im=$("lbimg");if(im)im.classList.toggle("full");lbCount();}}
-function lbCount(){{var im=$("lbimg"),tip="";
-  /* 画面いっぱいでも実寸に届かないときだけ「原寸で見る」を案内する（PCでは元々原寸のことが多い） */
-  if(im&&im.naturalWidth){{
-    if(im.classList.contains("full")) tip="画像を押すと全体表示";
-    else if(im.naturalWidth>im.getBoundingClientRect().width+2) tip="画像を押すと原寸";
-  }}
-  var head=(SHOTS.length>1?((CUR+1)+" / "+SHOTS.length):"");
-  var c=$("lbcnt");if(c)c.textContent=head+((head&&tip)?"　・　":"")+tip;
-  var n=document.querySelectorAll(".lb .nav");
-  for(var i=0;i<n.length;i++)n[i].style.display=SHOTS.length>1?"block":"none";}}
-function openLB(){{if(!SHOTS.length)return;var im=$("lbimg");if(im){{im.classList.remove("full");im.src=SHOTS[CUR];}}
-  var l=$("lb");if(l)l.classList.add("show");lbCount();}}
-function closeLB(){{var l=$("lb");if(l)l.classList.remove("show");}}
-function lbBg(ev){{if(ev.target&&ev.target.id==="lb")closeLB();}}
-function stepLB(d){{if(SHOTS.length<2)return;CUR=(CUR+d+SHOTS.length)%SHOTS.length;
-  var im=$("lbimg");if(im){{im.classList.remove("full");im.src=SHOTS[CUR];}}
-  var m=$("mainshot");if(m)m.src=SHOTS[CUR];
-  var t=document.querySelectorAll(".th");
-  for(var i=0;i<t.length;i++){{if(i===CUR)t[i].classList.add("on");else t[i].classList.remove("on");}}
-  lbCount();}}
-document.addEventListener("keydown",function(ev){{
-  var l=$("lb");if(!l||!l.classList.contains("show"))return;
-  if(ev.key==="Escape")closeLB();
-  else if(ev.key==="ArrowRight")stepLB(1);
-  else if(ev.key==="ArrowLeft")stepLB(-1);}});
-/* 虫眼鏡：右下のボタンでON/OFF。写真の枠ごと約2.3倍（実サイズ÷表示サイズ）に拡大する */
-var MAGON=false;
-function hideMag(){{var z=$("inzoom"),b=$("photobox");if(z)z.style.display="none";if(b)b.classList.remove("magon");}}
-function toggleMag(){{MAGON=!MAGON;var b=$("magbtn");if(b)b.classList.toggle("on",MAGON);if(!MAGON)hideMag();}}
-function photoClick(){{if(!MAGON)openLB();}}
-(function(){{
-  if(!window.matchMedia||!matchMedia("(hover:hover)").matches)return;
-  var box=$("photobox"),img=$("mainshot");if(!box||!img)return;
-  box.addEventListener("mousemove",function(ev){{
-    if(!MAGON||!img.naturalWidth)return;
-    var r=img.getBoundingClientRect(),br=box.getBoundingClientRect();
-    if(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom){{hideMag();return;}}
-    var zx=img.naturalWidth/r.width,zy=img.naturalHeight/r.height;
-    var x=ev.clientX-r.left,y=ev.clientY-r.top;
-    var z=$("inzoom");z.style.display="block";box.classList.add("magon");
-    z.style.backgroundImage='url("'+img.src+'")';
-    z.style.backgroundSize=img.naturalWidth+"px "+img.naturalHeight+"px";
-    z.style.backgroundPosition=(-(x*zx-br.width/2))+"px "+(-(y*zy-br.height/2))+"px";
-  }});
-  box.addEventListener("mouseleave",hideMag);
-}})();
-function openQuote(){{var e=$("m-err");if(e)e.style.display="none";var f=$("mform");if(f)f.style.display="flex";var ft=$("mfoot");if(ft)ft.style.display="block";var s=$("m-sent");if(s)s.classList.remove("show");var b=$("m-sub");if(b){{b.disabled=false;b.textContent="この内容で問い合わせる";}}["f-qty","f-co","f-name","f-mail","f-note","f-pref"].forEach(function(id){{var el=$(id);if(el)el.value=(id==="f-qty"?"1":"");}});fillPrefs();var ov=$("ov");if(ov)ov.classList.add("show");}}
-function closeQuote(){{var ov=$("ov");if(ov)ov.classList.remove("show");}}
-// お届け先の都道府県（国内送料の計算に使う）
-var PREFS=["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
-function fillPrefs(){{var el=$("f-pref");if(!el||el.options.length>1)return;for(var i=0;i<PREFS.length;i++){{var o=document.createElement("option");o.value=PREFS[i];o.textContent=PREFS[i];el.appendChild(o);}}}}
-function submitQuote(){{
-  var qty=($("f-qty")||{{}}).value;qty=qty?qty.trim():"";
-  var co=($("f-co")||{{}}).value;co=co?co.trim():"";
-  var name=($("f-name")||{{}}).value;name=name?name.trim():"";
-  var mail=($("f-mail")||{{}}).value;mail=mail?mail.trim():"";
-  var note=($("f-note")||{{}}).value;note=note?note.trim():"";
-  var pref=($("f-pref")||{{}}).value;pref=pref?pref.trim():"";
-  var err=$("m-err");
-  if(!co||!name||!mail||!qty||!pref){{if(err){{err.textContent="会社名・ご担当者名・メールアドレス・数量・お届け先の都道府県は必須です。";err.style.display="block";}}return;}}
-  if(mail.indexOf("@")<0){{if(err){{err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";}}return;}}
-  if(err)err.style.display="none";
-  var b=$("m-sub");if(b){{b.disabled=true;b.textContent="送信しています…";}}
-  var web=($("f-web")||{{}}).value||"";  /* 罠の欄（人には見えない・空が正常）*/
-  var payload={{article:ART,qty:qty,company:co,person:name,email:mail,note:note,pref:pref,website:web}};
-  fetch(RELAY,{{method:"POST",headers:{{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY}},body:JSON.stringify(payload)}})
-  .then(function(r){{return r.json();}}).then(function(j){{
-    if(j.success){{var f=$("mform");if(f)f.style.display="none";var ft=$("mfoot");if(ft)ft.style.display="none";var s=$("m-sent");if(s)s.classList.add("show");}}
-    else{{throw new Error(j.error||"送信に失敗しました");}}
-  }}).catch(function(e){{if(err){{err.textContent="送信に失敗しました。時間をおいて再度お試しください。";err.style.display="block";}}if(b){{b.disabled=false;b.textContent="この内容で問い合わせる";}}}});
-}}
-(function(){{var ov=$("ov");if(ov)ov.addEventListener("click",function(e){{if(e.target.id==="ov")closeQuote();}});}})();
+var SHOTS={shots_json};
 </script>
+<script src="../assets/p.js?v={PJS_V}"></script>
 <!-- Cloudflare Web Analytics --><script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{{"token": "1f55d2e30afe4d8a806863540932191d"}}'></script><!-- End Cloudflare Web Analytics -->
 </body></html>
 """
@@ -1026,10 +971,11 @@ def main():
                 os.remove(os.path.join(d, fn))
                 removed += 1
 
+    na = write_assets()
     sm = w.write_sitemap()
     print("型番ページ %d 件 / 一覧ページ %d 件" % (len(live), len(list_files)))
-    print("更新: %d / 変更なし(据え置き): %d / 削除: %d / sitemap: %s"
-          % (w.changed, w.same, removed, "更新" if sm else "変更なし"))
+    print("更新: %d / 変更なし(据え置き): %d / 削除: %d / 共通ファイル: %d / sitemap: %s"
+          % (w.changed, w.same, removed, na, "更新" if sm else "変更なし"))
     print("no description_ja(fallback used): %d" % no_desc)
 
 if __name__ == "__main__":
