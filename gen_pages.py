@@ -89,6 +89,7 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:break-all;margin:6px 0 4px}
 .series{color:var(--muted);font-size:13px;margin-bottom:14px}
 .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(21,128,61,.15);color:var(--green);border:1px solid rgba(21,128,61,.4);font-size:12px;font-weight:700;padding:5px 11px;border-radius:6px}
+.badge.out{background:rgba(91,107,125,.12);color:var(--muted);border-color:rgba(91,107,125,.35)}
 .spec{width:100%;border-collapse:collapse;margin:16px 0 0}
 .spec th,.spec td{text-align:left;padding:9px 12px;border:1px solid var(--border);font-size:13px;vertical-align:top}
 .spec th{background:var(--dark);color:var(--muted);font-weight:500;white-space:nowrap;width:34%}
@@ -166,6 +167,28 @@ def fetch_catalog():
             rows = _fetch("article,brand,family,condition,stock,weight_kg,image_url,warranty_years")
         else:
             raise
+    _attach_dims(rows)
+    return rows
+
+def fetch_gone():
+    """在庫が消えた型番（catalog_gone）。ページを残すために読む（2026-09-10 S承認）。
+    価格は含まれないビュー。取れなくても生成は続ける（在庫切れページが作られないだけ）。"""
+    cols = "article,brand,family,condition,image_url,description_ja,warranty_years,gone_at"
+    rows, off = [], 0
+    try:
+        while True:
+            url = (SB_URL + "/rest/v1/catalog_gone?select=" + cols +
+                   "&order=article&limit=%d&offset=%d" % (PAGE, off))
+            req = urllib.request.Request(url, headers={"apikey": SB_KEY})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                batch = json.load(r)
+            rows += batch
+            if len(batch) < PAGE:
+                break
+            off += PAGE
+    except Exception as ex:
+        print("note: catalog_gone を取れませんでした（在庫切れページは作りません）:", str(ex)[:90])
+        return []
     _attach_dims(rows)
     return rows
 
@@ -330,7 +353,85 @@ ICON_COMPANY = ('<svg width="14" height="14" viewBox="0 0 24 24"><path d="M3 21h
 #    ・容量 810MB→約293MB（在庫切れページを残す余地ができる）
 #    ・2ページ目からはブラウザが覚えているので表示が速い
 #    ・版(?v=)は中身のハッシュ。中身が変われば版も変わるので、古いものが残り続けない。
-PJS = 'function $(i){return document.getElementById(i);}\n/* ---- 写真の切替・虫眼鏡・全画面拡大 ---- */\nvar CUR=0;\nfunction showShot(b,i){CUR=i;var m=$("mainshot");if(m&&SHOTS[i])m.src=SHOTS[i];\n  var t=document.querySelectorAll(".th");for(var k=0;k<t.length;k++)t[k].classList.remove("on");\n  if(b)b.classList.add("on");}\nfunction lbToggle(ev){if(ev)ev.stopPropagation();var im=$("lbimg");if(im)im.classList.toggle("full");lbCount();}\nfunction lbCount(){var im=$("lbimg"),tip="";\n  /* 画面いっぱいでも実寸に届かないときだけ「原寸で見る」を案内する（PCでは元々原寸のことが多い） */\n  if(im&&im.naturalWidth){\n    if(im.classList.contains("full")) tip="画像を押すと全体表示";\n    else if(im.naturalWidth>im.getBoundingClientRect().width+2) tip="画像を押すと原寸";\n  }\n  var head=(SHOTS.length>1?((CUR+1)+" / "+SHOTS.length):"");\n  var c=$("lbcnt");if(c)c.textContent=head+((head&&tip)?"\u3000・\u3000":"")+tip;\n  var n=document.querySelectorAll(".lb .nav");\n  for(var i=0;i<n.length;i++)n[i].style.display=SHOTS.length>1?"block":"none";}\nfunction openLB(){if(!SHOTS.length)return;var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}\n  var l=$("lb");if(l)l.classList.add("show");lbCount();}\nfunction closeLB(){var l=$("lb");if(l)l.classList.remove("show");}\nfunction lbBg(ev){if(ev.target&&ev.target.id==="lb")closeLB();}\nfunction stepLB(d){if(SHOTS.length<2)return;CUR=(CUR+d+SHOTS.length)%SHOTS.length;\n  var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}\n  var m=$("mainshot");if(m)m.src=SHOTS[CUR];\n  var t=document.querySelectorAll(".th");\n  for(var i=0;i<t.length;i++){if(i===CUR)t[i].classList.add("on");else t[i].classList.remove("on");}\n  lbCount();}\ndocument.addEventListener("keydown",function(ev){\n  var l=$("lb");if(!l||!l.classList.contains("show"))return;\n  if(ev.key==="Escape")closeLB();\n  else if(ev.key==="ArrowRight")stepLB(1);\n  else if(ev.key==="ArrowLeft")stepLB(-1);});\n/* 虫眼鏡：右下のボタンでON/OFF。写真の枠ごと約2.3倍（実サイズ÷表示サイズ）に拡大する */\nvar MAGON=false;\nfunction hideMag(){var z=$("inzoom"),b=$("photobox");if(z)z.style.display="none";if(b)b.classList.remove("magon");}\nfunction toggleMag(){MAGON=!MAGON;var b=$("magbtn");if(b)b.classList.toggle("on",MAGON);if(!MAGON)hideMag();}\nfunction photoClick(){if(!MAGON)openLB();}\n(function(){\n  if(!window.matchMedia||!matchMedia("(hover:hover)").matches)return;\n  var box=$("photobox"),img=$("mainshot");if(!box||!img)return;\n  box.addEventListener("mousemove",function(ev){\n    if(!MAGON||!img.naturalWidth)return;\n    var r=img.getBoundingClientRect(),br=box.getBoundingClientRect();\n    if(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom){hideMag();return;}\n    var zx=img.naturalWidth/r.width,zy=img.naturalHeight/r.height;\n    var x=ev.clientX-r.left,y=ev.clientY-r.top;\n    var z=$("inzoom");z.style.display="block";box.classList.add("magon");\n    z.style.backgroundImage=\'url("\'+img.src+\'")\';\n    z.style.backgroundSize=img.naturalWidth+"px "+img.naturalHeight+"px";\n    z.style.backgroundPosition=(-(x*zx-br.width/2))+"px "+(-(y*zy-br.height/2))+"px";\n  });\n  box.addEventListener("mouseleave",hideMag);\n})();\nfunction openQuote(){var e=$("m-err");if(e)e.style.display="none";var f=$("mform");if(f)f.style.display="flex";var ft=$("mfoot");if(ft)ft.style.display="block";var s=$("m-sent");if(s)s.classList.remove("show");var b=$("m-sub");if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}["f-qty","f-co","f-name","f-mail","f-note","f-pref"].forEach(function(id){var el=$(id);if(el)el.value=(id==="f-qty"?"1":"");});fillPrefs();var ov=$("ov");if(ov)ov.classList.add("show");}\nfunction closeQuote(){var ov=$("ov");if(ov)ov.classList.remove("show");}\n// お届け先の都道府県（国内送料の計算に使う）\nvar PREFS=["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];\nfunction fillPrefs(){var el=$("f-pref");if(!el||el.options.length>1)return;for(var i=0;i<PREFS.length;i++){var o=document.createElement("option");o.value=PREFS[i];o.textContent=PREFS[i];el.appendChild(o);}}\nfunction submitQuote(){\n  var qty=($("f-qty")||{}).value;qty=qty?qty.trim():"";\n  var co=($("f-co")||{}).value;co=co?co.trim():"";\n  var name=($("f-name")||{}).value;name=name?name.trim():"";\n  var mail=($("f-mail")||{}).value;mail=mail?mail.trim():"";\n  var note=($("f-note")||{}).value;note=note?note.trim():"";\n  var pref=($("f-pref")||{}).value;pref=pref?pref.trim():"";\n  var err=$("m-err");\n  if(!co||!name||!mail||!qty||!pref){if(err){err.textContent="会社名・ご担当者名・メールアドレス・数量・お届け先の都道府県は必須です。";err.style.display="block";}return;}\n  if(mail.indexOf("@")<0){if(err){err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";}return;}\n  if(err)err.style.display="none";\n  var b=$("m-sub");if(b){b.disabled=true;b.textContent="送信しています…";}\n  var web=($("f-web")||{}).value||"";  /* 罠の欄（人には見えない・空が正常）*/\n  var payload={article:ART,qty:qty,company:co,person:name,email:mail,note:note,pref:pref,website:web};\n  fetch(RELAY,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY},body:JSON.stringify(payload)})\n  .then(function(r){return r.json();}).then(function(j){\n    if(j.success){var f=$("mform");if(f)f.style.display="none";var ft=$("mfoot");if(ft)ft.style.display="none";var s=$("m-sent");if(s)s.classList.add("show");}\n    else{throw new Error(j.error||"送信に失敗しました");}\n  }).catch(function(e){if(err){err.textContent="送信に失敗しました。時間をおいて再度お試しください。";err.style.display="block";}if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}});\n}\n(function(){var ov=$("ov");if(ov)ov.addEventListener("click",function(e){if(e.target.id==="ov")closeQuote();});})();'
+PJS = r"""function $(i){return document.getElementById(i);}
+/* ---- 写真の切替・虫眼鏡・全画面拡大 ---- */
+var CUR=0;
+function showShot(b,i){CUR=i;var m=$("mainshot");if(m&&SHOTS[i])m.src=SHOTS[i];
+  var t=document.querySelectorAll(".th");for(var k=0;k<t.length;k++)t[k].classList.remove("on");
+  if(b)b.classList.add("on");}
+function lbToggle(ev){if(ev)ev.stopPropagation();var im=$("lbimg");if(im)im.classList.toggle("full");lbCount();}
+function lbCount(){var im=$("lbimg"),tip="";
+  /* 画面いっぱいでも実寸に届かないときだけ「原寸で見る」を案内する（PCでは元々原寸のことが多い） */
+  if(im&&im.naturalWidth){
+    if(im.classList.contains("full")) tip="画像を押すと全体表示";
+    else if(im.naturalWidth>im.getBoundingClientRect().width+2) tip="画像を押すと原寸";
+  }
+  var head=(SHOTS.length>1?((CUR+1)+" / "+SHOTS.length):"");
+  var c=$("lbcnt");if(c)c.textContent=head+((head&&tip)?"　・　":"")+tip;
+  var n=document.querySelectorAll(".lb .nav");
+  for(var i=0;i<n.length;i++)n[i].style.display=SHOTS.length>1?"block":"none";}
+function openLB(){if(!SHOTS.length)return;var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}
+  var l=$("lb");if(l)l.classList.add("show");lbCount();}
+function closeLB(){var l=$("lb");if(l)l.classList.remove("show");}
+function lbBg(ev){if(ev.target&&ev.target.id==="lb")closeLB();}
+function stepLB(d){if(SHOTS.length<2)return;CUR=(CUR+d+SHOTS.length)%SHOTS.length;
+  var im=$("lbimg");if(im){im.classList.remove("full");im.src=SHOTS[CUR];}
+  var m=$("mainshot");if(m)m.src=SHOTS[CUR];
+  var t=document.querySelectorAll(".th");
+  for(var i=0;i<t.length;i++){if(i===CUR)t[i].classList.add("on");else t[i].classList.remove("on");}
+  lbCount();}
+document.addEventListener("keydown",function(ev){
+  var l=$("lb");if(!l||!l.classList.contains("show"))return;
+  if(ev.key==="Escape")closeLB();
+  else if(ev.key==="ArrowRight")stepLB(1);
+  else if(ev.key==="ArrowLeft")stepLB(-1);});
+/* 虫眼鏡：右下のボタンでON/OFF。写真の枠ごと約2.3倍（実サイズ÷表示サイズ）に拡大する */
+var MAGON=false;
+function hideMag(){var z=$("inzoom"),b=$("photobox");if(z)z.style.display="none";if(b)b.classList.remove("magon");}
+function toggleMag(){MAGON=!MAGON;var b=$("magbtn");if(b)b.classList.toggle("on",MAGON);if(!MAGON)hideMag();}
+function photoClick(){if(!MAGON)openLB();}
+(function(){
+  if(!window.matchMedia||!matchMedia("(hover:hover)").matches)return;
+  var box=$("photobox"),img=$("mainshot");if(!box||!img)return;
+  box.addEventListener("mousemove",function(ev){
+    if(!MAGON||!img.naturalWidth)return;
+    var r=img.getBoundingClientRect(),br=box.getBoundingClientRect();
+    if(ev.clientX<r.left||ev.clientX>r.right||ev.clientY<r.top||ev.clientY>r.bottom){hideMag();return;}
+    var zx=img.naturalWidth/r.width,zy=img.naturalHeight/r.height;
+    var x=ev.clientX-r.left,y=ev.clientY-r.top;
+    var z=$("inzoom");z.style.display="block";box.classList.add("magon");
+    z.style.backgroundImage='url("'+img.src+'")';
+    z.style.backgroundSize=img.naturalWidth+"px "+img.naturalHeight+"px";
+    z.style.backgroundPosition=(-(x*zx-br.width/2))+"px "+(-(y*zy-br.height/2))+"px";
+  });
+  box.addEventListener("mouseleave",hideMag);
+})();
+function openQuote(){var e=$("m-err");if(e)e.style.display="none";var f=$("mform");if(f)f.style.display="flex";var ft=$("mfoot");if(ft)ft.style.display="block";var s=$("m-sent");if(s)s.classList.remove("show");var b=$("m-sub");if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}["f-qty","f-co","f-name","f-mail","f-note","f-pref"].forEach(function(id){var el=$(id);if(el)el.value=(id==="f-qty"?"1":"");});fillPrefs();var ov=$("ov");if(ov)ov.classList.add("show");}
+function closeQuote(){var ov=$("ov");if(ov)ov.classList.remove("show");}
+// お届け先の都道府県（国内送料の計算に使う）
+var PREFS=["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
+function fillPrefs(){var el=$("f-pref");if(!el||el.options.length>1)return;for(var i=0;i<PREFS.length;i++){var o=document.createElement("option");o.value=PREFS[i];o.textContent=PREFS[i];el.appendChild(o);}}
+function submitQuote(){
+  var qty=($("f-qty")||{}).value;qty=qty?qty.trim():"";
+  var co=($("f-co")||{}).value;co=co?co.trim():"";
+  var name=($("f-name")||{}).value;name=name?name.trim():"";
+  var mail=($("f-mail")||{}).value;mail=mail?mail.trim():"";
+  var note=($("f-note")||{}).value;note=note?note.trim():"";
+  var pref=($("f-pref")||{}).value;pref=pref?pref.trim():"";
+  var err=$("m-err");
+  if(!co||!name||!mail||!qty||!pref){if(err){err.textContent="会社名・ご担当者名・メールアドレス・数量・お届け先の都道府県は必須です。";err.style.display="block";}return;}
+  if(mail.indexOf("@")<0){if(err){err.textContent="メールアドレスの形式をご確認ください。";err.style.display="block";}return;}
+  if(err)err.style.display="none";
+  var b=$("m-sub");if(b){b.disabled=true;b.textContent="送信しています…";}
+  var web=($("f-web")||{}).value||"";  /* 罠の欄（人には見えない・空が正常）*/
+  var payload={article:ART,qty:qty,company:co,person:name,email:mail,note:note,pref:pref,website:web};
+  fetch(RELAY,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+SB_KEY,"apikey":SB_KEY},body:JSON.stringify(payload)})
+  .then(function(r){return r.json();}).then(function(j){
+    if(j.success){var f=$("mform");if(f)f.style.display="none";var ft=$("mfoot");if(ft)ft.style.display="none";var s=$("m-sent");if(s)s.classList.add("show");}
+    else{throw new Error(j.error||"送信に失敗しました");}
+  }).catch(function(e){if(err){err.textContent="送信に失敗しました。時間をおいて再度お試しください。";err.style.display="block";}if(b){b.disabled=false;b.textContent="この内容で問い合わせる";}});
+}
+(function(){var ov=$("ov");if(ov)ov.addEventListener("click",function(e){if(e.target.id==="ov")closeQuote();});})();"""
 CSS_V = hashlib.md5(CSS.encode()).hexdigest()[:8]
 PJS_V = hashlib.md5(PJS.encode()).hexdigest()[:8]
 
@@ -576,7 +677,7 @@ def render_list_group(g, page_i, pages_total, items):
                              (g["brand"], f'{SITE}/{LIST}/{g["bslug"]}.html'),
                              (g["name"] if g["name"] != OTHER else "その他の型番", canon)]))
 
-def related_html(g, pos):
+def related_html(g, pos, gone=False):
     """同じシリーズの近い型番（型番順で前後）を最大 RELATED_N 件。"""
     items = g["items"]
     n = len(items)
@@ -594,10 +695,11 @@ def related_html(g, pos):
     label = group_label(g)
     more = (f'<div class="relmore"><a href="../{LIST}/{g["slug"]}.html">'
             f'{e(label)} の在庫 {n:,} 点をすべて見る →</a></div>')
-    return (f'<div class="sec"><h2>同じシリーズの製品</h2>'
+    _h = "同じシリーズの在庫品" if gone else "同じシリーズの製品"
+    return (f'<div class="sec"><h2>{_h}</h2>'
             f'<div class="rel">{"".join(cards)}</div>{more}</div>')
 
-def render(row, slug, g=None, pos=0):
+def render(row, slug, g=None, pos=0, gone=False):
     art   = row.get("article") or ""
     brand = _clean_field(row.get("brand"))
     fam   = _clean_field(row.get("family"))
@@ -605,7 +707,9 @@ def render(row, slug, g=None, pos=0):
     if is_refusal(dj):                              # 丸ごと断り文なら定型文へ
         dj = ""
     stock = row.get("stock")
-    badge_txt = f"在庫 {stock} 点" if isinstance(stock, int) and stock > 0 else "在庫あり"
+    # ★2026-09-10：在庫が消えた型番もページを残す（S承認）。数字の「在庫0」は出さず、文章で伝える。
+    badge_txt = ("現在お取り扱いがありません" if gone
+                 else (f"在庫 {stock} 点" if isinstance(stock, int) and stock > 0 else "在庫あり"))
     # 品質区分。リファビッシュ品は「J-Certified規格」そのものを、説明ページ
     # （3工程・ISO・Q&A）へのリンクにする（2026-09-02・S指示）。
     is_ref = "リファビッシュ" in (row.get("condition") or "")
@@ -622,6 +726,14 @@ def render(row, slug, g=None, pos=0):
     wy = row.get("warranty_years")
     wy = 1 if wy in (None, "") else int(wy)
     warr_html = f'{wy}年保証<a class="wlink" href="../guide.html#warranty">※保証規定をご確認ください</a>' 
+    if gone:
+        badge_cls = " out"
+        price_row = ('<tr><th>在庫</th><td>現在在庫がありません。'
+                     '再入荷されましたら、このページに在庫数が表示されます。</td></tr>')
+    else:
+        badge_cls = ""
+        price_row = ('<tr><th>価格</th><td><button class="cta" type="button" '
+                     'onclick="openQuote()">この製品の見積を確認する</button></td></tr>')
     sbkey_json = json.dumps(SB_KEY)
     relay_json = json.dumps(RELAY)
     art_json   = json.dumps(art)
@@ -632,13 +744,21 @@ def render(row, slug, g=None, pos=0):
     #   ⚠️「探して仕入れます」系の言い方は書かない（2026-08-11 撤去済み・ノンリミット対策）。
     #   ⚠️トップ（index.html）は同じ理由で変えない（S指示）。
     _brand_fam = " ".join(x for x in (brand, fam) if x)
-    title = f"{art} {_brand_fam} 在庫あり｜GEOPORT" if _brand_fam else f"{art} 在庫あり｜GEOPORT"
     fam_paren = f"（{fam}）" if fam else (" " if brand else "")   # シリーズ無しでもメーカー名と型番がくっつかないように
     _cond_txt = "リファビッシュ品" if is_ref else "新古品"
-    metad = (f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}、初期不良は納品後{wy}年以内保証。"
-             f"生産終了品・旧型品の在庫も掲載。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
+    # ★2026-09-10：在庫が消えた型番は「在庫あり」と書かない（事実と違う表示をしない）
+    if gone:
+        _st = "在庫なし"
+        title = f"{art} {_brand_fam} 在庫なし｜GEOPORT" if _brand_fam else f"{art} 在庫なし｜GEOPORT"
+        metad = (f"{brand}{fam_paren}{art} は現在在庫がありません。再入荷されましたら掲載します。"
+                 f"同じシリーズの在庫品はページ内でご覧いただけます。｜GEOPORT")
+        ogd = f"{brand}{fam_paren}{art} は現在在庫がありません。同じシリーズの在庫品をご案内しています。"
+    else:
+        title = f"{art} {_brand_fam} 在庫あり｜GEOPORT" if _brand_fam else f"{art} 在庫あり｜GEOPORT"
+        metad = (f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}、初期不良は納品後{wy}年以内保証。"
+                 f"生産終了品・旧型品の在庫も掲載。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
+        ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}・初期不良{wy}年保証。"
     ogt = f"{art} {brand}｜GEOPORT" if brand else title
-    ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}・初期不良{wy}年保証。"
     # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
     # Search Consoleで「商品スニペット」不備の警告になるため（見積制で価格非公開）。パンくずのみ残す。
     # パンくず＝製品カタログ／メーカー・シリーズ一覧／メーカー／シリーズ／型番（一覧ページへの内部リンクを兼ねる）
@@ -654,7 +774,7 @@ def render(row, slug, g=None, pos=0):
               for i, (nm, u, _) in enumerate(trail)] +
              [{"@type": "ListItem", "position": len(trail) + 1, "name": art, "item": canon}]}
     crumb_html = " ／ ".join(f'<a href="{href}">{e(nm)}</a>' for nm, _, href in trail) + f" ／ {e(art)}"
-    related = related_html(g, pos) if g else ""
+    related = related_html(g, pos, gone) if g else ""
     # ★2026-09-02：日本語の説明が無いときは「製品について」の欄ごと出さない（S決定・案A）。
     #   以前は決まり文句を出していたが、Sのご指摘どおり3つとも誤りだった：
     #     ①「在庫状況は…お問い合わせください」… 在庫数は上の仕様表に出している
@@ -789,7 +909,7 @@ def render(row, slug, g=None, pos=0):
     {brand_html}
     <h1>{e(art)}</h1>
     {series_html}
-    <span class="badge">● {e(badge_txt)}</span>
+    <span class="badge{badge_cls}">● {e(badge_txt)}</span>
     <table class="spec">
       <tr><th>型番</th><td>{e(art)}</td></tr>
       {brand_trow}
@@ -797,7 +917,7 @@ def render(row, slug, g=None, pos=0):
       <tr><th>品質区分</th><td>{cond_html}</td></tr>
       <tr><th>納期</th><td>通常 約10〜14日でお届け</td></tr>
       <tr><th>保証</th><td>{warr_html}</td></tr>
-      <tr><th>価格</th><td><button class="cta" type="button" onclick="openQuote()">この製品の見積を確認する</button></td></tr>
+      {price_row}
     </table>
   </div>
 </div>
@@ -860,7 +980,7 @@ class Writer:
         self.today, self.old = today, old
         self.urls, self.changed, self.same = [], 0, 0
 
-    def put(self, path, content, url, changefreq, priority):
+    def put(self, path, content, url, changefreq, priority, in_sitemap=True):
         try:
             with open(path, encoding="utf-8") as f:
                 prev = f.read()
@@ -874,7 +994,10 @@ class Writer:
                 f.write(content)
             lastmod = self.today
             self.changed += 1
-        self.urls.append((url, lastmod, changefreq, priority))
+        # ★在庫切れページはサイトマップに載せない（Googleの巡回はいま買える品へ回す）。
+        #   ページ自体は残す＝索引に残ったURLが404にならない（2026-09-10 S承認）
+        if in_sitemap:
+            self.urls.append((url, lastmod, changefreq, priority))
 
     def write_sitemap(self):
         out = ['<?xml version="1.0" encoding="UTF-8"?>',
@@ -944,6 +1067,31 @@ def main():
                 w.put(os.path.join(OUT, slug + ".html"), render(row, slug, g, pos),
                       f"{SITE}/{OUT}/{slug}.html", "weekly", "0.6")
 
+    # ③-b ★在庫が消えた型番のページを残す（2026-09-10 S承認）
+    #   ・削除するとGoogleの索引に残ったURLが404になり、型番で探して来た人を取りこぼす
+    #   ・24%は数週間で在庫が戻る。消して作り直すとGoogleの評価が積み上がらない
+    #   ・サイトマップには載せない（巡回はいま買える品へ回す）。ページは索引に残す
+    #   ・「同じシリーズの在庫品」は、いま在庫のある行から引く（無い品は薦めない）
+    live_slugs = set(r["_slug"] for r in live)
+    gone_rows = fetch_gone()
+    gone_slugs = []
+    if gone_rows:
+        bykey = {}
+        for b in brands:
+            for g in b["groups"]:
+                bykey[(g["brand"], g["name"])] = g
+        for row in gone_rows:
+            row["_slug"] = gslug(row.get("article") or "")
+            if row["_slug"] in live_slugs:      # 同じ型番が在庫ありで作られていれば触らない
+                continue
+            gone_slugs.append(row["_slug"])
+            gkey = (_clean_field(row.get("brand")) or OTHER, _clean_field(row.get("family")) or OTHER)
+            g = bykey.get(gkey)
+            w.put(os.path.join(OUT, row["_slug"] + ".html"),
+                  render(row, row["_slug"], g, 0, gone=True),
+                  f"{SITE}/{OUT}/{row['_slug']}.html", "monthly", "0.3", in_sitemap=False)
+        print("在庫切れの型番ページ: %d 件（残す・サイトマップには載せない）" % len(gone_slugs))
+
     # ④ 一覧（目次）ページ
     w.put(os.path.join(LIST, "index.html"), render_list_top(brands),
           f"{SITE}/{LIST}/", "weekly", "0.8")
@@ -963,7 +1111,8 @@ def main():
 
     # ⑤ 在庫から消えた型番ページ・使わなくなった一覧ページを削除
     removed = 0
-    for d, keep in ((OUT, set(r["_slug"] + ".html" for r in live)), (LIST, set(list_files))):
+    for d, keep in ((OUT, set(r["_slug"] + ".html" for r in live) | set(x + ".html" for x in gone_slugs)),
+                    (LIST, set(list_files))):
         if not os.path.isdir(d):
             continue
         for fn in os.listdir(d):
