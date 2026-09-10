@@ -369,6 +369,21 @@ function searchUrl(terms,brand,off){
 /* reset=true … 新しい検索（結果を入れ替える）／reset=false … 続きをサーバーから足す
    ★番号(reqSeq)を進めるのは「新しい検索」のときだけ。続きの取得で進めてしまうと、
      「もっと見る」を続けて押したときに前の取得が後の取得に打ち消されて増えなくなる。 */
+/* ★検索の記録（2026-09-10 S承認）：何が検索されたか・何件だったかを search_log に残す。
+   名前・IP・端末は送らない。打っている途中は送らず、打ち終わって1.5秒たった最後の1回だけ。
+   同じ言葉を続けて送らない。失敗しても画面には何も出さない（検索そのものに影響させない）。 */
+var logTmr=null, lastLogged="", PAGE_SRC=/[?&]q=/.test(location.search||"")?"product":"top";
+function logSearch(){
+  var qel=$("q"); var q=(qel?qel.value:"").replace(/[\u0000-\u001f]/g," ").trim().slice(0,60);
+  if(!q && srvBrand==="ALL") return;
+  var key=q+"|"+srvBrand; if(key===lastLogged) return; lastLogged=key;
+  try{
+    fetch(SB_URL+"/rest/v1/search_log",{method:"POST",keepalive:true,
+      headers:{apikey:SB_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},
+      body:JSON.stringify({q:q||"(メーカーのみ)",hits:srvTotal,brand:srvBrand==="ALL"?null:srvBrand,page:PAGE_SRC})
+    }).catch(function(){});
+  }catch(e){}
+}
 function runSearch(reset){
   if(busy && !reset) return;            // 続きの取得が終わるまで、次は出さない
   var my = reset ? ++reqSeq : reqSeq;
@@ -394,6 +409,7 @@ function runSearch(reset){
     shown    = reset ? PAGE : shown+PAGE;
     if(ld) ld.style.display="none";
     render();
+    if(reset){ if(logTmr) clearTimeout(logTmr); logTmr=setTimeout(logSearch,1500); }
   }).catch(function(e){
     busy=false; setMoreBusy(false);
     if(my!==reqSeq) return;
