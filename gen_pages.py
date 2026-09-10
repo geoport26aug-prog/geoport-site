@@ -172,7 +172,13 @@ def fetch_catalog():
 
 def fetch_gone():
     """在庫が消えた型番（catalog_gone）。ページを残すために読む（2026-09-10 S承認）。
-    価格は含まれないビュー。取れなくても生成は続ける（在庫切れページが作られないだけ）。"""
+    価格は含まれないビュー。
+
+    ★戻り値：成功したら list（0件なら空リスト）／**取れなかったら None**。
+      ⚠️ここで「取れなかった」と「本当に0件」を混ぜてはいけない。
+        混ぜると ⑤の削除が「在庫ありに無いページ＝全部いらない」と判断し、
+        **積み上げた在庫切れページを1回の通信失敗で全部消してしまう**（Googleの評価ごと失う）。
+        写真の掃除と同じ考え方＝**取れなかったときは何も消さない**。"""
     cols = "article,brand,family,condition,image_url,description_ja,warranty_years,gone_at"
     rows, off = [], 0
     try:
@@ -187,8 +193,8 @@ def fetch_gone():
                 break
             off += PAGE
     except Exception as ex:
-        print("note: catalog_gone を取れませんでした（在庫切れページは作りません）:", str(ex)[:90])
-        return []
+        print("note: catalog_gone を取れませんでした→在庫切れページは今回いっさい消しません:", str(ex)[:90])
+        return None
     _attach_dims(rows)
     return rows
 
@@ -1074,6 +1080,8 @@ def main():
     #   ・「同じシリーズの在庫品」は、いま在庫のある行から引く（無い品は薦めない）
     live_slugs = set(r["_slug"] for r in live)
     gone_rows = fetch_gone()
+    # ★None＝取れなかった。このときは在庫切れページを1枚も消さない（⑤の削除を見送る）。
+    gone_ok = gone_rows is not None
     gone_slugs = []
     if gone_rows:
         bykey = {}
@@ -1109,10 +1117,18 @@ def main():
                 w.put(os.path.join(LIST, fn), render_list_group(g, i, len(pages), items),
                       f"{SITE}/{LIST}/{fn}", "weekly", "0.6")
 
-    # ⑤ 在庫から消えた型番ページ・使わなくなった一覧ページを削除
+    # ⑤ 使わなくなったページを削除
+    #   ★2026-09-10：型番ページ（p/）は、**在庫切れの一覧が取れたときだけ**掃除する。
+    #     取れなかった日に掃除すると、在庫切れページが「いらないもの」に見えて全部消える。
+    #     一覧ページ（list/）は在庫ありだけで作るので、この影響を受けない（従来どおり掃除する）。
     removed = 0
-    for d, keep in ((OUT, set(r["_slug"] + ".html" for r in live) | set(x + ".html" for x in gone_slugs)),
-                    (LIST, set(list_files))):
+    jobs = [(LIST, set(list_files))]
+    if gone_ok:
+        jobs.insert(0, (OUT, set(r["_slug"] + ".html" for r in live)
+                             | set(x + ".html" for x in gone_slugs)))
+    else:
+        print("note: 在庫切れの一覧が取れなかったため、型番ページ(p/)の掃除は見送りました")
+    for d, keep in jobs:
         if not os.path.isdir(d):
             continue
         for fn in os.listdir(d):
