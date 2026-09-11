@@ -198,6 +198,25 @@ function act(body){
 }
 function reload(){ return load(getPass()).then(function(d){ D=d; render(); }); }
 
+
+/* ★故障品の買取の見込み（2026-09-11・S発案）
+   お客様に売った製品と同じ型番の**故障品が客先にある**。JCが買い取るなら1件で2度の商売になる。
+   ⚠️JCは**在庫の薄い型番しか買わない**ので、この印は出ないほうが普通（掲載の約半分）。
+   ⚠️金額は**JCが当社に払う額**。お客様へ出す額ではない。いくら提示するかはSが決める。
+   ⚠️送料の負担と査定の基準は**JCに未確認**（2026-09-11時点）。だから「見込み」としか書かない。 */
+function buybackHtml(list){
+  if(!list || !list.length) return "";
+  var tot = list.reduce(function(a,b){ return a + Number(b.cashback_eur||0) * Number(b.qty||1); }, 0);
+  return '<div class="meta" style="color:#0a6b3d">💰 <b>故障品の買取の見込み</b>　' +
+    list.map(function(b){
+      return esc(b.article) + " €" + Number(b.cashback_eur).toLocaleString() +
+             (Number(b.qty)>1 ? "×" + b.qty + "台" : "");
+    }).join("　／　") +
+    (list.length>1 || Number(list[0].qty)>1 ? "　合計 €" + tot.toLocaleString() : "") +
+    '<br><span style="color:var(--sub)">お客様の手元にある同じ型番の故障品を、JCがこの額で買い取る見込みです（当社が受け取る額）。' +
+    '送料の負担と査定の基準はJCに確認中のため、まだお客様には提示しないでください。</span></div>';
+}
+
 // ══════════════════════════════════════════════════════════════
 //  タブの組み立て
 // ══════════════════════════════════════════════════════════════
@@ -433,6 +452,7 @@ function paneOrder(){
     } else {
       h += '<div class="next">次：お客様の返事待ち（返信が届くと自動でここに出ます）</div>';
     }
+    h += buybackHtml(q.buyback);
     if(q.expired) h += '<p class="note">為替で価格が動くため、再見積を出してから受注にしてください。どうしてもこの価格で受注する場合は、台帳に「期限切れの見積で受注した」と記録が残ります。</p>';
     h += '<div class="btns"><button class="btn ' + (q.expired ? "gray" : "pri") + '" data-openform="' + q.request_id + '">' +
          (q.expired ? "承知のうえで受注にする" : "受注にする") + "</button></div>" +
@@ -521,6 +541,7 @@ function paneOrder(){
     var info = "";
     if(inv) info += '<div class="meta"><span class="tag g">お支払案内 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) + '　' + yen(inv.total_jpy) + '　Gmailの下書きに入っています</div>';
     if(o.jc_po_draft_id) info += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' + (o.jc_po_drafted_at ? '　' + md(String(o.jc_po_drafted_at).slice(0,10)) : "") + '</div>';
+    info += buybackHtml(o.buyback);
     (o.price_watch||[]).forEach(function(w){
       if(w.gone){
         info += '<div class="meta" style="color:#b23">⚠ ' + esc(w.article) + ' は今のJCの一覧に見つかりません（品切れか型番変更の可能性）。発注前にJCへ確認してください</div>';
