@@ -555,7 +555,43 @@ fitStick(); window.addEventListener("resize",fitStick); window.addEventListener(
   var m=(location.search||"").match(/[?&]art=([^&]+)/);
   if(m){ var art; try{art=decodeURIComponent(m[1].replace(/\+/g," "));}catch(e){art=m[1];} if(art) openModal(art); }
 })();
-/* 起動。焼き込み分を使うので、ここでの通信は無い（＝待ち時間なしで一覧が出る）。 */
+/* ★2026-09-12 在庫の「総数」と「データ更新の日時」だけを、開いたときに1回だけ確かめる（S承認）。
+   一覧そのものは焼き込みのまま（＝カードを出すための通信は0回のまま）。数字だけを実態に合わせる。
+   焼き込みは1日1回なので、JCの在庫が大きく動いた日は古い数字を出していた。
+     実例：2026-09-11 23:00 に 2,220点 減ったのに、画面は翌朝まで 26,491点（実際は24,283点）のまま。
+           「データ更新」も 9/11 9:26 と出ていたが、実際の最終同期は 9/12 3:11 だった（約18時間の開き）。
+   「リアルタイムに絞り込み」「データ更新」と書いている以上、この2つが古いのは言行不一致になる。
+   ⚠️2026-09-02 に決めた「トップで全在庫を読み込ませない」には触れない。
+     取るのは件数（応答ヘッダー）と日時1件だけ＝本文57バイト・通信1回。
+     あのとき問題になった 8.4MB・28回とは別物。
+   取れなければ何もしない＝焼き込みの値がそのまま残る（黙って0点や空欄にならない）。 */
+function refreshLive(){
+  try{
+    fetch(SB_URL+"/rest/v1/catalog?select=source_updated_at"
+          +"&order=source_updated_at.desc.nullslast&limit=1&apikey="+SB_KEY,
+          {headers:{apikey:SB_KEY,Prefer:"count=exact"}})
+    .then(function(res){
+      if(!res.ok) return null;
+      var m=(res.headers.get("content-range")||"").match(/\/(\d+)\s*$/);
+      if(m){
+        var n=parseInt(m[1],10);
+        if(n>0){                         // 0件・読めない値は採らない（焼き込みを残す）
+          TOTAL=n;
+          var sn=$("slead-n"); if(sn) sn.textContent=TOTAL.toLocaleString();
+          if(mode==="top") render();     // 「N 件 / 在庫あり・即納可能」と「全N点」も揃える
+        }
+      }
+      return res.json();
+    }).then(function(rows){
+      if(!rows||!rows.length) return;
+      var u=rows[0].source_updated_at;   // timestamptz。Date に通すので時差は自動で合う（切らない）
+      if(!u) return;
+      var d=new Date(u); if(isNaN(d.getTime())) return;
+      var st=$("sync-t"); if(st) st.textContent="データ更新 "+d.toLocaleString("ja-JP");
+    })["catch"](function(){});           // 通信が失敗しても画面には何も出さない
+  }catch(e){}
+}
+/* 起動。一覧は焼き込み分を使うので、カード表示のための通信は無い（＝待ち時間なしで一覧が出る）。 */
 (function(){
   var ld=$("loading"); if(ld) ld.style.display="none";
   var qel=$("q"); if(qel) qel.disabled=false;
@@ -564,6 +600,7 @@ fitStick(); window.addEventListener("resize",fitStick); window.addEventListener(
   if(mq && qel){ var qv; try{qv=decodeURIComponent(mq[1].replace(/\+/g," "));}catch(e){qv=mq[1];} if(qv){ qel.value=qv; runSearch(true); qel.focus(); } }
   var sn=$("slead-n"); if(sn&&TOTAL) sn.textContent=TOTAL.toLocaleString();
   buildBrands();brandList();apply();
+  refreshLive();
   var st=$("sync-t");
   if(st) st.textContent=UPDATED?("データ更新 "+new Date(UPDATED).toLocaleString("ja-JP")):"接続済み";
 })();
