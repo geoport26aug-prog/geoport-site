@@ -129,16 +129,21 @@ function yen(n){ return "¥" + Number(n||0).toLocaleString("ja-JP"); }
 function el(id){ return document.getElementById(id); }
 function md(d){ if(!d) return ""; var p=String(d).slice(0,10).split("-"); return p[1]*1+"月"+p[2]*1+"日"; }
 function ymd(d){ if(!d) return ""; var p=String(d).slice(0,10).split("-"); return p[0]+"年"+p[1]*1+"月"+p[2]*1+"日"; }
-/* ★時刻（UTC）を「日本時間の日付」にする（2026-09-11 追加）。
-   ymd() は台帳の「日付だけ」の値（2026-09-11 のような文字列）用で、文字を切っているだけ。
-   timestamptz（UTC）をそのまま切ると、日本の 00:00〜09:00 の出来事が**前日**になる。
-   ⚠️この取り違えは過去に何度もやっている。時刻には必ずこちらを使う。 */
-function ymdJ(ts){
+/* ★時刻（UTC）を「日本時間」に直す（2026-09-11 追加／2026-09-12 に時刻まで出せるよう一本化）。
+   md() と ymd() は台帳の「日付だけ」の値（2026-09-11 のような文字列）用で、文字を切っているだけ。
+   timestamptz（UTC）をそのまま切ると、日本の 00:00〜09:00 の出来事が**前日**として出て、
+   時刻のほうは9時間ずれたまま出る。
+   ⚠️この取り違えは過去に何度もやっている。**時刻（〜_at）には必ずこちらを使う。**
+   ⚠️変換の式はこの1か所だけに置く（写しを作らない）。
+     jstStr(ts) … "2026-09-12 08:30" ／ 日付だけ要るときは jstStr(ts).slice(0,10)
+     ymdJ(ts)   … "2026年9月12日" */
+function jstStr(ts){
   if(!ts) return "";
   var d = new Date(ts);
-  if(isNaN(d.getTime())) return ymd(ts);
-  return ymd(d.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }));
+  if(isNaN(d.getTime())) return String(ts).slice(0,16).replace("T"," ");   // 読めない値はそのまま出す
+  return d.toLocaleString("sv-SE", { timeZone: "Asia/Tokyo" }).slice(0,16);
 }
+function ymdJ(ts){ return ts ? ymd(jstStr(ts)) : ""; }
 function val(id){ var e=el(id); return e ? e.value.trim() : ""; }
 
 var toastTimer=null;
@@ -376,7 +381,7 @@ function paneManual(){
     var c = q.customer||{}, its = (q.items||[]).map(function(i){ return esc(i.article)+'×'+i.qty; }).join('・');
     var stTag = q.status==="下書き作成" ? '<span class="tag">下書き作成</span>' : q.status==="送付" ? '<span class="tag ok">送付済み</span>' :
                 q.status==="受注" ? '<span class="tag ok">受注</span>' : '<span class="tag w">' + esc(q.status) + '</span>';
-    h += '<div class="card"><div class="meta"><b>' + esc(q.quote_no) + '</b> ' + stTag + ' <span>' + esc(String(q.created_at).slice(0,10)) + '</span></div>' +
+    h += '<div class="card"><div class="meta"><b>' + esc(q.quote_no) + '</b> ' + stTag + ' <span>' + esc(jstStr(q.created_at).slice(0,10)) + '</span></div>' +
       '<div>' + esc(c.company||"") + (c.attn ? '（' + esc(c.attn) + '）' : '') + '</div>' +
       '<div>' + its + '　<b>' + esc(q.currency) + ' ' + Number(q.total).toLocaleString("en-US") + '</b>　有効期限 ' + esc(q.valid_until||"") + '</div>' +
       '<div class="btns">' +
@@ -508,7 +513,7 @@ function paneOrder(){
                   '" data-mail="' + esc(q.email||"") + '" data-exp="' + (q.expired?"1":"0") + '" style="width:16px;height:16px;vertical-align:-3px"> まとめる</label>' : "") +
          '</div>';
     if(q.po_received_at){
-      h += '<div class="next">📩 注文の返信が届いています（' + esc(String(q.po_received_at).slice(0,16).replace("T"," ")) + '）' +
+      h += '<div class="next">📩 注文の返信が届いています（' + esc(jstStr(q.po_received_at)) + '）' +
            (pf.attachment_name ? '　注文書「' + esc(pf.attachment_name) + '」読み取り済み' : '　添付なし') +
            (pf.customer_po_no ? '　先方注番 ' + esc(pf.customer_po_no) : '') + '</div>';
       if(pf.intent_text) h += '<p class="note">本文：' + esc(pf.intent_text) + '</p>';
@@ -607,7 +612,7 @@ function paneOrder(){
     // ── 「その他」に入れる情報（書類・仕入値の見張り・JC請求書・発注メール）──
     var info = "";
     if(inv) info += '<div class="meta"><span class="tag g">お支払案内 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) + '　' + yen(inv.total_jpy) + '　Gmailの下書きに入っています</div>';
-    if(o.jc_po_draft_id) info += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' + (o.jc_po_drafted_at ? '　' + md(String(o.jc_po_drafted_at).slice(0,10)) : "") + '</div>';
+    if(o.jc_po_draft_id) info += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' + (o.jc_po_drafted_at ? '　' + md(jstStr(o.jc_po_drafted_at)) : "") + '</div>';
     info += jcbuyHtml(o.jcbuy, o.order_no);
     info += buybackHtml(o.buyback);
     (o.price_watch||[]).forEach(function(w){
