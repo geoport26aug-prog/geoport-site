@@ -28,7 +28,11 @@ jobs:
         run: |
           git config user.name "geoport-bot"
           git config user.email "info@geoport.co.jp"
-          git add -A p list sitemap.xml index.html
+          # ★assets を外さないこと（2026-09-11 発覚）。2026-09-10 に共通CSS・JSを assets/ に
+          #   切り出したとき、この行に assets を足し忘れた。結果、**CSSとJSの変更が一度も
+          #   サイトに届かない**状態だった（ページは新しい ?v= を指すのに、ファイルは古いまま）。
+          #   ⚠️p / list / index.html / sitemap.xml / assets のどれも外さないこと。
+          git add -A p list assets sitemap.xml index.html
           if git diff --cached --quiet; then
             echo "変更なし（コミットしません）"
           else
