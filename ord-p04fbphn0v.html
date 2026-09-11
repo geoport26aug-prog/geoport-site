@@ -207,7 +207,9 @@ function tabs(){
     { id:"order",  name:"受注",     s_only:true,  count: D.quotable.length + D.ordered.length + (D.attention.length ? 0 : 0) },
     { id:"arrive", name:"到着待ち", s_only:false, count: D.arriving.length },
     { id:"insp",   name:"検品待ち", s_only:false, count: D.inspecting.reduce(function(a,o){return a+o.units.length;},0) },
-    { id:"ship",   name:"出荷待ち", s_only:false, count: D.shipping.length }
+    { id:"ship",   name:"出荷待ち", s_only:false, count: D.shipping.length },
+    // 2026-09-11：SEOビュー（Sだけ）。中身は開いたときに取りに行く（画面表示を遅くしない）
+    { id:"seo",    name:"SEO",      s_only:true,  count: (SEO && SEO.ledger && SEO.ledger.ok) ? SEO.ledger.v.quotes_28 : "–" }
   ];
   return all.filter(function(t){ return D.role==="s" || !t.s_only; });
 }
@@ -234,6 +236,7 @@ function render(){
   if(TAB==="arrive") h = paneArriving();
   if(TAB==="insp")   h = paneInspect();
   if(TAB==="ship")   h = paneShip();
+  if(TAB==="seo")    h = paneSeo();
   el("panes").innerHTML = '<section class="pane on">' + h + "</section>";
   el("loading").classList.add("hidden");
   wire();
@@ -862,11 +865,143 @@ function paneShip(){
 }
 
 // ══════════════════════════════════════════════════════════════
+//  ⑦ SEO（Sだけ・2026-09-11）
+//   ★数字を並べた画面にしない。**じょうご**にする。
+//     検索に出る → 押される → サイトに来る → **見積依頼が来る**
+//     いちばん大事なのは最後の「見積依頼」。上の数字はその原因。順番に意味がある。
+//   ★社内（Sと Claude）とボットは除いた数字（2026-09-10 の除外の仕組み）。
+//     Googleの検索結果だけは除外できないので、自社名の検索語を除いている。
+// ══════════════════════════════════════════════════════════════
+var SEO = null, SEO_LOADING = false;
+
+function seoLoad(){
+  if(SEO_LOADING) return; SEO_LOADING = true;
+  act({action:"seo"}).then(function(r){ SEO = r; }).catch(function(e){
+    SEO = { error: e.message };
+  }).finally(function(){ SEO_LOADING = false; render(); });
+}
+
+function pct(now, prev){
+  // ★母数が小さいときに率を出さない（2回→344回を「+17100%」と書いても意味がない）。
+  //   下の行に前の28日の実数を必ず載せているので、そちらを見てもらう。
+  if(prev < 10) return now > prev ? '<span class="tag g">増えた</span>'
+                : (now < prev ? '<span class="tag w">減った</span>' : "");
+  var d = Math.round((now/prev - 1) * 100);
+  if(d === 0) return '<span class="tag">±0%</span>';
+  return '<span class="tag ' + (d>0 ? "g" : "w") + '">' + (d>0?"+":"") + d + "%</span>";
+}
+
+function seoBox(title, inner){ return '<h2>' + title + '</h2><div class="card">' + inner + "</div>"; }
+
+function paneSeo(){
+  if(!SEO){ seoLoad(); return '<div class="empty">数字を集めています…（5秒ほど）</div>'; }
+  if(SEO.error) return '<div class="card ngc">取れませんでした：' + esc(SEO.error) + "</div>";
+
+  var h = "";
+  var L = SEO.ledger && SEO.ledger.ok ? SEO.ledger.v : null;
+  var G = SEO.gsc && SEO.gsc.ok ? SEO.gsc.v : null;
+  var C7 = SEO.cf7 && SEO.cf7.ok ? SEO.cf7.v : null;
+  var C28 = SEO.cf28 && SEO.cf28.ok ? SEO.cf28.v : null;
+  var S7 = SEO.site_search && SEO.site_search.ok ? SEO.site_search.v : null;
+
+  // ── ① 目的地：見積依頼 ────────────────────────────────
+  if(L){
+    h += seoBox("① 見積依頼（ここが目的）",
+      '<div style="display:flex;gap:26px;flex-wrap:wrap">' +
+        '<div><div class="no">直近7日</div><div style="font-size:30px;font-weight:700">' + L.quotes_7 + "</div></div>" +
+        '<div><div class="no">直近28日</div><div style="font-size:30px;font-weight:700">' + L.quotes_28 + "</div></div>" +
+        '<div><div class="no">累計</div><div style="font-size:30px;font-weight:700">' + L.quotes_all + "</div></div>" +
+        '<div><div class="no">うち受注</div><div style="font-size:30px;font-weight:700;color:var(--ok)">' + L.orders_all + "</div></div>" +
+      "</div>" +
+      '<p class="meta">試し（会社名にGEOPORTを含むもの）は除いています。</p>');
+  }
+
+  // ── ② 検索での見え方（Search Console）────────────────────
+  if(G){
+    var n = G.now, pv = G.prev;
+    h += seoBox("② Googleでの見え方　<span class=\"cnt\">" + esc(G.period) + "・日本のみ</span>",
+      '<div style="display:flex;gap:22px;flex-wrap:wrap">' +
+        '<div><div class="no">クリック</div><div style="font-size:26px;font-weight:700">' + n.clicks + "</div>" + pct(n.clicks, pv.clicks) + "</div>" +
+        '<div><div class="no">検索結果に出た回数</div><div style="font-size:26px;font-weight:700">' + n.impressions + "</div>" + pct(n.impressions, pv.impressions) + "</div>" +
+        '<div><div class="no">押された率</div><div style="font-size:26px;font-weight:700">' + n.ctr + "%</div></div>" +
+        '<div><div class="no">平均の順位</div><div style="font-size:26px;font-weight:700">' + n.position + "位</div></div>" +
+      "</div>" +
+      '<p class="meta">前の28日（' + esc(G.prev_period) + "）は クリック " + pv.clicks + " ／ 表示 " + pv.impressions + " でした。</p>");
+
+    if(G.queries && G.queries.length){
+      var q = '<table style="width:100%;font-size:13.5px;border-collapse:collapse">' +
+        '<tr class="no"><th style="text-align:left;padding:4px 0">検索された言葉</th><th style="text-align:right">押された</th><th style="text-align:right">出た</th><th style="text-align:right">順位</th></tr>';
+      G.queries.forEach(function(r){
+        var slow = r.position > 20;
+        q += '<tr style="border-top:1px dashed var(--line)">' +
+             '<td class="kata" style="padding:6px 0">' + esc(r.q) + "</td>" +
+             '<td style="text-align:right;font-weight:700">' + r.clicks + "</td>" +
+             '<td style="text-align:right">' + r.impressions + "</td>" +
+             '<td style="text-align:right' + (slow ? ";color:var(--warn)" : "") + '">' + r.position + "</td></tr>";
+      });
+      q += "</table>";
+      h += seoBox("　どの型番で見つかっているか", q +
+        '<p class="meta">順位が20位より下（オレンジ）は、出ているのに押されていない＝取りこぼしです。</p>');
+    }
+  } else if(SEO.gsc && !SEO.gsc.ok){
+    h += '<div class="card warnc">Googleの数字が取れませんでした：' + esc(SEO.gsc.err) + "</div>";
+  }
+
+  // ── ③ サイトに来た人（Cloudflare）────────────────────────
+  if(C7 && C28){
+    var ref = C28.referers.filter(function(r){ return r.visits > 0; }).slice(0,5).map(function(r){
+      return esc(r.host) + " <b>" + r.visits + "</b>";
+    }).join("　／　");
+    h += seoBox("③ サイトに来た人",
+      '<div style="display:flex;gap:26px;flex-wrap:wrap">' +
+        '<div><div class="no">直近7日</div><div style="font-size:26px;font-weight:700">' + C7.visits + "</div></div>" +
+        '<div><div class="no">直近28日</div><div style="font-size:26px;font-weight:700">' + C28.visits + "</div></div>" +
+        '<div><div class="no">見られたページ（28日）</div><div style="font-size:26px;font-weight:700">' + C28.pageviews + "</div></div>" +
+      "</div>" +
+      '<p class="meta" style="margin-top:10px">どこから来たか（28日）：' + (ref || "—") + "</p>" +
+      '<p class="meta">国（28日）：' + C28.countries.map(function(c){ return esc(c.country) + " " + c.visits; }).join("　") + "</p>");
+  } else if(SEO.cf28 && !SEO.cf28.ok){
+    h += '<div class="card warnc">Cloudflareの数字が取れませんでした：' + esc(SEO.cf28.err) + "</div>";
+  }
+
+  // ── ④ サイトの中で探された言葉 ─────────────────────────
+  if(S7){
+    var z = S7.zero.length
+      ? S7.zero.map(function(x){ return '<span class="tag r" style="margin:0 6px 6px 0;display:inline-block">' + esc(x.q) + "</span>"; }).join("")
+      : '<span class="meta">ありません</span>';
+    var t = S7.top.length
+      ? S7.top.map(function(x){ return '<span class="tag" style="margin:0 6px 6px 0;display:inline-block">' + esc(x.q) + "（" + x.n + "）</span>"; }).join("")
+      : '<span class="meta">ありません</span>';
+    h += seoBox("④ サイトの中で探された言葉　<span class=\"cnt\">直近7日・" + S7.total + "回</span>",
+      '<p class="meta" style="margin:0 0 6px">★0件だった言葉（＝探されたのに載せていない型番）</p>' + z +
+      '<p class="meta" style="margin:12px 0 6px">よく探された言葉</p>' + t);
+  }
+
+  // ── ⑤ 掲載の規模 ─────────────────────────────────
+  if(L){
+    h += seoBox("⑤ 掲載",
+      '<span class="tag">掲載中 ' + L.listed.toLocaleString() + "</span>　" +
+      '<span class="tag">うち写真あり ' + L.with_photo.toLocaleString() + "</span>　" +
+      '<span class="tag">在庫切れで残しているページ ' + L.gone.toLocaleString() + "</span>");
+  }
+
+  h += '<p class="note">' + esc(SEO.note || "") + "<br>最終取得 " + esc(SEO.updated_at || "") +
+       '　<button class="btn gray" data-seoreload="1" style="padding:6px 12px;font-size:13px">取り直す</button></p>';
+  return h;
+}
+
+
+// ══════════════════════════════════════════════════════════════
 //  ボタンをつなぐ
 // ══════════════════════════════════════════════════════════════
 function wire(){
   var root = el("panes");
   wireManual(root);
+
+  // SEOタブの「取り直す」（2026-09-11）
+  root.querySelectorAll("[data-seoreload]").forEach(function(b){
+    b.addEventListener("click", function(){ SEO = null; render(); });
+  });
 
   // 受注フォームを開く／閉じる
   root.querySelectorAll("[data-openform]").forEach(function(b){
