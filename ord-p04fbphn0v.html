@@ -985,6 +985,34 @@ function paneSeo(){
       '<span class="tag">在庫切れで残しているページ ' + L.gone.toLocaleString() + "</span>");
   }
 
+  // ── ⑥ 仕入先まわりの見張り（2026-09-11・S指摘）────────────────
+  //   JCはオランダの会社。彼らが見に来たかどうかは、訪問者数とは別の意味を持つ。
+  //   ★国だけでJCとは断定しない。事実だけ出して、判断はSに委ねる。
+  var W = SEO.jc_watch && SEO.jc_watch.ok ? SEO.jc_watch.v : null;
+  if(W){
+    var nlTag = W.nl_people > 0
+      ? '<span class="tag r">人 ' + W.nl_people + "</span>"
+      : '<span class="tag">人 0</span>';
+    var jcTag = W.jcert_people > 0
+      ? '<span class="tag g">人 ' + W.jcert_people + "</span>"
+      : '<span class="tag">人 0</span>';
+    h += seoBox("⑥ 仕入先まわりの見張り　<span class=\"cnt\">直近28日・社内用</span>",
+      '<p style="margin:0 0 6px"><b>オランダからのアクセス</b>　' + nlTag +
+        '　<span class="tag">機械 ' + W.nl_machines + "</span></p>" +
+      '<p class="meta" style="margin:0 0 12px">' +
+        (W.nl_people > 0
+          ? "★人のアクセスがありました。JCの可能性があります（国だけでは断定できません）。見たページ："
+            + W.nl_paths.map(function(x){ return esc(x.path) + "(" + x.visits + ")"; }).join("　")
+          : "いまは機械だけです（" + W.nl_browsers.map(function(b){ return esc(b.browser); }).join("・") +
+            "）。<b>0であること自体が情報</b>です。1になったら意味があります。") + "</p>" +
+      '<p style="margin:0 0 6px"><b>J-Certifiedのページ</b>（JCとの3条件③で作ったもの）　' + jcTag +
+        '　<span class="tag">のべ ' + W.jcert_visits + "</span></p>" +
+      '<p class="meta" style="margin:0">' +
+        (W.jcert_countries.length
+          ? "見た国：" + W.jcert_countries.map(function(c){ return esc(c.country) + " " + c.visits; }).join("　")
+          : "まだ誰も見ていません。") + "</p>");
+  }
+
   h += '<p class="note">' + esc(SEO.note || "") + "<br>最終取得 " + esc(SEO.updated_at || "") +
        '　<button class="btn gray" data-seoreload="1" style="padding:6px 12px;font-size:13px">取り直す</button></p>';
   return h;
