@@ -39,7 +39,10 @@ BEACON = ('<!-- Cloudflare Web Analytics（社内アクセスは除外・2026-09
           'document.head.appendChild(s);})();</script>'
           '<!-- End Cloudflare Web Analytics -->')
 
-CSS = """:root{--black:#f5f7fa;--dark:#eef2f7;--panel:#ffffff;--border:#e2e8f0;--accent:#1c5fb0;--accent2:#2b74cf;--text:#1a2634;--muted:#5b6b7d;--green:#15803d;--line:#f1f4f8}
+CSS = """/* ★2026-09-11 S報告「スマホで検索窓を押すと画面が乱れる」への対処。
+   iOSのSafariは **16px未満の入力欄をタップすると自動で拡大**する。拡大されると画面がずれ、
+   検索窓が切れて見える。入力欄は 16px 以上にすること（見た目の好みではなく、動作の問題）。 */
+:root{--black:#f5f7fa;--dark:#eef2f7;--panel:#ffffff;--border:#e2e8f0;--accent:#1c5fb0;--accent2:#2b74cf;--text:#1a2634;--muted:#5b6b7d;--green:#15803d;--line:#f1f4f8}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--black);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}
 header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
@@ -57,8 +60,8 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .hnav svg{fill:none;stroke:currentColor;stroke-width:2}
 @media(max-width:640px){.hnav{display:none}}
 /* ★ヘッダーの検索窓（2026-09-08 S指示）。送るとトップ（?q=）で検索した状態になる。スマホは幅いっぱい */
-.hsearch{display:flex;align-items:center;flex:1;max-width:380px;margin-left:auto;border:1.2px solid rgba(255,255,255,.85);border-radius:20px;background:rgba(255,255,255,.07);padding:0 4px 0 12px}
-.hsearch input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font-size:14px;padding:7px 4px;outline:none;font-family:inherit}
+.hsearch{display:flex;align-items:center;flex:1;min-width:0;max-width:380px;margin-left:auto;border:1.2px solid rgba(255,255,255,.85);border-radius:20px;background:rgba(255,255,255,.07);padding:0 4px 0 12px}
+.hsearch input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font-size:16px;padding:7px 4px;outline:none;font-family:inherit}
 .hsearch input::placeholder{color:#b9c6d6}
 .hsearch button{background:transparent;border:0;color:#fff;padding:6px;cursor:pointer;display:flex}
 .hsearch button svg{fill:none;stroke:currentColor;stroke-width:2.2}
@@ -131,7 +134,7 @@ h1{font-family:'Barlow',sans-serif;font-size:30px;font-weight:600;word-break:bre
 .mbody{padding:18px 20px;display:flex;flex-direction:column;gap:13px}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .field .req{color:#e5736b}
-.field input,.field textarea,.field select{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:14px}
+.field input,.field textarea,.field select{width:100%;background:var(--line);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:inherit;font-size:16px}
 .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent)}
 /* プルダウンの見た目を他の入力欄に揃える（OS既定の枠を消して矢印を自前で描く） */
 .field select{appearance:none;-webkit-appearance:none;line-height:1.4;cursor:pointer;padding-right:34px;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235b6b7d' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:12px 8px}
