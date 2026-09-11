@@ -129,6 +129,16 @@ function yen(n){ return "¥" + Number(n||0).toLocaleString("ja-JP"); }
 function el(id){ return document.getElementById(id); }
 function md(d){ if(!d) return ""; var p=String(d).slice(0,10).split("-"); return p[1]*1+"月"+p[2]*1+"日"; }
 function ymd(d){ if(!d) return ""; var p=String(d).slice(0,10).split("-"); return p[0]+"年"+p[1]*1+"月"+p[2]*1+"日"; }
+/* ★時刻（UTC）を「日本時間の日付」にする（2026-09-11 追加）。
+   ymd() は台帳の「日付だけ」の値（2026-09-11 のような文字列）用で、文字を切っているだけ。
+   timestamptz（UTC）をそのまま切ると、日本の 00:00〜09:00 の出来事が**前日**になる。
+   ⚠️この取り違えは過去に何度もやっている。時刻には必ずこちらを使う。 */
+function ymdJ(ts){
+  if(!ts) return "";
+  var d = new Date(ts);
+  if(isNaN(d.getTime())) return ymd(ts);
+  return ymd(d.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" }));
+}
 function val(id){ var e=el(id); return e ? e.value.trim() : ""; }
 
 var toastTimer=null;
@@ -215,6 +225,61 @@ function buybackHtml(list){
     (list.length>1 || Number(list[0].qty)>1 ? "　合計 €" + tot.toLocaleString() : "") +
     '<br><span style="color:var(--sub)">お客様の手元にある同じ型番の故障品を、JCがこの額で買い取る見込みです（当社が受け取る額）。' +
     '送料の負担と査定の基準はJCに確認中のため、まだお客様には提示しないでください。</span></div>';
+}
+
+
+/* ★JCのウェブショップで買うとき（2026-09-11）
+   ウェブショップから買うと、メール発注のときJC側がしてくれていたすり合わせが無くなる。
+   金額もこちらで見比べることになるので、「レジで見比べる1つの数字」を出す。
+   ⚠️送料は1回の発送にかかる額。数量で掛けない（重量で決まる）。 */
+function eur(v){ return "€" + Number(v).toFixed(2); }
+function jcbuyHtml(list, refNo){
+  if(!list || !list.length) return "";
+  var usable = list.filter(function(b){ return b.cost_eur!=null && b.ship_eur!=null; });
+  if(!usable.length) return "";
+  var many = usable.some(function(b){ return Number(b.qty)>1; }) || usable.length>1;
+  var rows = usable.map(function(b){
+    var tot = Number(b.cost_eur) + Number(b.ship_eur);
+    return '<div style="margin:2px 0">' + esc(b.article) + (Number(b.qty)>1 ? " ×" + b.qty : "") +
+      (b.out_of_stock ? ' <span class="tag w">在庫なし</span>' : '') +
+      '　仕入れ値 ' + eur(b.cost_eur) + ' ＋ 送料 ' + eur(b.ship_eur) +
+      (Number(b.ship_eur)===0 ? '（€1,750以上で無料）' : '') +
+      ' ＝ <b>' + eur(tot) + '</b>' +
+      (b.link ? ' 　<a href="' + esc(b.link) + '" target="_blank" rel="noopener">商品ページ</a>' : '') +
+      '</div>';
+  }).join("");
+  return '<div class="meta" style="color:#1d4ed8">🛒 <b>JCで買うとき</b>' +
+    (refNo ? '　参照番号 <b>' + esc(refNo) + '</b> を Your reference に入れる' : '') +
+    rows +
+    '<span style="color:var(--sub)">★レジの金額がこの<b>合計</b>と違ったら、買う前にセールスチームに問い合わせてください。' +
+    (many ? '<br>⚠️数量が2以上・複数型番のときは、<b>送料はこの通りになりません</b>（重量でまとまるため）。商品代だけを見比べてください。' : '') +
+    '</span></div>';
+}
+
+/* ★ファームウェアのバージョン確認（2026-09-11）
+   流れ：①見積は止めない → ②JCへ確認（この画面から下書き）→ ③お客様へご連絡（同じくここから）
+   🔴③に出すバージョンは、JCの原文をSが見て入力した値だけを使う（AIの読み取りを流し込まない）。 */
+function fwHtml(q){
+  var f = q.fw || {};
+  if(!f.need) return "";
+  var head = '<div class="meta" style="color:#92400e">🔧 <b>ファームウェアのバージョン確認が要る品です</b><br>';
+  if(f.told_at){
+    return head + 'バージョン <b>' + esc(f.answer||"") + '</b> を ' + ymdJ(f.told_at) + ' にお客様へご連絡済み。' +
+      '<span style="color:var(--sub)">（言い直す場合は下の欄から作り直せます）</span>' + fwForm(q, f) + '</div>';
+  }
+  if(f.asked_at){
+    return head + ymdJ(f.asked_at) + ' にJCへ問い合わせ済み。<b>返事待ち</b>。' +
+      '<span style="color:var(--sub)">JCから返事が来たら、原文を確かめてバージョンを入力してください。</span>' + fwForm(q, f) + '</div>';
+  }
+  return head + 'まだJCに聞いていません。<span style="color:var(--sub)">お客様が注文する前に、出せるバージョンを確かめておきます。</span>' +
+    '<div style="margin-top:6px"><button class="btn sec" data-fwask="' + q.request_id + '">JCにバージョンを聞く（下書き）</button></div></div>';
+}
+function fwForm(q, f){
+  return '<div style="margin-top:6px">' +
+    '<input id="fwv-' + q.request_id + '" type="text" placeholder="例 3.7" value="' + esc(f.answer||"") +
+    '" style="width:120px;font-size:16px;padding:6px;border:1px solid var(--line);border-radius:6px">' +
+    ' <button class="btn sec" data-fwtell="' + q.request_id + '">お客様にお知らせする（下書き）</button>' +
+    ' <button class="btn" data-fwask="' + q.request_id + '" data-again="1">JCにもう一度聞く</button></div>';
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -452,6 +517,8 @@ function paneOrder(){
     } else {
       h += '<div class="next">次：お客様の返事待ち（返信が届くと自動でここに出ます）</div>';
     }
+    h += fwHtml(q);
+    h += jcbuyHtml(q.jcbuy, "");
     h += buybackHtml(q.buyback);
     if(q.expired) h += '<p class="note">為替で価格が動くため、再見積を出してから受注にしてください。どうしてもこの価格で受注する場合は、台帳に「期限切れの見積で受注した」と記録が残ります。</p>';
     h += '<div class="btns"><button class="btn ' + (q.expired ? "gray" : "pri") + '" data-openform="' + q.request_id + '">' +
@@ -541,6 +608,7 @@ function paneOrder(){
     var info = "";
     if(inv) info += '<div class="meta"><span class="tag g">お支払案内 発行済み</span> ' + esc(inv.doc_no) + '　' + md(inv.issued_on) + '　' + yen(inv.total_jpy) + '　Gmailの下書きに入っています</div>';
     if(o.jc_po_draft_id) info += '<div class="meta"><span class="tag g">JCへの発注メール 下書き済み</span>' + (o.jc_po_drafted_at ? '　' + md(String(o.jc_po_drafted_at).slice(0,10)) : "") + '</div>';
+    info += jcbuyHtml(o.jcbuy, o.order_no);
     info += buybackHtml(o.buyback);
     (o.price_watch||[]).forEach(function(w){
       if(w.gone){
@@ -1238,6 +1306,40 @@ function wire(){
           return reload();
         })
         .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  // ★ファームウェアのバージョン確認（2026-09-11）
+  //   fwask ＝JCへ聞く英語の下書き／fwtell＝お客様へお伝えする日本語の下書き
+  //   🔴どちらも Gmail の下書きまで。送るのはS。
+  root.querySelectorAll("[data-fwask]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-fwask"));
+      b.disabled = true; var was = b.textContent; b.textContent = "作成中…";
+      act({ action:"fw_ask", request_id:id })
+        .then(function(r){
+          alert("JCへの問い合わせをGmailの下書きに置きました。\n\n宛先 " + r.to + "\n件名 " + r.subject +
+                "\n\n中身を確かめてから送ってください（自動では送りません）。");
+          load();
+        })
+        .catch(function(e){ alert("できませんでした：" + e.message); b.disabled=false; b.textContent=was; });
+    });
+  });
+  root.querySelectorAll("[data-fwtell]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-fwtell"));
+      var inp = el("fwv-" + id);
+      var ver = (inp && inp.value || "").trim();
+      if(!ver){ alert("JCが回答したバージョンを入力してください（例 3.7）。\n★JCのメールの原文を見て、そのまま入力してください。"); if(inp) inp.focus(); return; }
+      if(!confirm("お客様に「ご用意できるバージョンは " + ver + " です」とお伝えする下書きを作ります。\n\nJCのメールの原文と同じか、もう一度お確かめください。")) return;
+      b.disabled = true; var was = b.textContent; b.textContent = "作成中…";
+      act({ action:"fw_tell", request_id:id, version:ver })
+        .then(function(r){
+          alert("お客様へのご連絡をGmailの下書きに置きました。\n\n宛先 " + r.to + "\n件名 " + r.subject +
+                "\n\n中身を確かめてから送ってください（自動では送りません）。");
+          load();
+        })
+        .catch(function(e){ alert("できませんでした：" + e.message); b.disabled=false; b.textContent=was; });
     });
   });
 
