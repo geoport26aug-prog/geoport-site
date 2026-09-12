@@ -190,7 +190,7 @@ function card(x, kind){
     + '<div class="brand">'+esc(x.brand||"")+'</div>'
     + '<div class="tags">'+tags+'</div>'
     + '<div class="facts">'
-      + '払う額 <b>'+yen(x.pay)+'</b>'
+      + '現在値 <b>'+yen(x.pay)+'</b>'
       + (x.shipping==null ? ' ＋ <b>送料未定</b>' : ' ＋送料 <b>'+yen(x.shipping)+'</b>')
       + '<br>JC <b>€'+esc(x.eur)+'</b> ／ JC在庫 <b>'+esc(x.jc_stock)+'台</b>'
     + '</div>'
@@ -217,12 +217,12 @@ function render(){
       list(D.today, "cand", "いまはありません。（無いことも、仕組みが動いている印です）");
 
   el("p1").innerHTML =
-      '<div class="lead">採算が合う候補。<b>型番ごとに一番いい1件</b>だけを出しています（同じ型番が何件も出るため）。'
+      '<div class="lead"><b>型番ごとに一番いい1件</b>だけを出しています（同じ型番が何件も出るため）。'
     + '締切が近い順。<br>合計 '+D.total.候補の型番+'型番・'+yen(D.total.利益合計)+'</div>'
-    + list(D.buyable, "cand", "いま採算の合う候補はありません。");
+    + list(D.buyable, "cand", "いまはありません。");
 
   el("p2").innerHTML =
-      '<div class="lead">いまは採算が合わないが、<b>あと少しで合うもの</b>。'
+      '<div class="lead"><b>あと少しで対象に入るもの</b>。'
     + '値下げ再出品・JCの値上げ・円安で対象に入ります。</div>'
     + list(D.near, "near", "「あと少し」はありません。");
 
