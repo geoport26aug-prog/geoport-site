@@ -227,14 +227,14 @@ function render(){
     + list(D.near, "near", "「あと少し」はありません。");
 
   el("p3").innerHTML =
-      '<div class="lead">🔴<b>入札・購入は出品ページで手で行ってください。</b>'
+      '<div class="lead">🔴<b>出品ページで入札してください。</b>'
     + '<br>終了時刻が分かっているものは、<b>終了5分前に info@ へメールが届きます</b>。'
     + '買い終えたら「買いました」を押すと、お知らせが止まります。</div>'
     + list(D.going, "going", "ブックしたものはありません。");
 }
 
 function buy(id){
-  if(!confirm("ブックに入れます。\n\n🔴実際の入札・購入は、このあと出品ページで手で行ってください。\nこの画面は入札しません。")) return;
+  if(!confirm("ブックに入れます。\n\n🔴このあと出品ページで入札してください。\nこの画面は入札しません。")) return;
   act({act:"buy", id:id}).then(function(){ toast("ブックしました"); return reload(); })
     .catch(function(e){ toast(e.message, true); });
 }
