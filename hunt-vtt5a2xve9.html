@@ -165,10 +165,24 @@ function card(x, kind){
 
   var btns = '<a class="see" href="'+esc(x.url)+'" target="_blank" rel="noopener">ヤフオクで見る</a>';
   if(kind==="going"){
-    btns += '<button class="skip" onclick="undo('+x.id+')">やめる（候補に戻す）</button>';
+    btns += '<button class="buy" onclick="got('+x.id+')">買いました</button>'
+          + '<button class="skip" onclick="undo('+x.id+')">やめる（候補に戻す）</button>';
   }else{
     btns += '<button class="buy" onclick="buy('+x.id+')">買うと決めた</button>'
           + '<button class="skip" onclick="skip('+x.id+')">見送る</button>';
+  }
+
+  // 🔴終了時刻と、お知らせが飛ぶかどうか
+  var endLine = "";
+  if(kind==="going"){
+    if(x.ends_at){
+      var e = new Date(x.ends_at);
+      endLine = '<div class="note">終了 '+e.toLocaleString("ja-JP")+
+        (x.alerted_at ? ' ／ お知らせ済み' : ' ／ <b>終了5分前にメールが届きます</b>')+'</div>';
+    }else{
+      endLine = '<div class="note" style="color:#b02a2a">⚠️終了時刻が分からないため、'
+        + '<b>お知らせは飛びません</b>（次の見回りで分かります）</div>';
+    }
   }
 
   return '<div class="card'+(hot?" hot":(rare?" rare":""))+'">'
@@ -181,6 +195,7 @@ function card(x, kind){
       + '<br>JCの買取 <b>€'+esc(x.eur)+'</b> ／ JCのリファ在庫 <b>'+esc(x.jc_stock)+'台</b>'
     + '</div>'
     + '<div class="btns">'+btns+'</div>'
+    + endLine
     + (x.skip_reason ? '<div class="note">見送った理由：'+esc(x.skip_reason)+'</div>' : '')
     + '</div>';
 }
@@ -215,7 +230,8 @@ function render(){
 
   el("p3").innerHTML =
       '<div class="lead">「買うと決めた」もの。🔴<b>入札・購入はヤフオクで手で行ってください。</b>'
-    + 'ここは決めたことを覚えておくだけです。</div>'
+    + '<br>終了時刻が分かっているものは、<b>終了5分前に info@ へメールが届きます</b>。'
+    + '買い終えたら「買いました」を押すと、お知らせが止まります。</div>'
     + list(D.going, "going", "追いかけているものはありません。");
 }
 
@@ -229,6 +245,11 @@ function skip(id){
   if(r===null) return;
   if(!r.trim()){ toast("理由を書いてください", true); return; }
   act({act:"skip", id:id, reason:r.trim()}).then(function(){ toast("見送りました"); return reload(); })
+    .catch(function(e){ toast(e.message, true); });
+}
+function got(id){
+  if(!confirm("「買いました」にします。\n\n・終了5分前のお知らせが止まります\n・このあと古物台帳への記帳が必要です")) return;
+  act({act:"got", id:id}).then(function(){ toast("買いました。古物台帳への記帳をお忘れなく"); return reload(); })
     .catch(function(e){ toast(e.message, true); });
 }
 function undo(id){
