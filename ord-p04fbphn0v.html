@@ -240,23 +240,31 @@ function buybackHtml(list){
 function eur(v){ return "€" + Number(v).toFixed(2); }
 function jcbuyHtml(list, refNo){
   if(!list || !list.length) return "";
-  var usable = list.filter(function(b){ return b.cost_eur!=null && b.ship_eur!=null; });
+  /* ★2026-09-13 修正：以前は「仕入値と送料が両方とれた品」だけに絞っており、
+     在庫が0になった型番（jc_cost_eur / jc_ship_eur が null）では**帯ごと消えて商品ページの
+     リンクも出なかった**。ウェブショップで在庫が戻ったか見たいのは、まさにその品。
+     → 金額は出せるときだけ出し、**商品ページのリンクは常に出す**。 */
+  var usable = list.filter(function(b){ return b.link || (b.cost_eur!=null && b.ship_eur!=null); });
   if(!usable.length) return "";
-  var many = usable.some(function(b){ return Number(b.qty)>1; }) || usable.length>1;
+  var priced = usable.filter(function(b){ return b.cost_eur!=null && b.ship_eur!=null; });
+  var many = priced.some(function(b){ return Number(b.qty)>1; }) || priced.length>1;
   var rows = usable.map(function(b){
-    var tot = Number(b.cost_eur) + Number(b.ship_eur);
+    var has = (b.cost_eur!=null && b.ship_eur!=null);
     return '<div style="margin:2px 0">' + esc(b.article) + (Number(b.qty)>1 ? " ×" + b.qty : "") +
       (b.out_of_stock ? ' <span class="tag w">在庫なし</span>' : '') +
-      '　仕入れ値 ' + eur(b.cost_eur) + ' ＋ 送料 ' + eur(b.ship_eur) +
-      (Number(b.ship_eur)===0 ? '（€1,750以上で無料）' : '') +
-      ' ＝ <b>' + eur(tot) + '</b>' +
+      (has
+        ? '　仕入れ値 ' + eur(b.cost_eur) + ' ＋ 送料 ' + eur(b.ship_eur) +
+          (Number(b.ship_eur)===0 ? '（€1,750以上で無料）' : '') +
+          ' ＝ <b>' + eur(Number(b.cost_eur) + Number(b.ship_eur)) + '</b>'
+        : '　<span style="color:var(--sub)">仕入れ値は在庫が戻るまで出ません（ページで在庫をご確認ください）</span>') +
       (b.link ? ' 　<a href="' + esc(b.link) + '" target="_blank" rel="noopener">商品ページ</a>' : '') +
       '</div>';
   }).join("");
   return '<div class="meta" style="color:#1d4ed8">🛒 <b>JCで買うとき</b>' +
     (refNo ? '　参照番号 <b>' + esc(refNo) + '</b> を Your reference に入れる' : '') +
     rows +
-    '<span style="color:var(--sub)">★レジの金額がこの<b>合計</b>と違ったら、買う前にセールスチームに問い合わせてください。' +
+    '<span style="color:var(--sub)">' +
+    (priced.length ? '★レジの金額がこの<b>合計</b>と違ったら、買う前にセールスチームに問い合わせてください。' : '') +
     (many ? '<br>⚠️数量が2以上・複数型番のときは、<b>送料はこの通りになりません</b>（重量でまとまるため）。商品代だけを見比べてください。' : '') +
     '</span></div>';
 }
