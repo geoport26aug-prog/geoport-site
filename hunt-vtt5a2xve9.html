@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>GEOPORT 買取ハンター</title>
+<!--
+  GEOPORT フロー3（買取ハンター）— 操作画面（見た目だけのページ）
+  2026-09-12 作成。設計＝~/GEOPORT-フロー3/GEOPORT_変更履歴.md 2026-09-12
+
+  ★このファイルの中に、金額も候補も1件も入っていません。
+    合鍵(?k=)と合言葉が通ったときだけ、Supabase の hunt-desk から届きます。
+  ★🔴入札しません。買いません。ここは「見て、決める」だけ。
+    実際の入札は必ずSがヤフオクで手で行う（フロー3の大原則）。
+  ★採算の計算はここではしません。取り込み(push.py)で1回だけ確定した値を並べるだけ。
+-->
+<style>
+:root{--main:#0f5257;--ink:#212529;--sub:#6c757d;--line:#d3dfe0;--bg:#f4f8f8;--card:#fff;
+      --ok:#1a7f4b;--warn:#b26a00;--ng:#b02a2a;--soft:#e8f1f1}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+     color:var(--ink);background:var(--bg)}
+header{background:var(--main);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header b{font-size:17px;letter-spacing:.04em}
+header .asof{font-size:12px;opacity:.85;margin-left:auto}
+nav{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;overflow-x:auto}
+nav button{flex:0 0 auto;appearance:none;border:0;background:none;padding:13px 16px;font-size:15px;font-weight:600;
+  color:var(--sub);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;font-family:inherit}
+nav button.on{color:var(--main);border-bottom-color:var(--main);background:var(--soft)}
+nav button .n{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;
+  background:var(--main);color:#fff;font-size:12px;line-height:19px;text-align:center}
+nav button:not(.on) .n{background:#adb5bd}
+main{padding:16px;max-width:920px;margin:0 auto 70px}
+.pane{display:none} .pane.on{display:block}
+.lead{background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:14px;font-size:13.5px;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:13px 15px;margin-bottom:11px}
+.card.hot{border-left:4px solid var(--ng)}
+.card.rare{border-left:4px solid var(--warn)}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.profit{font-size:22px;font-weight:700;color:var(--ok)}
+.profit.minus{color:var(--ng);font-size:17px}
+.art{font-size:16px;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+.brand{font-size:12.5px;color:var(--sub)}
+.tags{margin:7px 0 9px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:12px;padding:2px 8px;border-radius:11px;background:var(--soft);color:var(--main)}
+.tag.red{background:#fdecec;color:var(--ng);font-weight:700}
+.tag.amber{background:#fdf3e3;color:var(--warn);font-weight:700}
+.facts{background:var(--soft);border-radius:6px;padding:9px 11px;font-size:13.5px;line-height:1.8}
+.facts b{font-family:ui-monospace,Menlo,monospace}
+.btns{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.btns a,.btns button{appearance:none;font:inherit;font-size:14px;font-weight:600;padding:9px 14px;border-radius:7px;
+  border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
+.btns a.see{background:var(--main);color:#fff;border-color:var(--main)}
+.btns button.buy{background:var(--ok);color:#fff;border-color:var(--ok)}
+.btns button.skip{color:var(--sub)}
+.empty{color:var(--sub);padding:22px 4px;font-size:14px}
+#gate{max-width:380px;margin:70px auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px}
+#gate input{width:100%;padding:11px;font-size:16px;border:1px solid var(--line);border-radius:7px;margin:10px 0}
+#gate button{width:100%;padding:12px;font-size:16px;font-weight:700;background:var(--main);color:#fff;border:0;border-radius:7px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:#222;color:#fff;padding:11px 18px;
+  border-radius:8px;font-size:14px;display:none;z-index:9;max-width:90%}
+#toast.bad{background:var(--ng)}
+.note{font-size:12.5px;color:var(--sub);margin-top:6px}
+</style>
+</head>
+<body>
+
+<div id="gate" style="display:none">
+  <b>買取ハンター</b>
+  <div class="note">合言葉を入れてください（この端末に覚えます）</div>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="合言葉">
+  <button onclick="enter()">開く</button>
+  <div id="gerr" class="note" style="color:#b02a2a"></div>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <b>買取ハンター</b>
+  <span style="font-size:12px;opacity:.9">🔴入札はここではできません。ヤフオクで手で行います</span>
+  <span class="asof" id="asof"></span>
+</header>
+<nav>
+  <button id="t0" class="on" onclick="tab(0)">今日中に決める<span class="n" id="n0">0</span></button>
+  <button id="t1" onclick="tab(1)">買える<span class="n" id="n1">0</span></button>
+  <button id="t2" onclick="tab(2)">あと少し<span class="n" id="n2">0</span></button>
+  <button id="t3" onclick="tab(3)">追いかけ中<span class="n" id="n3">0</span></button>
+</nav>
+<main>
+  <div class="pane on" id="p0"></div>
+  <div class="pane" id="p1"></div>
+  <div class="pane" id="p2"></div>
+  <div class="pane" id="p3"></div>
+</main>
+</div>
+
+<script>
+var API = "https://vprtbkkqqdfidzvfwhzo.supabase.co/functions/v1/hunt-desk";
+var K = new URLSearchParams(location.search).get("k") || "";
+var PASSKEY = "geoport_hunt_pass";   // 合言葉を覚えておく場所（この端末の中だけ）
+var D = null, busy = false, cur = 0;
+
+function el(id){ return document.getElementById(id); }
+function yen(n){ return "¥" + Number(n||0).toLocaleString("ja-JP"); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function getPass(){ try{ return localStorage.getItem(PASSKEY)||""; }catch(e){ return ""; } }
+
+var tt=null;
+function toast(m, bad){
+  var t=el("toast"); if(!t){ t=document.createElement("div"); t.id="toast"; document.body.appendChild(t); }
+  t.className = bad?"bad":""; t.textContent=m; t.style.display="block";
+  clearTimeout(tt); tt=setTimeout(function(){ t.style.display="none"; }, bad?9000:3500);
+}
+
+function load(pass){
+  return fetch(API + "?k=" + encodeURIComponent(K), { headers:{ "x-view-pass": encodeURIComponent(pass) } })
+    .then(function(r){
+      if(r.status===401) throw new Error("bad-pass");
+      if(!r.ok) throw new Error("err-"+r.status);
+      return r.json();
+    });
+}
+function act(body){
+  if(busy) return Promise.reject(new Error("busy"));
+  busy = true;
+  return fetch(API + "?k=" + encodeURIComponent(K), {
+    method:"POST",
+    headers:{ "x-view-pass": encodeURIComponent(getPass()), "content-type":"application/json" },
+    body: JSON.stringify(body)
+  }).then(function(r){ return r.json().then(function(j){ return {s:r.status, b:j}; }); })
+    .then(function(x){
+      if(x.s!==200 || x.b.ok===false) throw new Error((x.b&&x.b.error)||"うまくいきませんでした");
+      return x.b;
+    }).finally(function(){ busy=false; });
+}
+function reload(){ return load(getPass()).then(function(d){ D=d; render(); }); }
+
+function tab(i){
+  cur=i;
+  for(var j=0;j<4;j++){
+    el("t"+j).className = (j===i?"on":"");
+    el("p"+j).className = "pane" + (j===i?" on":"");
+  }
+}
+
+// ── 1件の見え方 ─────────────────────────────────────────────
+function card(x, kind){
+  var hot  = x.hours <= 24;
+  var rare = Number(x.same) === 1;
+  var tags = "";
+  if(rare) tags += '<span class="tag amber">🔴この型番は今1件だけ</span>';
+  else tags += '<span class="tag">同じ型番が '+esc(x.same)+'件</span>';
+  tags += '<span class="tag'+(hot?" red":"")+'">残り '+esc(x.left||"?")+'</span>';
+  if(x.buyout) tags += '<span class="tag">即決で買える</span>';
+  if(Number(x.bids)>0) tags += '<span class="tag red">入札 '+esc(x.bids)+'件</span>';
+  if(x.price_moved) tags += '<span class="tag amber">値段が動いた'+(x.pay_prev?"（前 "+yen(x.pay_prev)+"）":"")+'</span>';
+  if(x.cashback_moved) tags += '<span class="tag amber">JCの買取が動いた</span>';
+  if(Number(x.jc_stock)===0) tags += '<span class="tag">JC在庫0＝買ってもらえる見込み高い</span>';
+
+  var p = Number(x.profit);
+  var profitHtml = p>0
+    ? '<span class="profit">'+yen(p)+'</span>'
+    : '<span class="profit minus">あと '+yen(-p)+'</span>';
+
+  var btns = '<a class="see" href="'+esc(x.url)+'" target="_blank" rel="noopener">ヤフオクで見る</a>';
+  if(kind==="going"){
+    btns += '<button class="skip" onclick="undo('+x.id+')">やめる（候補に戻す）</button>';
+  }else{
+    btns += '<button class="buy" onclick="buy('+x.id+')">買うと決めた</button>'
+          + '<button class="skip" onclick="skip('+x.id+')">見送る</button>';
+  }
+
+  return '<div class="card'+(hot?" hot":(rare?" rare":""))+'">'
+    + '<div class="top"><span class="art">'+esc(x.article)+'</span>'+profitHtml+'</div>'
+    + '<div class="brand">'+esc(x.brand||"")+'</div>'
+    + '<div class="tags">'+tags+'</div>'
+    + '<div class="facts">'
+      + '払う額 <b>'+yen(x.pay)+'</b>'
+      + (x.shipping==null ? ' ＋ <b>送料未定</b>' : ' ＋送料 <b>'+yen(x.shipping)+'</b>')
+      + '<br>JCの買取 <b>€'+esc(x.eur)+'</b> ／ JCのリファ在庫 <b>'+esc(x.jc_stock)+'台</b>'
+    + '</div>'
+    + '<div class="btns">'+btns+'</div>'
+    + (x.skip_reason ? '<div class="note">見送った理由：'+esc(x.skip_reason)+'</div>' : '')
+    + '</div>';
+}
+
+function list(rows, kind, emptyMsg){
+  if(!rows || !rows.length) return '<div class="empty">'+esc(emptyMsg)+'</div>';
+  return rows.map(function(x){ return card(x, kind); }).join("");
+}
+
+function render(){
+  if(!D) return;
+  el("asof").textContent = "更新 " + new Date(D.asof).toLocaleString("ja-JP");
+  el("n0").textContent = D.today.length;
+  el("n1").textContent = D.buyable.length;
+  el("n2").textContent = D.near.length;
+  el("n3").textContent = D.going.length;
+
+  el("p0").innerHTML =
+      '<div class="lead">利益 '+yen(D.rule.alert_profit)+' 超で、残り '+D.rule.alert_hours+' 時間以内のもの。'
+    + '<br>⚠️この市場は競り合いが少ない代わりに、<b>売り切れると同じ型番が再び出にくい</b>。逃した損が大きい。</div>'
+    + list(D.today, "cand", "今日中に決めるものはありません。（無いことも、仕組みが動いている印です）");
+
+  el("p1").innerHTML =
+      '<div class="lead">採算が合う候補。<b>型番ごとに一番いい1件</b>だけを出しています（同じ型番が何件も出るため）。'
+    + '締切が近い順。<br>合計 '+D.total.候補の型番+'型番・'+yen(D.total.利益合計)+'</div>'
+    + list(D.buyable, "cand", "いま採算の合う候補はありません。");
+
+  el("p2").innerHTML =
+      '<div class="lead">いまは採算が合わないが、<b>あと少しで合うもの</b>。'
+    + '値下げ再出品・JCの買取価格の上昇・円安で採算圏に入ります。</div>'
+    + list(D.near, "near", "「あと少し」はありません。");
+
+  el("p3").innerHTML =
+      '<div class="lead">「買うと決めた」もの。🔴<b>入札・購入はヤフオクで手で行ってください。</b>'
+    + 'ここは決めたことを覚えておくだけです。</div>'
+    + list(D.going, "going", "追いかけているものはありません。");
+}
+
+function buy(id){
+  if(!confirm("「買うと決めた」に入れます。\n\n🔴実際の入札・購入は、このあとヤフオクで手で行ってください。\nこの画面は入札しません。")) return;
+  act({act:"buy", id:id}).then(function(){ toast("「追いかけ中」に入れました"); return reload(); })
+    .catch(function(e){ toast(e.message, true); });
+}
+function skip(id){
+  var r = prompt("見送る理由を書いてください。\n（例：型番違いのおそれ／状態が悪い／高すぎる）\n\nあとで「本当は買うべきだった」を見返すために残します。");
+  if(r===null) return;
+  if(!r.trim()){ toast("理由を書いてください", true); return; }
+  act({act:"skip", id:id, reason:r.trim()}).then(function(){ toast("見送りました"); return reload(); })
+    .catch(function(e){ toast(e.message, true); });
+}
+function undo(id){
+  act({act:"undo", id:id}).then(function(){ toast("候補に戻しました"); return reload(); })
+    .catch(function(e){ toast(e.message, true); });
+}
+
+function enter(){
+  var p = el("pw").value.trim();
+  if(!p) return;
+  load(p).then(function(d){
+    try{ localStorage.setItem(PASSKEY, p); }catch(e){}
+    D=d; el("gate").style.display="none"; el("app").style.display="block"; render();
+  }).catch(function(e){
+    el("gerr").textContent = (e.message==="bad-pass") ? "合言葉が違います" : "つながりませんでした（"+e.message+"）";
+  });
+}
+
+(function start(){
+  if(!K){ document.body.innerHTML = "<p style='padding:40px;text-align:center'>見つかりません</p>"; return; }
+  var p = getPass();
+  if(!p){ el("gate").style.display="block"; return; }
+  load(p).then(function(d){
+    D=d; el("app").style.display="block"; render();
+  }).catch(function(e){
+    el("gate").style.display="block";
+    if(e.message==="bad-pass") el("gerr").textContent="合言葉が変わったようです。入れ直してください。";
+  });
+})();
+</script>
+</body>
+</html>
