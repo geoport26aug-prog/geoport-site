@@ -911,9 +911,15 @@ function paneInspect(){
              (done ? '保存済みの写真 ' + done + ' 枚（撮り直すと足されます。前の写真は消えません）'
                    : 'スマホなら、その場で撮れます。2枚まとめて選べます。') + '</div>' +
            '<label class="f" style="margin-top:10px">② 番号（読めたときだけでOK。空でもかまいません）</label>' +
-           '<div class="grid2">' +
-             '<div><label class="f">製造番号（銘板の Serial No.。4桁以下なら Id.-No. を前に：例 13142075-0187）</label><input class="f" id="is-' + u.unit_id + '" value="' + esc(u.serial_no||"") + '"></div>' +
-             '<div><label class="f">J-Certified 封印シールの番号（あれば）</label><input class="f" id="ik-' + u.unit_id + '" value="' + esc(u.jc_seal_no||"") + '"></div>' +
+           /* ★2026-09-14：J-Certified 封印シールの番号の欄を外した。
+              2026-09-09 に「番号が印字されているか現物で確認し、無ければこの欄を消す」と決めていた。
+              初受注の現物（Lenze E82EV551_2C）が届いて確認したところ、封印シールは
+              「WARRANTY VOID IF QUALITY SEAL BROKEN」の表示だけで**番号は無かった**。
+              → 個体の特定は製造番号（銘板の Serial No.）だけで行う。
+              ⚠️台帳の列 order_units.jc_seal_no は残してある（消すと過去の記録が失われる）。
+              ⚠️送信側は val("ik-…") を呼ぶが、欄が無ければ空文字を返すので壊れない。 */
+           '<div>' +
+             '<div><label class="f">製造番号（銘板の Serial No.。4桁以下なら Id.-No. を前に：例 13142075-0076）</label><input class="f" id="is-' + u.unit_id + '" value="' + esc(u.serial_no||"") + '"></div>' +
            "</div>" +
            (u.number_source ? '<div class="note">前回の記録：' + esc(u.number_source) + "</div>" : "") +
            '<div class="btns">' +
@@ -949,7 +955,8 @@ function paneShip(){
       h += '<div class="uline"><input type="checkbox" checked data-ship="' + o.order_id + '" value="' + u.unit_id + '">' +
            '<div><span class="kata">' + esc(u.article) + "</span>　" + u.unit_no + "台目" +
            (u.inspect_status==="読取不可" ? '　<span class="tag w">番号読取不可</span>' : "") + "<br>" +
-           '<span class="sn">製造番号 ' + esc(u.serial_no || "（未記録）") + "　封印 " + esc(u.jc_seal_no || "（未記録）") + "</span></div></div>";
+           /* ★2026-09-14：「封印 …」の表示も外した（シールに番号が無いことが現物で確定したため） */
+           '<span class="sn">製造番号 ' + esc(u.serial_no || "（未記録）") + "</span></div></div>";
     });
     h += '<div class="meta">' + (o.customer_po_no ? "先方注番 " + esc(o.customer_po_no) + "　" : "") +
          (o.pending_inspection ? '<span class="tag w">検品がまだの品が' + o.pending_inspection + "台あります（ここには出ていません）</span>" : "検品はすべて済んでいます") + "</div>";
