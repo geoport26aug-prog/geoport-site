@@ -145,6 +145,33 @@ function tab(i){
   }
 }
 
+// ── 残り時間の時計 ───────────────────────────────────────────
+// 終了時刻(ends_at)から「あと何日 何時間何分何秒」を作る。
+// ⚠️1日以上あるものまで秒を出すと読みにくいので、1日以上は「2日 3時間」まで。
+function clock(iso){
+  var ms = new Date(iso).getTime() - Date.now();
+  if(!(ms > 0)) return "終わりました";
+  var s = Math.floor(ms/1000);
+  var d = Math.floor(s/86400), h = Math.floor(s%86400/3600),
+      m = Math.floor(s%3600/60), ss = s%60;
+  var z = function(n){ return (n<10?"0":"")+n; };
+  if(d > 0) return h>0 ? (d+"日 "+h+"時間") : (d+"日");
+  return h+":"+z(m)+":"+z(ss);
+}
+
+// 1秒ごとに時計だけを書き換える（作り直さないので、押している途中でも邪魔しない）
+function tick(){
+  var els = document.querySelectorAll("[data-ends]");
+  for(var i=0;i<els.length;i++){
+    var iso = els[i].getAttribute("data-ends");
+    var ms  = new Date(iso).getTime() - Date.now();
+    var t   = clock(iso);
+    els[i].textContent = (ms>0) ? ("残り "+t) : t;
+    // 24時間を切ったら赤（カードの色分けと同じ線）
+    els[i].className = "tag" + (ms>0 && ms <= 24*3600*1000 ? " red" : "");
+  }
+}
+
 // ── 1件の見え方 ─────────────────────────────────────────────
 function card(x, kind){
   var hot  = x.hours <= 24;
@@ -152,7 +179,11 @@ function card(x, kind){
   var tags = "";
   if(rare) tags += '<span class="tag amber">🔴この型番は今1件だけ</span>';
   else tags += '<span class="tag">同じ型番が '+esc(x.same)+'件</span>';
-  tags += '<span class="tag'+(hot?" red":"")+'">残り '+esc(x.left||"?")+'</span>';
+  // 🔴残り時間は時計で出す（1秒ごとに動く）。終了時刻は秒まで分かっているので、
+  //   「1日」のような粗い表示ではなく、実際にあと何時間何分かを見せる。
+  tags += x.ends_at
+    ? '<span class="tag'+(hot?" red":"")+'" data-ends="'+esc(x.ends_at)+'">残り '+esc(clock(x.ends_at))+'</span>'
+    : '<span class="tag'+(hot?" red":"")+'">残り '+esc(x.left||"?")+'</span>';
   if(x.buyout) tags += '<span class="tag">即決で買える</span>';
   if(Number(x.bids)>0) tags += '<span class="tag red">入札 '+esc(x.bids)+'件</span>';
   if(x.price_moved) tags += '<span class="tag amber">値段が動いた'+(x.pay_prev?"（前 "+yen(x.pay_prev)+"）":"")+'</span>';
@@ -242,7 +273,12 @@ function render(){
     + '<br>終了時刻が分かっているものは、<b>終了5分前に info@ へメールが届きます</b>。'
     + '買い終えたら「買いました」を押すと、お知らせが止まります。</div>'
     + list(D.going, "going", "ブックしたものはありません。");
+
+  tick();   // 作り直した直後に時計を合わせる
 }
+
+// 時計は1本だけ動かす（画面を作り直しても増やさない）
+if(!window.__tickTimer) window.__tickTimer = setInterval(tick, 1000);
 
 function buy(id){
   if(!confirm("ブックに入れます。\n\n🔴このあと出品ページで入札してください。\nこの画面は入札しません。")) return;
