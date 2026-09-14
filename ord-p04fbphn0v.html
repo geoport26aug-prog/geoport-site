@@ -91,6 +91,9 @@ input.f,select.f{width:100%;font:inherit;font-size:15px;padding:9px 10px;border:
   color:var(--navy);text-decoration:none;font-size:14px;font-weight:600;background:#fff}
 #printbox a small{display:block;font-weight:400;font-size:12px;color:#6b7684;margin-top:2px}
 #printbox .cls{width:100%;margin-top:4px}
+/* ★2026-09-14：出荷待ちの札から、番号と写真を足すための欄（ふだんは畳んである） */
+a.redo{font-size:12px;color:var(--navy)}
+.redobox{margin:8px 0 2px;padding:10px 12px;background:#f6f8fa;border:1px solid #dfe5ec;border-radius:8px}
 .steps{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:#8a97a6;margin:6px 0 2px}
 .steps .done{color:var(--navy)} .steps .cur{color:var(--navy);font-weight:700}
 .next{margin:6px 0 2px;padding:8px 10px;background:#f3f6fa;border-left:4px solid var(--navy);border-radius:6px;font-size:14px;font-weight:600}
@@ -990,7 +993,19 @@ function paneShip(){
            '<div><span class="kata">' + esc(u.article) + "</span>　" + u.unit_no + "台目" +
            (u.inspect_status==="読取不可" ? '　<span class="tag w">番号読取不可</span>' : "") + "<br>" +
            /* ★2026-09-14：「封印 …」の表示も外した（シールに番号が無いことが現物で確定したため） */
-           '<span class="sn">製造番号 ' + esc(u.serial_no || "（未記録）") + "</span></div></div>";
+           '<span class="sn">製造番号 ' + esc(u.serial_no || "（未記録）") +
+             '　<a href="#" class="redo" data-redo="' + u.unit_id + '">番号・写真を足す</a></span>' +
+           /* ★2026-09-14：検品を終えると「検品待ち」から消えて入力欄が無くなり、
+              番号の打ち忘れ・撮り忘れを直す道が無かった（実際に初受注で起きた）。
+              ⚠️新しい状態は作らない。order_desk_inspect はもともと
+                「写真は足し算・手入力を最優先」なので、**同じ入口をもう一度呼ぶだけ**でよい。 */
+           '<div class="redobox" id="rb-' + u.unit_id + '" hidden>' +
+             '<label class="f">製造番号（銘板の Serial No.。4桁以下なら Id.-No. を前に：例 13142075-0076）</label>' +
+             '<input class="f" id="rs-' + u.unit_id + '" value="' + esc(u.serial_no || "") + '">' +
+             '<label class="f" style="margin-top:8px">写真を足す（前の写真は消えません）</label>' +
+             '<input class="f" type="file" accept="image/*" capture="environment" multiple id="rp-' + u.unit_id + '">' +
+             '<div class="btns"><button class="btn" data-redosave="' + u.unit_id + '">記録する</button></div>' +
+           "</div></div></div>";
     });
     h += '<div class="meta">' + (o.customer_po_no ? "先方注番 " + esc(o.customer_po_no) + "　" : "") +
          (o.pending_inspection ? '<span class="tag w">検品がまだの品が' + o.pending_inspection + "台あります（ここには出ていません）</span>" : "検品はすべて済んでいます") + "</div>";
@@ -1619,6 +1634,39 @@ function wire(){
             msg += "／★写真の読み取りはできませんでした（写真は保存済み）";
           }
           toast(msg);
+          return reload();
+        })
+        .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  /* ★2026-09-14：出荷待ちの札から「番号・写真を足す」を開く／記録する。
+     検品を終えると「検品待ち」から消えて入力欄が無くなり、打ち忘れ・撮り忘れを直せなかった。
+     ⚠️新しい状態は作らない。同じ inspect の入口をもう一度呼ぶだけ
+       （order_desk_inspect は写真は足し算・手入力が最優先）。判定は OK のまま変えない。 */
+  root.querySelectorAll("[data-redo]").forEach(function(a){
+    a.addEventListener("click", function(ev){
+      ev.preventDefault();
+      var box = el("rb-" + a.getAttribute("data-redo"));
+      if(box){ box.hidden = !box.hidden; a.textContent = box.hidden ? "番号・写真を足す" : "閉じる"; }
+    });
+  });
+  root.querySelectorAll("[data-redosave]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var uid = Number(b.getAttribute("data-redosave"));
+      var serial = val("rs-" + uid);
+      var fi = el("rp-" + uid);
+      var files = (fi && fi.files) ? [].slice.call(fi.files) : [];
+      if(!serial && !files.length){ toast("製造番号を入れるか、写真を選んでください", true); return; }
+      if(files.length > 4){ toast("写真は4枚までにしてください", true); return; }
+      b.disabled = true; var was = b.textContent; b.textContent = files.length ? "写真を送っています…" : "記録中…";
+      shrinkAll(files)
+        .then(function(photos){
+          return act({ action:"inspect", unit_id:uid, result:"OK", serial:serial, seal:"", note:null, photos:photos });
+        })
+        .then(function(r){
+          toast("記録しました" + (r.number_source ? "（番号の出どころ：" + r.number_source + "）" : "") +
+                (r.ai_error ? "／写真の読み取りは失敗しましたが、写真と番号は残っています" : ""));
           return reload();
         })
         .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
