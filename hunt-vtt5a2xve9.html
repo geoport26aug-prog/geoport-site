@@ -163,10 +163,15 @@ function card(x, kind){
     ? '<span class="profit">'+yen(p)+'</span>'
     : '<span class="profit minus">あと '+yen(-p)+'</span>';
 
+  // 🔴もう終わっているか（ブックしたものは、終わったら「どうなったか」を聞かないと溜まる）
+  var over = (kind==="going" && x.ends_at && new Date(x.ends_at).getTime() <= Date.now());
+
   var btns = '<a class="see" href="'+esc(x.url)+'" target="_blank" rel="noopener">ページに行く</a>';
   if(kind==="going"){
-    btns += '<button class="buy" onclick="got('+x.id+')">買いました</button>'
-          + '<button class="skip" onclick="undo('+x.id+')">やめる（候補に戻す）</button>';
+    btns += '<button class="buy" onclick="got('+x.id+')">'+(over?"落札できた":"買いました")+'</button>'
+          + (over
+              ? '<button class="skip" onclick="lost('+x.id+')">取れなかった</button>'
+              : '<button class="skip" onclick="undo('+x.id+')">やめる（候補に戻す）</button>');
   }else{
     btns += '<button class="buy" onclick="buy('+x.id+')">ブック</button>'
           + '<button class="skip" onclick="skip('+x.id+')">見送る</button>';
@@ -177,8 +182,14 @@ function card(x, kind){
   if(kind==="going"){
     if(x.ends_at){
       var e = new Date(x.ends_at);
-      endLine = '<div class="note">終了 '+e.toLocaleString("ja-JP")+
-        (x.alerted_at ? ' ／ お知らせ済み' : ' ／ <b>終了5分前にメールが届きます</b>')+'</div>';
+      if(over){
+        // 🔴終わったものは、どうなったかを押してもらわないと溜まりつづける
+        endLine = '<div class="note" style="color:#b02a2a"><b>終わりました</b>（'
+          + e.toLocaleString("ja-JP")+'）。<b>結果を押してください。</b></div>';
+      }else{
+        endLine = '<div class="note">終了 '+e.toLocaleString("ja-JP")+
+          (x.alerted_at ? ' ／ お知らせ済み' : ' ／ <b>終了5分前にメールが届きます</b>')+'</div>';
+      }
     }else{
       endLine = '<div class="note" style="color:#b02a2a">⚠️終了時刻が分からないため、'
         + '<b>お知らせは飛びません</b>（次の見回りで分かります）</div>';
@@ -252,6 +263,13 @@ function got(id){
 }
 function undo(id){
   act({act:"undo", id:id}).then(function(){ toast("候補に戻しました"); return reload(); })
+    .catch(function(e){ toast(e.message, true); });
+}
+
+// もう終わったものを「取れなかった」にする。候補には戻さない（もう買えないため）
+function lost(id){
+  if(!confirm("「取れなかった」にします。\n\nこの品は一覧から外れます。")) return;
+  act({act:"lost", id:id}).then(function(){ toast("取れなかったことにしました"); return reload(); })
     .catch(function(e){ toast(e.message, true); });
 }
 
