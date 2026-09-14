@@ -81,6 +81,16 @@ input.f,select.f{width:100%;font:inherit;font-size:15px;padding:9px 10px;border:
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);max-width:92%;background:#212529;color:#fff;
   padding:12px 18px;border-radius:9px;font-size:14px;line-height:1.6;z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.25)}
 #toast.bad{background:#7a1f1f}
+/* ★2026-09-14：出荷の直後に「印刷する書類」を出す箱。トーストと違って**自分で閉じるまで消えない**
+   （4秒で消えると印刷が間に合わない）。奥様がここから開いて印刷し、同梱する分だけ箱に入れる。 */
+#printbox{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);width:min(520px,94%);background:#fff;
+  border:2px solid var(--navy);border-radius:11px;z-index:70;box-shadow:0 10px 34px rgba(0,0,0,.3);padding:16px 18px}
+#printbox h3{margin:0 0 4px;font-size:15px;color:var(--navy)}
+#printbox .sub{font-size:12.5px;color:#6b7684;margin-bottom:10px;line-height:1.6}
+#printbox a{display:block;padding:11px 14px;margin-bottom:7px;border:1px solid var(--navy);border-radius:8px;
+  color:var(--navy);text-decoration:none;font-size:14px;font-weight:600;background:#fff}
+#printbox a small{display:block;font-weight:400;font-size:12px;color:#6b7684;margin-top:2px}
+#printbox .cls{width:100%;margin-top:4px}
 .steps{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:#8a97a6;margin:6px 0 2px}
 .steps .done{color:var(--navy)} .steps .cur{color:var(--navy);font-weight:700}
 .next{margin:6px 0 2px;padding:8px 10px;background:#f3f6fa;border-left:4px solid var(--navy);border-radius:6px;font-size:14px;font-weight:600}
@@ -147,6 +157,30 @@ function ymdJ(ts){ return ts ? ymd(jstStr(ts)) : ""; }
 function val(id){ var e=el(id); return e ? e.value.trim() : ""; }
 
 var toastTimer=null;
+/* ★2026-09-14：出荷の直後に、印刷する書類を開くための箱を出す（S決定）。
+   ・**3枚とも出す。**要らないものは奥様が抜く（お客様によっては納品書も同梱する）
+   ・開くのは期限つきのURL（30分）。保管庫は非公開のままで、期限が切れれば使えなくなる
+   ・URLが作れなかったときは箱を出さない（Sのメールの添付から印刷できるので、出荷は止めない） */
+function showPrintBox(r){
+  var u = r && r.print_urls; if(!u) return;
+  var items = [
+    ["notice",   "取り付けのご注意",         "製品に同梱します"],
+    ["warranty", "保証のご案内",             "製品に同梱します"],
+    ["delivery", "納品書 兼 適格請求書",     "ご希望のお客様には同梱します（金額が載ります）"]
+  ].filter(function(x){ return u[x[0]]; });
+  if(!items.length) return;
+  var b = el("printbox");
+  if(!b){ b = document.createElement("div"); b.id = "printbox"; document.body.appendChild(b); }
+  b.innerHTML = '<h3>書類ができました</h3>' +
+    '<div class="sub">' + esc(r.order_no || "") + '　印刷して、同梱するものを箱に入れてから封をしてください。<br>' +
+    'このリンクは30分で使えなくなります（あとで必要になったらSに言ってください）。</div>' +
+    items.map(function(x){
+      return '<a href="' + esc(u[x[0]]) + '" target="_blank" rel="noopener">' + x[1] + '<small>' + x[2] + '</small></a>';
+    }).join("") +
+    '<button class="btn cls" id="printbox-close">閉じる</button>';
+  el("printbox-close").addEventListener("click", function(){ b.remove(); });
+}
+
 function toast(msg, bad){
   var t=el("toast"); if(!t){ t=document.createElement("div"); t.id="toast"; document.body.appendChild(t); }
   t.className = bad ? "bad" : ""; t.textContent = msg; t.style.display="block";
@@ -1607,6 +1641,10 @@ function wire(){
         .then(function(r){
           toast(r.order_no + "：" + r.shipped + "台を出荷済みにしました（保証の起算日 " + ymd(r.delivered_on) + "）" +
                 (r.remaining ? "／まだ" + r.remaining + "台残っています" : ""));
+          /* ★2026-09-14：全部出し終えたときだけ書類ができる。そのとき印刷の箱を出す。
+             ⚠️reload() で画面が描き直され、この受注は「出荷待ち」から消えるので、
+               箱は**画面の外（body直下）**に置く。自分で閉じるまで残る。 */
+          showPrintBox(r);
           return reload();
         })
         .catch(function(e){ b.disabled=false; toast(e.message, true); });
