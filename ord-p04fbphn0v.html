@@ -91,6 +91,11 @@ input.f,select.f{width:100%;font:inherit;font-size:15px;padding:9px 10px;border:
   color:var(--navy);text-decoration:none;font-size:14px;font-weight:600;background:#fff}
 #printbox a small{display:block;font-weight:400;font-size:12px;color:#6b7684;margin-top:2px}
 #printbox .cls{width:100%;margin-top:4px}
+/* ★2026-09-14：書類が作れなかったとき（赤）。同じ箱を色違いで使う＝置き場を2つに増やさない */
+#printbox.bad{border-color:#c0392b}
+#printbox.bad h3{color:#c0392b}
+#printbox.bad .sub b{color:#c0392b}
+#printbox .why{font-size:11.5px;color:#8b95a1;margin:8px 0 10px;word-break:break-all;line-height:1.5}
 /* ★2026-09-14：出荷待ちの札から、番号と写真を足すための欄（ふだんは畳んである） */
 a.redo{font-size:12px;color:var(--navy)}
 .redobox{margin:8px 0 2px;padding:10px 12px;background:#f6f8fa;border:1px solid #dfe5ec;border-radius:8px}
@@ -180,6 +185,22 @@ function showPrintBox(r){
     items.map(function(x){
       return '<a href="' + esc(u[x[0]]) + '" target="_blank" rel="noopener">' + x[1] + '<small>' + x[2] + '</small></a>';
     }).join("") +
+    '<button class="btn cls" id="printbox-close">閉じる</button>';
+  el("printbox-close").addEventListener("click", function(){ b.remove(); });
+}
+
+/* ★2026-09-14：出荷したのに書類が作れなかったとき。
+   なぜ帯（toast）ではなく箱か：帯は9秒で消えるので、見落とすと**誰も気づかない**。
+   出荷そのものは台帳に記録されているので、押し直さないこと（二度押しは受付係が弾く）。
+   ⚠️ここで知らせなくても、翌朝の1通に「出荷したのに納品書が出ていません」が出る（二重の備え）。 */
+function showDocFailBox(r, head, msg, why){
+  var b = el("printbox");
+  if(!b){ b = document.createElement("div"); b.id = "printbox"; document.body.appendChild(b); }
+  b.className = "bad";
+  b.innerHTML = '<h3>⚠️ ' + head + '</h3>' +
+    '<div class="sub">' + esc(r.order_no || "") + '　' + msg + '<br>' +
+    '<b>篠原にこの画面を伝えてください。</b>　出荷そのものは記録されているので、押し直さないでください。</div>' +
+    (why ? '<div class="why">' + esc(String(why).slice(0, 300)) + '</div>' : '') +
     '<button class="btn cls" id="printbox-close">閉じる</button>';
   el("printbox-close").addEventListener("click", function(){ b.remove(); });
 }
@@ -1691,8 +1712,24 @@ function wire(){
                 (r.remaining ? "／まだ" + r.remaining + "台残っています" : ""));
           /* ★2026-09-14：全部出し終えたときだけ書類ができる。そのとき印刷の箱を出す。
              ⚠️reload() で画面が描き直され、この受注は「出荷待ち」から消えるので、
-               箱は**画面の外（body直下）**に置く。自分で閉じるまで残る。 */
-          showPrintBox(r);
+               箱は**画面の外（body直下）**に置く。自分で閉じるまで残る。
+             ★2026-09-14(4)：**黙って終わらない**ようにした。前は①②のとき何も出ず、
+               緑の帯だけを見て「うまくいった」と思い込む形だった（実際に起こりうる）。
+               ① 書類が作れなかった（delivery_error）
+               ② 書類は出来たが、印刷の取り出し口が作れなかった
+               ③ ふつう → 印刷の箱
+               ※分納の途中（remaining>0）は、まだ書類を作らない決まりなので何も出さない。 */
+          var pu = r.print_urls;
+          if(r.remaining){ /* 分納の途中。書類はまだ作らない */ }
+          else if(r.delivery_error){
+            showDocFailBox(r, "書類が出来ていません（出荷は記録済み）",
+              "印刷する書類（納品書・保証のご案内・取り付けのご注意）が作れませんでした。", r.delivery_error);
+          }
+          else if(!pu || !(pu.notice || pu.warranty || pu.delivery)){
+            showDocFailBox(r, "印刷のリンクが作れません（書類は出来ています）",
+              "書類は出来ていて、篠原のメールの下書きに3枚とも添付されています。そちらから印刷してください。", "");
+          }
+          else showPrintBox(r);
           return reload();
         })
         .catch(function(e){ b.disabled=false; toast(e.message, true); });
