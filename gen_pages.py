@@ -528,7 +528,7 @@ def _shell(title, metad, canon, h1, crumb_html, body, jsonld, updir="../"):
 
 <footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
 掲載中の在庫品を短納期でお届けします。価格・お見積りはお問い合わせください。<br>
-<a href="{updir}list/">メーカー・シリーズ一覧</a> ｜ <a href="{updir}guide.html">サービス案内・保証規定</a> ｜ <a href="{updir}company.html">会社情報</a></footer>
+<a href="{updir}list/">メーカー・シリーズ一覧</a> ｜ <a href="{updir}guide.html">サービス案内・保証規定</a> ｜ <a href="{updir}contact/">お問い合わせ</a> ｜ <a href="{updir}company.html">会社情報</a></footer>
 {BEACON}
 </body></html>
 """
@@ -973,7 +973,7 @@ def render(row, slug, g=None, pos=0, gone=False):
 
 <footer>GEOPORT株式会社 — FA機器 / 登録番号 T1290001098731<br>
 掲載中の在庫品を短納期でお届けします。価格・お見積りはお問い合わせください。<br>
-<a href="../{LIST}/">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../company.html">会社情報</a></footer>
+<a href="../{LIST}/">メーカー・シリーズ一覧</a> ｜ <a href="../guide.html">サービス案内・保証規定</a> ｜ <a href="../contact/">お問い合わせ</a> ｜ <a href="../company.html">会社情報</a></footer>
 
 {lightbox}
 
@@ -1089,9 +1089,9 @@ def main():
     idx_changed = update_index(brands, live)
 
     w = Writer(today, read_old_lastmod())
-    # 固定ページ（会社情報・サービス案内）はこの生成の対象外なので日付を据え置く
+    # 固定ページ（会社情報・サービス案内・お問い合わせ）はこの生成の対象外なので日付を据え置く
     for loc, cf, pr in [("/", "daily", "1.0"), ("/company.html", "monthly", "0.5"),
-                        ("/guide.html", "monthly", "0.5")]:
+                        ("/guide.html", "monthly", "0.5"), ("/contact/", "monthly", "0.5")]:
         lm = today if (loc == "/" and idx_changed) else (w.old.get(SITE + loc) or today)
         w.urls.append((SITE + loc, lm, cf, pr))
 
