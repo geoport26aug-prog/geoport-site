@@ -85,6 +85,21 @@ header{background:linear-gradient(180deg,var(--dark),var(--black));border-bottom
 .meta{max-width:1180px;margin:0 auto;padding:14px 20px 4px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .meta b{color:var(--accent2);font-family:'Barlow',sans-serif}
 .grid{max-width:1180px;margin:0 auto;padding:8px 20px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:stretch;min-height:75vh}
+/* ★2026-09-14：中身が無いときは場所を取らない。
+   min-height:75vh は 2026-08-25 のCLS（表示のガタつき）対策で、**商品が出る前提**で入れたもの。
+   0件のときまで75vh の空白を確保してしまい、「見つかりませんでした」が画面の1,000px以上下に
+   押し下げられて、スマホでは**ただの真っ白**に見えていた（2026-09-14 実測）。
+   ⚠️CLS対策そのものは残す。空のときだけ外す。 */
+.grid.is-empty{min-height:0;padding-bottom:0}
+/* ★2026-09-14：0件のときに出す「型番の近い在庫品」。404ページと同じ仕掛けをこちらへ移した。
+   カードは通常の検索結果と**同じ .card** を使う（見た目を2種類に増やさない）。 */
+.nearh{max-width:1180px;margin:18px auto 0;padding:0 20px;font-size:15px;font-weight:700;color:var(--text)}
+.nearh span{font-weight:400;font-size:12.5px;color:var(--muted);margin-left:9px}
+.nearh a{font-weight:400;font-size:12.5px;margin-left:9px}
+/* ⚠️この2つも .grid なので、何もしないと 75vh の空白が付いてくる。ここでは場所を確保しない */
+#neargrid,#famgrid{min-height:0;padding-top:10px}
+/* スマホでは説明を次の行へ（狭いと「…しています」が単語の途中で折り返して見苦しい・375pxで実測） */
+@media (max-width:560px){.nearh span,.nearh a{display:block;margin-left:0;margin-top:3px}}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:.15s;cursor:pointer;position:relative}
 .card:hover{border-color:var(--accent);transform:translateY(-2px)}
 .cardlink{color:inherit;text-decoration:none}
@@ -179,6 +194,17 @@ header{background:#0f2f5c;border-color:#123354}
 <div class="grid" id="grid"></div>
 <div class="state" id="loading"><div class="spin"></div>クラウド倉庫から在庫を読み込み中…</div>
 <div class="state" id="empty" style="display:none">該当する製品が見つかりませんでした。</div>
+<!-- ★2026-09-14：0件のときの「型番の近い在庫品」「同じシリーズの在庫品」。
+     404ページ（/404.html）が既に持っていた仕掛けを、トップの検索窓にも持ってきたもの。
+     カードは通常の結果と同じ .grid / .card を使う。 -->
+<div id="nearwrap" style="display:none">
+  <div class="nearh" id="nearh">型番の近い在庫品<span>在庫のあるものだけを表示しています</span></div>
+  <div class="grid" id="neargrid"></div>
+</div>
+<div id="famwrap" style="display:none">
+  <div class="nearh" id="famh">同じシリーズの在庫品</div>
+  <div class="grid" id="famgrid"></div>
+</div>
 <div class="state err" id="error" style="display:none"></div>
 <div class="more" id="more" style="display:none"><button onclick="loadMore()">もっと見る</button></div>
 <div class="state" id="topnote" style="display:none">ここでは在庫の一部をご紹介しています。お探しの型番は、上の検索窓から<b id="topnote-n">全在庫</b>を対象に検索できます。</div>
@@ -458,7 +484,14 @@ function render(){
     var nn=$("topnote-n"); if(nn) nn.textContent="全"+TOTAL.toLocaleString()+"点";
   }
   var gEl=$("grid"); if(!gEl) return;
-  gEl.innerHTML=list.map(function(d){
+  /* ★2026-09-14：中身が無いときは 75vh の場所を取らない（0件のとき真っ白になっていた） */
+  gEl.className = list.length ? "grid" : "grid is-empty";
+  gEl.innerHTML=list.map(cardHtml).join("");
+  /* ★2026-09-14：0件のときだけ「型番の近い在庫品」を探す（404ページと同じ仕掛け） */
+  if(!filtered.length && mode==="find") showNear(); else hideNear();
+}
+/* 商品カード1枚ぶんのHTML。★通常の結果と「近い在庫品」で**同じものを使う**（見た目を2種類に増やさない） */
+function cardHtml(d){
     return '<div class="card"><div class="thumb'+(d.image_url?' has-img':'')+'"><span class="badge">● 在庫 '+h(d.stock)+' 点</span>'+(d.image_url?'<img class="thumbimg" src="'+h(d.image_url)+'" alt="'+h(d.article)+'" loading="lazy">':'<span class="pn">'+h(d.brand)+'</span>')+'</div>'+
     '<div class="cbody"><div class="brand">'+h(d.brand)+' · '+h(condLabel(d))+'</div><div class="art"><a class="cardlink" href="p/'+slugify(d.article)+'.html">'+h(d.article)+'</a></div>'+
     '<div class="desc">'+h(cardDesc(d))+'</div>'+
@@ -467,7 +500,65 @@ function render(){
     '<div class="dtxt"><b>在庫あり・約10〜14日でお届け</b></div></div>'+
     '<div class="golink">詳細を見る <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>'+
     '</div></div>';
-  }).join("");
+}
+
+/* ══ 0件だったときに「型番の近い在庫品」を出す（★2026-09-14 新設）════════════════
+   なぜ要るか：2026-09-10〜14 の記録で、探された型番が在庫に無いとき **何も出ないまま**
+   お客様が帰っていた。404ページ（型番のURLで来た人）は既に近い在庫を出していて、
+   実際に役立っていた（6EP1336-1LB00 で近い在庫4点＋同シリーズ8点）。
+   同じ仕掛けを**検索窓にも**持ってきた。新しく作ったものは何も無い。
+   ⚠️型番らしい語のときだけ動かす。「インバータ」のような言葉で前方一致しても意味がない。 */
+function askCatalog(qs){
+  return fetch(SB_URL+"/rest/v1/catalog?select="+SCOLS+"&"+qs+"&apikey="+SB_KEY,
+               {headers:{apikey:SB_KEY}})
+    .then(function(r){return r.ok?r.json():[];}).catch(function(){return [];});
+}
+/* 長い前方一致から順に短くし、最初に見つかったところで止める（404.html と同じ規則） */
+function findNear(slug){
+  var lens=[], n=slug.length, i;
+  for(i=n;i>=4;i--){ if(i===n||i===Math.floor(n*0.8)||i===Math.floor(n*0.6)||i===Math.floor(n*0.45)||i===4) lens.push(i); }
+  var step=function(k){
+    if(k>=lens.length) return Promise.resolve({prefix:"",rows:[]});
+    var p=slug.slice(0,lens[k]);
+    return askCatalog("article=ilike."+encodeURIComponent(p+"*")+"&order=article.asc&limit=8").then(function(rows){
+      return rows.length?{prefix:p,rows:rows}:step(k+1);
+    });
+  };
+  return step(0);
+}
+function hideNear(){
+  var a=$("nearwrap"), b=$("famwrap");
+  if(a) a.style.display="none";
+  if(b) b.style.display="none";
+}
+var nearSeq=0;
+function showNear(){
+  hideNear();
+  var q=($("q")?$("q").value:"").trim();
+  var slug=slugify(q);
+  /* 型番らしい語だけ（4文字以上・数字を含む）。slugify は日本語を落とすので、言葉の検索は自然に外れる */
+  if(slug.length<4 || !/[0-9]/.test(slug)) return;
+  var my=++nearSeq;
+  findNear(slug).then(function(res){
+    if(my!==nearSeq) return;                 // 打ち続けている途中の古い結果は捨てる
+    if(!res.rows.length) return;
+    $("neargrid").innerHTML=res.rows.map(cardHtml).join("");
+    $("nearwrap").style.display="block";
+    /* 同じシリーズの在庫品（すでに出したものは除く） */
+    var top=res.rows[0], fam=top.family||"", brand=top.brand||"";
+    if(!fam || fam==="None" || !brand) return;
+    var have={}; res.rows.forEach(function(x){have[x.article]=1;});
+    return askCatalog("family=eq."+encodeURIComponent(fam)+"&brand=eq."+encodeURIComponent(brand)+"&order=article.asc&limit=14")
+      .then(function(rows){
+        if(my!==nearSeq) return;
+        rows=rows.filter(function(x){return !have[x.article];}).slice(0,8);
+        if(!rows.length) return;
+        $("famh").innerHTML='同じシリーズの在庫品<span>'+h([brand,fam].filter(Boolean).join(" "))+'</span>'+
+          '<a href="list/'+slugify(brand)+'.html">'+h(brand)+' の一覧</a>';
+        $("famgrid").innerHTML=rows.map(cardHtml).join("");
+        $("famwrap").style.display="block";
+      });
+  });
 }
 function loadMore(){
   if(shown<filtered.length){shown+=PAGE;render();return;}           // 手元にある分をさらに出す
