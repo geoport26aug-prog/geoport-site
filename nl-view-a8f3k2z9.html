@@ -43,6 +43,8 @@
   .profit2 .pr{display:block;font-size:11px;font-weight:700;margin-top:2px;color:var(--ink-soft)}
   /* ★お届け予定日「予定9/10」（S要望 2026-09-03）。出荷済みで予定日が分かっている品にだけ出る */
   .eta{color:var(--good);font-weight:700}
+  /* ★出荷前の「見込み」は確定と区別して控えめに（§133・2026-09-08） */
+  .eta.hope{color:var(--ink-soft);font-weight:600}
   .rate{min-width:34px;text-align:right;font-size:11px;font-weight:700;color:var(--ink-faint);padding-left:6px;align-self:center}
   .rate.warn{color:var(--warn)}
   .rate.bad{color:var(--crit);font-size:12px}
@@ -75,9 +77,14 @@
   .qty{text-align:right;font-weight:700;font-size:15px}
   .qty small{font-size:11px;color:var(--ink-faint);font-weight:600;margin-left:1px}
   .trend{padding:18px 18px 16px;margin-bottom:8px}
-  .bars{display:flex;align-items:flex-end;gap:14px;height:130px;margin-top:8px}
-  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end}
-  .bar .col{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 70%,transparent));min-height:4px}
+  /* ★棒を描く場所(.plot)を文字と切り離す（2026-09-15・§155）。
+     以前は .bar（高さ130px固定）の中に「金額・率・棒・月名」を縦に並べ、棒だけ height:◯% としていた。
+     文字とスペースを取り合うため**長い棒ほど押し縮められ**、8月(67%)・9月(69%)が6月(100%)と同じ長さに見えていた。
+     → 棒の領域を96pxに固定し、棒の高さはpxで決める（縮まない＝数字どおりの長さになる）。 */
+  .bars{display:flex;align-items:flex-end;gap:14px;margin-top:8px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;justify-content:flex-end}
+  .bar .plot{width:100%;height:96px;display:flex;align-items:flex-end}
+  .bar .col{width:100%;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 70%,transparent));min-height:3px;flex:0 0 auto}
   .bar.cur .col{background:linear-gradient(180deg,var(--good),color-mix(in srgb,var(--good) 65%,transparent))}
   .bar .v{font-size:11px;font-weight:700;color:var(--ink-soft)}
   .bar .r{font-size:10px;font-weight:700;color:var(--ink-faint);margin-top:-4px}
@@ -152,6 +159,10 @@
   function mmdd(iso){ if(!iso) return ''; var p=iso.split('-'); return (+p[1])+'/'+(+p[2]); }
   // ★利益率（§118）。原価が分からなければ空欄。マイナス＝逆ざや（赤）、10%未満＝注意。
   //   文言は付けず数字だけ出す（画面をのぞかれても意味が伝わりにくいように・S案）。
+  // 「9月」→9。読めなければ99（並べ替えの最後尾へ）
+  function monthNum(s){ var m = String(s||'').match(/(\d+)/); return m ? parseInt(m[1],10) : 99; }
+  // 今月(cur)を0として、前後どちらの月かを返す。半年より離れていたら年をまたいだと見なす（§155）
+  function monthKey(s, cur){ var d = monthNum(s) - cur; return d > 6 ? d - 12 : (d < -6 ? d + 12 : d); }
   function rateInfo(sell, cost){
     if(cost==null || !(sell>0)) return {cls:'', t:''};
     // 表示は整数％。色は**表示する数字**で決める（9.9%を「10%」と出しつつ注意色…という食い違いを防ぐ）
@@ -199,7 +210,10 @@
       var ql = x.quality ? '<span class="ql">'+esc(x.quality)+'</span> ・ ' : '';
       var acc = x.plan_month ? ' ・ 検収 '+esc(x.plan_month) : ''; // ★予定検収月
       // ★お届け予定日。仕入先から出荷済みで予定日が分かっているときだけ出す（S要望 2026-09-03）
-      var eta = x.eta_date ? ' ・ <span class="eta">予定 '+mmdd(x.eta_date)+'</span>' : '';
+      // 出荷済み＝確定の「予定」、出荷前＝仕入先の事前通知による「見込」（色を分ける）
+      var eta = x.eta_date
+        ? ' ・ <span class="eta'+(x.shipped?'':' hope')+'">'+(x.shipped?'予定 ':'見込 ')+mmdd(x.eta_date)+'</span>'
+        : '';
       var el = document.createElement('div'); el.className='item';
       el.innerHTML =
         '<div class="due '+di.cls+'">'+di.t+'<small>'+mmdd(x.due_date)+'</small></div>'+
@@ -229,27 +243,36 @@
           '<span class="ship '+starCls+'">⟲</span>'+
           '<span class="name">'+esc(x.kata)+'</span></div>'+
           '<div class="meta tnum"><span class="ql">代替品</span>'+(x.note?' ・ '+esc(x.note):'')+
-            (x.eta_date?' ・ <span class="eta">予定 '+mmdd(x.eta_date)+'</span>':'')+trk+'</div></div>'+
+            (x.eta_date?' ・ <span class="eta'+(x.color||x.tracking_no?'':' hope')+'">'+((x.color||x.tracking_no)?'予定 ':'見込 ')+mmdd(x.eta_date)+'</span>':'')+trk+'</div></div>'+
         '<div class="qty tnum">'+x.qty+'<small>点</small></div>';
       L.appendChild(el);
     });
 
-    var max = Math.max.apply(null, d.trend.map(function(t){return t.amount;}).concat([1]));
+    // ★月の順に並べ替える（2026-09-15・§155）。台帳側は「9月」のような文字で持っているため、
+    //   そのまま並べると**文字の順**になり「10月」が「5月」より前＝いちばん左に出ていた。
+    //   今月からの差で見て、半年より離れていたら年をまたいだと見なす
+    //   （12月に1月分＝翌年で右／1月に12月分＝前年で左／9月に10月分＝翌月で右）。請求書の支払期限と同じ考え方。
+    var curN = monthNum(d.month_label);
+    var trend = d.trend.slice().sort(function(a,b){ return monthKey(a.month,curN) - monthKey(b.month,curN); });
+    var max = Math.max.apply(null, trend.map(function(t){return t.amount;}).concat([1]));
     var B = document.getElementById('bars'); B.innerHTML='';
-    d.trend.forEach(function(t){
+    trend.forEach(function(t){
       var cur = (t.month === d.month_label);
-      var h = Math.max(4, Math.round(t.amount/max*100));
+      // ★棒の高さは**px**で決める（.plot=96px）。%だと文字とスペースを取り合って長い棒ほど縮み、
+      //   数字どおりの長さにならなかった（実測：8月67%・9月69%が6月100%と同じ高さで表示されていた）。
+      var h = Math.max(3, Math.round(t.amount/max*96));
       var m = (t.amount/1000000).toFixed(1);
       var el = document.createElement('div'); el.className='bar'+(cur?' cur':'');
       // 率＝粗利 ÷「原価が判明している分の売上」。売上Mの下に数字だけ出す（§118）
       var tr = rateInfo(t.known_amount, (t.known_amount||0) - (t.gross_profit||0));
       el.innerHTML = '<div class="v tnum">¥'+m+'M</div>'+
         '<div class="r tnum'+(tr.cls?' '+tr.cls:'')+'">'+tr.t+'</div>'+
-        '<div class="col" style="height:'+h+'%"></div><div class="m">'+esc(t.month)+'</div>';
+        '<div class="plot"><div class="col" style="height:'+h+'px"></div></div>'+
+        '<div class="m">'+esc(t.month)+'</div>';
       B.appendChild(el);
     });
     document.getElementById('trendNote').innerHTML =
-      d.trend.map(function(t){return esc(t.month)+' '+yen(t.amount);}).join(' ／ ')+
+      trend.map(function(t){return esc(t.month)+' '+yen(t.amount);}).join(' ／ ')+
       '<br>※ データは2026年5月途中から。集計途中の月は途中集計です。';
 
     document.getElementById('loading').classList.add('hidden');
