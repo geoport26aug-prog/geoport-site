@@ -1735,7 +1735,19 @@ function wire(){
               "書類は出来ていて、篠原のメールの下書きに3枚とも添付されています。そちらから印刷してください。", "");
           }
           else showPrintBox(r);
-          return reload();
+          /* ★2026-09-17：発送のご連絡の下書きは**もう1回の呼び出し**で作る。
+             1回でまとめてやると、フォント5.4MB＋PDF3枚9.3MB＋base64 12.3MB＋複製が
+             同時に載って**ワーカーのメモリ上限を超える**（2026-09-17 の初出荷で実際に発生）。
+             ⚠️奥様のボタンは1回のまま。画面が続けて呼ぶだけ。
+             ⚠️**ここが失敗しても出荷と書類は残っている。**だから出荷をやり直させない。 */
+          if(r.remaining || r.delivery_error) return reload();
+          return act({ action:"ship_mail", order_id:id })
+            .then(function(){ toast("発送のご連絡を、Gmailの下書きに作りました（中身を見て送ってください）"); })
+            .catch(function(e){
+              showDocFailBox(r, "発送のご連絡の下書きだけ作れませんでした",
+                "書類はできています（上の印刷の箱から印刷できます）。メールの下書きだけが作れませんでした。", e.message);
+            })
+            .then(reload);
         })
         .catch(function(e){ b.disabled=false; toast(e.message, true); });
     });
