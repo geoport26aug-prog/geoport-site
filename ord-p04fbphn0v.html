@@ -477,7 +477,7 @@ function mqBasisHtml(b, cur){
     if(!l.found || l.list_eur==null){ h += '<tr><td>' + esc(l.article) + '</td><td colspan="5" style="color:#b23">' + esc(l.note||"") + '</td></tr>'; return; }
     var pct = function(p){ return p==null ? "" : "（" + p + "%）"; };
     h += '<tr><td>' + esc(l.article) + '</td><td>' + esc(l.condition||"") + '・在庫' + l.stock + '</td>' +
-      '<td style="text-align:right">' + yen(l.cost_jpy + l.ship_jpy + l.duty_jpy) + '<br><span class="note">€' + l.list_eur + '×' + (b.discount*100).toFixed(0) + '%' + (l.ship_eur ? '＋送料€' + l.ship_eur : '・送料無料') + (l.duty_pct ? '＋関税' + l.duty_pct + '%' : '') + '</span></td>' +
+      '<td style="text-align:right">' + yen(l.cost_jpy + l.ship_jpy + l.duty_jpy) + '<br><span class="note">€' + l.list_eur + '×' + (l.disc_pct==null ? (b.discount*100).toFixed(0) : (100 - l.disc_pct)) + '%' + (l.ship_eur ? '＋送料€' + l.ship_eur : '・送料無料') + (l.duty_pct ? '＋関税' + l.duty_pct + '%' : '') + '</span></td>' +
       '<td style="text-align:right">' + (l.diff_vs_jc_list==null ? "—" : (l.diff_vs_jc_list>0?"+":"") + Number(l.diff_vs_jc_list).toLocaleString("en-US") + ' ' + esc(cur)) + '<br><span class="note">JC定価 ' + (l.jc_list_in_currency==null?"—":Number(l.jc_list_in_currency).toLocaleString("en-US")) + '</span></td>' +
       '<td style="text-align:right">' + (l.margin_refund_jpy==null?"—":yen(l.margin_refund_jpy) + pct(l.margin_refund_pct)) + '</td>' +
       '<td style="text-align:right">' + (l.margin_norefund_jpy==null?"—":yen(l.margin_norefund_jpy) + pct(l.margin_norefund_pct)) + '</td></tr>';
@@ -865,7 +865,7 @@ function jcForm(o){
     f("送料（Total shipping and charges）", "ship", p.shipping_eur, "35.00") +
     f("VAT（日本向けは 0）", "vat", p.vat_eur==null?"0":p.vat_eur, "0.00") +
     f("★請求書に印字された合計（検算に使います）", "tot", p.total_eur, "422.00") +
-    f("割引率 Kort.-%（合意は15）", "disc", p.discount_pct, "15") +
+    f("割引率 Kort.-%（新品15／リファビッシュ7.5）", "disc", p.discount_pct, "7.5") +
     f("支払い方法", "pm", p.payment_method, "PayPal / 銀行振込") +
     f("支払った日", "paid", p.paid_on, "", "date") +
     '<div class="note" style="margin:8px 0 2px">出荷連絡が来たら</div>' +
