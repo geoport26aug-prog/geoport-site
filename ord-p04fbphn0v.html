@@ -964,10 +964,13 @@ function paneInspect(){
            (u.description ? '　<span class="sn">' + esc(u.description) + "</span>" : "") +
            // ★写真が先。ラベルと封印シールの2枚。
            '<label class="f" style="margin-top:8px">① 写真をとる（銘板・封印シール）★これがいちばん大事な記録です</label>' +
-           '<input class="f" type="file" accept="image/*" capture="environment" multiple id="ip-' + u.unit_id + '">' +
+           /* ⚠️capture を付けない。付けるとiPhoneは**カメラしか開かず、写真ライブラリを選べない**
+              （2026-09-17 に実際に詰まった）。外すと「写真ライブラリ／写真を撮る／ファイルを選択」の
+              3つが出るので、**その場で撮るのも、あとから選ぶのも、どちらもできる**。 */
+           '<input class="f" type="file" accept="image/*" multiple id="ip-' + u.unit_id + '">' +
            '<div class="note" id="ipn-' + u.unit_id + '">' +
              (done ? '保存済みの写真 ' + done + ' 枚（撮り直すと足されます。前の写真は消えません）'
-                   : 'スマホなら、その場で撮れます。2枚まとめて選べます。') + '</div>' +
+                   : 'その場で撮っても、撮ってある写真から選んでも構いません。まとめて選べます。') + '</div>' +
            '<label class="f" style="margin-top:10px">② 番号（読めたときだけでOK。空でもかまいません）</label>' +
            /* ★2026-09-14：J-Certified 封印シールの番号の欄を外した。
               2026-09-09 に「番号が印字されているか現物で確認し、無ければこの欄を消す」と決めていた。
@@ -1024,7 +1027,9 @@ function paneShip(){
              '<label class="f">製造番号（銘板の Serial No.。4桁以下なら Id.-No. を前に：例 13142075-0076）</label>' +
              '<input class="f" id="rs-' + u.unit_id + '" value="' + esc(u.serial_no || "") + '">' +
              '<label class="f" style="margin-top:8px">写真を足す（前の写真は消えません）</label>' +
-             '<input class="f" type="file" accept="image/*" capture="environment" multiple id="rp-' + u.unit_id + '">' +
+             /* 🔴ここは**あとから足す**ための欄。capture が付いていると
+                カメラしか開かず、**手元にある写真を選べない＝機能の目的が果たせない**（2026-09-17 発覚）。 */
+             '<input class="f" type="file" accept="image/*" multiple id="rp-' + u.unit_id + '">' +
              '<div class="btns"><button class="btn" data-redosave="' + u.unit_id + '">記録する</button></div>' +
            "</div></div></div>";
     });
