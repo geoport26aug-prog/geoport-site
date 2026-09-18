@@ -65,6 +65,10 @@
   .kata .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .meta{font-weight:500;font-size:11.5px;color:var(--ink-faint);margin-top:1px}
   .ql{font-weight:700;color:var(--ink-soft)}
+  /* ★要判断の箱（§159）：本文は折りたたみ。長い通知でも一覧が崩れないように */
+  .more{font-weight:700;color:var(--accent);cursor:pointer}
+  .detail{white-space:pre-wrap;word-break:break-word;font-size:11.5px;line-height:1.55;color:var(--ink-soft);
+    background:var(--surface-2);border-radius:9px;padding:9px 10px;margin:7px 0 0;max-height:320px;overflow:auto}
   .sup{font-size:10px;line-height:1;color:var(--ink-faint);flex:none;opacity:.9;font-weight:700}
   .ship{font-size:12px;line-height:1;flex:none;color:var(--c0)}
   .ship.c1{color:var(--c1)}.ship.c2{color:var(--c2)}.ship.c3{color:var(--c3)}.ship.c4{color:var(--c4)}.ship.c5{color:var(--c5)}
@@ -119,6 +123,12 @@
     </header>
     <div class="loading" id="loading">読み込み中…</div>
     <div id="content" class="hidden">
+      <!-- ★要判断の箱（§159）＝「今日、決めること」。0件のときは丸ごと隠す。 -->
+      <div id="todoWrap" class="hidden">
+        <h2 class="sec">要判断の箱 <span class="count" id="todoBadge"></span></h2>
+        <div class="card list" id="todoList"></div>
+      </div>
+
       <h2 class="sec">未納品リスト <span class="count" id="unBadge"></span></h2>
       <div class="card list" id="unList"></div>
 
@@ -159,6 +169,30 @@
   function mmdd(iso){ if(!iso) return ''; var p=iso.split('-'); return (+p[1])+'/'+(+p[2]); }
   // ★利益率（§118）。原価が分からなければ空欄。マイナス＝逆ざや（赤）、10%未満＝注意。
   //   文言は付けず数字だけ出す（画面をのぞかれても意味が伝わりにくいように・S案）。
+  // ★要判断の箱（§159）＝「今日、決めること」。通知メールは埋もれるので、ここを1日1回見れば足りる形にする。
+  //   本文は長いので折りたたみ（見出しを押すと開く）。0件なら丸ごと隠す。
+  function renderTodos(list){
+    var wrap = document.getElementById('todoWrap');
+    var box  = document.getElementById('todoList');
+    if(!list.length){ wrap.classList.add('hidden'); return; }
+    wrap.classList.remove('hidden');
+    document.getElementById('todoBadge').textContent = list.length + '件';
+    box.innerHTML = '';
+    list.forEach(function(t){
+      var el = document.createElement('div'); el.className = 'item';
+      var mmdd = (t.at||'').slice(5,10).replace('-','/');
+      var hhmm = (t.at||'').slice(11,16);
+      el.innerHTML =
+        '<div class="due n tnum">' + esc(mmdd) + '<small>' + esc(hhmm) + '</small></div>' +
+        '<div class="mid"><div class="kata"><span class="name">' + esc(t.title || t.kind) + '</span></div>' +
+          '<div class="meta">' + (t.ref ? esc(t.ref) + ' ・ ' : '') + '<span class="more">くわしく</span></div>' +
+          '<pre class="detail hidden"></pre></div>' +
+        '<div class="qty tnum">#' + t.id + '</div>';
+      var pre = el.querySelector('.detail'); pre.textContent = t.detail || '';
+      el.querySelector('.more').addEventListener('click', function(){ pre.classList.toggle('hidden'); });
+      box.appendChild(el);
+    });
+  }
   // 「9月」→9。読めなければ99（並べ替えの最後尾へ）
   function monthNum(s){ var m = String(s||'').match(/(\d+)/); return m ? parseInt(m[1],10) : 99; }
   // 今月(cur)を0として、前後どちらの月かを返す。半年より離れていたら年をまたいだと見なす（§155）
@@ -180,6 +214,7 @@
 
   function render(d){
     document.getElementById('asof').textContent = (d.asof||'').replace(/-/g,'/') + ' 時点';
+    renderTodos(d.todos || []);
     document.getElementById('mlabel').textContent = d.month_label;
     document.getElementById('mlabel2').textContent = d.month_label;
     document.getElementById('oTotal').innerHTML = '<span class="yen">¥</span>' + plain(d.order_total);
