@@ -176,7 +176,7 @@
   //   文言は付けず数字だけ出す（画面をのぞかれても意味が伝わりにくいように・S案）。
   // ★要判断の箱（§159）＝「今日、決めること」。通知メールは埋もれるので、ここを1日1回見れば足りる形にする。
   //   本文は長いので折りたたみ（見出しを押すと開く）。0件なら丸ごと隠す。
-  function renderTodos(list){
+  function renderTodos(list, asof){
     var wrap = document.getElementById('todoWrap');
     var box  = document.getElementById('todoList');
     if(!list.length){ wrap.classList.add('hidden'); return; }
@@ -197,7 +197,7 @@
       // ★期日（先方が約束した日）。過ぎていれば赤、当日までなら注意色（§165）
       var wcls = '', wtxt = '';
       if(t.watch){
-        var today = (d.asof || '').slice(0,10);
+        var today = (asof || '').slice(0,10);
         wtxt = '期日 ' + t.watch.slice(5).replace('-','/');
         wcls = (t.watch < today) ? ' bad' : ((t.watch === today) ? ' warn' : '');
         if(t.watch < today) wtxt += '（過ぎています）';
@@ -237,7 +237,7 @@
 
   function render(d){
     document.getElementById('asof').textContent = (d.asof||'').replace(/-/g,'/') + ' 時点';
-    renderTodos(d.todos || []);
+    renderTodos(d.todos || [], d.asof || '');
     document.getElementById('mlabel').textContent = d.month_label;
     document.getElementById('mlabel2').textContent = d.month_label;
     document.getElementById('oTotal').innerHTML = '<span class="yen">¥</span>' + plain(d.order_total);
