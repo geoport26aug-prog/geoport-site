@@ -69,6 +69,9 @@
   .more{font-weight:700;color:var(--accent);cursor:pointer}
   /* ★「対応済みらしい」＝送信履歴はあるが確証は無い。消さずに薄く残す（§163） */
   .item.faded{opacity:.5}
+  /* ★メールの要点（§165）。見出しの下に、何の件かを1〜2行で */
+  .sum{font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.5}
+  .wu{font-weight:700;color:var(--ink-soft)}.wu.warn{color:var(--warn)}.wu.bad{color:var(--crit)}
   .detail{white-space:pre-wrap;word-break:break-word;font-size:11.5px;line-height:1.55;color:var(--ink-soft);
     background:var(--surface-2);border-radius:9px;padding:9px 10px;margin:7px 0 0;max-height:320px;overflow:auto}
   .sup{font-size:10px;line-height:1;color:var(--ink-faint);flex:none;opacity:.9;font-weight:700}
@@ -191,10 +194,20 @@
       var el = document.createElement('div'); el.className = 'item' + (t.status==='likely' ? ' faded' : '');
       var mmdd = (t.at||'').slice(5,10).replace('-','/');
       var hhmm = (t.at||'').slice(11,16);
+      // ★期日（先方が約束した日）。過ぎていれば赤、当日までなら注意色（§165）
+      var wcls = '', wtxt = '';
+      if(t.watch){
+        var today = (d.asof || '').slice(0,10);
+        wtxt = '期日 ' + t.watch.slice(5).replace('-','/');
+        wcls = (t.watch < today) ? ' bad' : ((t.watch === today) ? ' warn' : '');
+        if(t.watch < today) wtxt += '（過ぎています）';
+      }
       el.innerHTML =
-        '<div class="due n tnum">' + esc(mmdd) + '<small>' + esc(hhmm) + '</small></div>' +
+        '<div class="due' + (wcls===' bad' ? ' c' : (wcls===' warn' ? ' w' : ' n')) + ' tnum">' + esc(mmdd) + '<small>' + esc(hhmm) + '</small></div>' +
         '<div class="mid"><div class="kata"><span class="name">' + esc(t.title || t.kind) + '</span></div>' +
-          '<div class="meta">' + (t.status==='likely' && t.why ? '対応済みらしい：' + esc(t.why) + ' ・ ' : '')
+          (t.summary ? '<div class="sum">' + esc(t.summary) + '</div>' : '') +
+          '<div class="meta">' + (wtxt ? '<span class="wu' + wcls + '">' + esc(wtxt) + '</span> ・ ' : '')
+          + (t.status==='likely' && t.why ? '対応済みらしい：' + esc(t.why) + ' ・ ' : '')
           + '<span class="more">くわしく</span></div>' +
           '<pre class="detail hidden"></pre></div>' +
         '<div class="qty tnum">#' + t.id + '</div>';
