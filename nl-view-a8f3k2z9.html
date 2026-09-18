@@ -67,6 +67,8 @@
   .ql{font-weight:700;color:var(--ink-soft)}
   /* ★要判断の箱（§159）：本文は折りたたみ。長い通知でも一覧が崩れないように */
   .more{font-weight:700;color:var(--accent);cursor:pointer}
+  /* ★「対応済みらしい」＝送信履歴はあるが確証は無い。消さずに薄く残す（§163） */
+  .item.faded{opacity:.5}
   .detail{white-space:pre-wrap;word-break:break-word;font-size:11.5px;line-height:1.55;color:var(--ink-soft);
     background:var(--surface-2);border-radius:9px;padding:9px 10px;margin:7px 0 0;max-height:320px;overflow:auto}
   .sup{font-size:10px;line-height:1;color:var(--ink-faint);flex:none;opacity:.9;font-weight:700}
@@ -176,16 +178,24 @@
     var box  = document.getElementById('todoList');
     if(!list.length){ wrap.classList.add('hidden'); return; }
     wrap.classList.remove('hidden');
-    document.getElementById('todoBadge').textContent = list.length + '件';
+    // ★open＝放置中を先に、likely＝対応済みらしいを後ろに薄く（§163）。件数は「放置中」の数を出す。
+    var openN = list.filter(function(t){ return (t.status||'open') !== 'likely'; }).length;
+    document.getElementById('todoBadge').textContent = openN + '件'
+      + (list.length > openN ? '（ほか対応済みらしい' + (list.length - openN) + '件）' : '');
+    list = list.slice().sort(function(a,b){
+      var ax = (a.status==='likely')?1:0, bx = (b.status==='likely')?1:0;
+      return ax - bx || b.id - a.id;
+    });
     box.innerHTML = '';
     list.forEach(function(t){
-      var el = document.createElement('div'); el.className = 'item';
+      var el = document.createElement('div'); el.className = 'item' + (t.status==='likely' ? ' faded' : '');
       var mmdd = (t.at||'').slice(5,10).replace('-','/');
       var hhmm = (t.at||'').slice(11,16);
       el.innerHTML =
         '<div class="due n tnum">' + esc(mmdd) + '<small>' + esc(hhmm) + '</small></div>' +
         '<div class="mid"><div class="kata"><span class="name">' + esc(t.title || t.kind) + '</span></div>' +
-          '<div class="meta">' + (t.ref ? esc(t.ref) + ' ・ ' : '') + '<span class="more">くわしく</span></div>' +
+          '<div class="meta">' + (t.status==='likely' && t.why ? '対応済みらしい：' + esc(t.why) + ' ・ ' : '')
+          + '<span class="more">くわしく</span></div>' +
           '<pre class="detail hidden"></pre></div>' +
         '<div class="qty tnum">#' + t.id + '</div>';
       var pre = el.querySelector('.detail'); pre.textContent = t.detail || '';
