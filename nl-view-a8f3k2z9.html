@@ -132,6 +132,7 @@
       <div id="todoWrap" class="hidden">
         <h2 class="sec">要判断の箱 <span class="count" id="todoBadge"></span></h2>
         <div class="card list" id="todoList"></div>
+        <p class="note" id="todoNote" style="margin-top:-14px;margin-bottom:20px;border:0;padding-top:4px"></p>
       </div>
 
       <h2 class="sec">未納品リスト <span class="count" id="unBadge"></span></h2>
@@ -181,6 +182,9 @@
     var box  = document.getElementById('todoList');
     if(!list.length){ wrap.classList.add('hidden'); return; }
     wrap.classList.remove('hidden');
+    // ★閉じ方を必ず書いておく（§167）。S様が自分で片づけられないと、片づかない箱になる。
+    var note = document.getElementById('todoNote');
+    if(note) note.textContent = '片づいたものは info+ai@ へ「#番号 済」と送れば消えます（例：#14 済）。';
     // ★open＝放置中を先に、likely＝対応済みらしいを後ろに薄く（§163）。件数は「放置中」の数を出す。
     var openN = list.filter(function(t){ return (t.status||'open') !== 'likely'; }).length;
     document.getElementById('todoBadge').textContent = openN + '件'
