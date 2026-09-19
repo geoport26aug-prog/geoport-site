@@ -327,6 +327,24 @@ function jcbuyHtml(list, refNo){
     '</span></div>';
 }
 
+/* ★在庫を確かめた印（2026-09-19）
+   「🔴見積を出した品が、仕入先で在庫切れになりました」は毎回その場で作られるので、
+   確かめて誤報だと分かっても消せなかった。JCのフィードは在庫があるのに0で来ることがある
+   （2026-09-19 実測：ウェブショップには15台）。鳴りっぱなしは本当の異常を見逃す原因になる。
+   ⚠️消えるのは**この知らせだけ**。見積・期限切れの知らせ・受注側の在庫の見張りはそのまま。 */
+function stockAckHtml(q){
+  var gone = (q.jcbuy||[]).filter(function(b){ return b.out_of_stock; });
+  if(q.stock_ack_at){
+    return '<div class="meta" style="color:#166534">✅ <b>在庫を確かめました</b>（' + ymdJ(q.stock_ack_at) + '）' +
+      (q.stock_ack_note ? '<br>' + esc(q.stock_ack_note) : '') +
+      '<br><button class="btn sec" data-stockack="' + q.request_id + '" data-clear="1">また知らせてもらう</button></div>';
+  }
+  if(!gone.length) return "";
+  return '<div class="meta"><button class="btn sec" data-stockack="' + q.request_id + '">' +
+    '在庫を確かめた（この知らせを消す）</button>' +
+    '<span style="color:var(--sub)">　※JCの商品ページで在庫を見てから押してください</span></div>';
+}
+
 /* ★ファームウェアのバージョン確認（2026-09-11）
    流れ：①見積は止めない → ②JCへ確認（この画面から下書き）→ ③お客様へご連絡（同じくここから）
    🔴③に出すバージョンは、JCの原文をSが見て入力した値だけを使う（AIの読み取りを流し込まない）。 */
@@ -589,6 +607,7 @@ function paneOrder(){
       h += '<div class="next">次：お客様の返事待ち（返信が届くと自動でここに出ます）</div>';
     }
     h += fwHtml(q);
+    h += stockAckHtml(q);
     h += jcbuyHtml(q.jcbuy, "");
     h += buybackHtml(q.buyback);
     if(q.expired) h += '<p class="note">為替で価格が動くため、再見積を出してから受注にしてください。どうしてもこの価格で受注する場合は、台帳に「期限切れの見積で受注した」と記録が残ります。</p>';
@@ -1401,6 +1420,23 @@ function wire(){
           return reload();
         })
         .catch(function(e){ b.disabled=false; b.textContent=was; toast(e.message, true); });
+    });
+  });
+
+  // ★在庫を確かめた印（2026-09-19）。押すと「仕入先で在庫切れ」の知らせが消える（台帳の見積は変わらない）
+  root.querySelectorAll("[data-stockack]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var id = Number(b.getAttribute("data-stockack"));
+      var clear = b.getAttribute("data-clear") === "1";
+      var note = "";
+      if(!clear){
+        note = prompt("どう確かめましたか（あとで見て分かるように）\n例：JCのサイトで15台を確認。フィードの誤り", "JCのサイトで在庫を確認");
+        if(note === null) return;
+      }
+      b.disabled = true; var was = b.textContent; b.textContent = "…";
+      act({ action:"stock_ack", request_id:id, clear:clear, note:note })
+        .then(function(){ load(); })
+        .catch(function(e){ alert("できませんでした：" + e.message); b.disabled=false; b.textContent=was; });
     });
   });
 
