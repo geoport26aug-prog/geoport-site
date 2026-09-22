@@ -646,7 +646,10 @@ fitStick(); window.addEventListener("resize",fitStick); window.addEventListener(
   var m=(location.search||"").match(/[?&]art=([^&]+)/);
   if(m){ var art; try{art=decodeURIComponent(m[1].replace(/\+/g," "));}catch(e){art=m[1];} if(art) openModal(art); }
 })();
-/* ★2026-09-12 在庫の「総数」と「データ更新の日時」だけを、開いたときに1回だけ確かめる（S承認）。
+/* ★2026-09-22：ここに出す日時は「**仕入先のデータが最後に変わった時刻**」（source_updated_at）。
+   JCは24時間に1回しか書き出さない（蘭03:35＝東京10:35ごろ。2026-09-22 Patrick の回答）。
+   以前は**当社が読んだ時刻**を出しており、毎時読んでいるぶん**実態より新しく見えていた**。
+   ★2026-09-12 在庫の「総数」と「データ更新の日時」だけを、開いたときに1回だけ確かめる（S承認）。
    一覧そのものは焼き込みのまま（＝カードを出すための通信は0回のまま）。数字だけを実態に合わせる。
    焼き込みは1日1回なので、JCの在庫が大きく動いた日は古い数字を出していた。
      実例：2026-09-11 23:00 に 2,220点 減ったのに、画面は翌朝まで 26,491点（実際は24,283点）のまま。
@@ -678,7 +681,7 @@ function refreshLive(){
       var u=rows[0].source_updated_at;   // timestamptz。Date に通すので時差は自動で合う（切らない）
       if(!u) return;
       var d=new Date(u); if(isNaN(d.getTime())) return;
-      var st=$("sync-t"); if(st) st.textContent="データ更新 "+d.toLocaleString("ja-JP");
+      var st=$("sync-t"); if(st) st.textContent="仕入先データ "+d.toLocaleString("ja-JP")+" 更新";
     })["catch"](function(){});           // 通信が失敗しても画面には何も出さない
   }catch(e){}
 }
@@ -693,7 +696,7 @@ function refreshLive(){
   buildBrands();brandList();apply();
   refreshLive();
   var st=$("sync-t");
-  if(st) st.textContent=UPDATED?("データ更新 "+new Date(UPDATED).toLocaleString("ja-JP")):"接続済み";
+  if(st) st.textContent=UPDATED?("仕入先データ "+new Date(UPDATED).toLocaleString("ja-JP")+" 更新"):"接続済み";
 })();
 </script>
 <!-- Cloudflare Web Analytics（社内アクセスは除外・2026-09-10）--><script>(function(){try{var p=new URLSearchParams(location.search);if(p.has("noanalytics")){localStorage.setItem("gp_noan","1");}else if(p.has("analytics")){localStorage.removeItem("gp_noan");}if(localStorage.getItem("gp_noan"))return;}catch(e){}var s=document.createElement("script");s.defer=true;s.src="https://static.cloudflareinsights.com/beacon.min.js";s.setAttribute("data-cf-beacon",'{"token": "1f55d2e30afe4d8a806863540932191d"}');document.head.appendChild(s);})();</script><!-- End Cloudflare Web Analytics -->
