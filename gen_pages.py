@@ -365,6 +365,30 @@ def build_index(rows):
     out.sort(key=lambda b: (-b["count"], b["name"].lower()))
     return out
 
+def gwidth(s):
+    """検索結果での見た目の幅（目安）。全角=1・半角=0.5 で数える。
+       Googleは字数ではなく幅で切るので、字数で測ると長い型番のときに外す。"""
+    return sum(1 if ord(c) > 0x2E80 else 0.5 for c in s)
+
+
+def fit_title(art, brand, fam, tails, limit=28.0):
+    """題名を表示幅に収める。削る順は シリーズ → メーカー → （それでも入らなければ）短い tail。
+       ★型番と tail（「在庫あり・2年保証｜GEOPORT」など）は必ず残す＝いちばん伝えたい部分を切らせない。
+       tails は長いものから順に試す候補（文字列1つでも可）。
+       2026-10-10：実測で `6ES7136-6DB01-0CA0 Siemens Simatic ET200 在庫あり｜GEOPORT` が
+       29字になり、末尾の「在庫あり」がGoogleに切られていたため新設。
+       ⚠️型番が24文字級（`HMS01.1N-W0110-A-07-NNNN`）だと、メーカー名を削っても長い tail は入らない。
+         そのため tail 自体にも短い控えを用意する。"""
+    if isinstance(tails, str):
+        tails = [tails]
+    for tail in tails:
+        for parts in ((art, brand, fam), (art, brand), (art,)):
+            t = " ".join(x for x in parts if x) + tail
+            if gwidth(t) <= limit:
+                return t
+    return art + tails[-1]
+
+
 def group_label(g):
     """一覧ページの見出し用ラベル。シリーズ未設定は「その他の型番」と表す。"""
     return f"{g['brand']} {g['name']}" if g["name"] != OTHER else f"{g['brand']}（その他の型番）"
@@ -787,17 +811,37 @@ def render(row, slug, g=None, pos=0, gone=False):
     fam_paren = f"（{fam}）" if fam else (" " if brand else "")   # シリーズ無しでもメーカー名と型番がくっつかないように
     _cond_txt = "リファビッシュ品" if is_ref else "新古品"
     # ★2026-09-10：在庫が消えた型番は「在庫あり」と書かない（事実と違う表示をしない）
+    # ★2026-10-10（S承認）：検索結果での見え方を作り直した。狙いは「押される率」を上げること。
+    #   実測して分かった3つの問題：
+    #     ① 長い型番だと題名が29字になり、末尾の「在庫あり」がGoogleに切られていた
+    #     ② 説明文が90〜98字で、表示される約80字を超えて末尾が切れていた
+    #     ③ いちばん知りたい「納期」がどこにも書かれていなかった
+    #   → 題名は fit_title() で幅に収め、説明文は**納期を先頭**に置く（切られても伝わる）。
+    #   ⚠️「お探しします・仕入れます」系は書かない（ノンリミット対策・2026-08-11 撤去済み）。
+    #   ⚠️ページ本文は変えない（題名・説明文は本文に出ない）。
+    #   ⚠️「在庫なし」は隠さない（2026-09-10 の決め事）。隠す代わりに**同シリーズの在庫**を見せる。
+    _sib = len(g["items"]) if g else 0          # 同じシリーズに在庫が何点あるか
+    _fam_label = fam or brand or ""
     if gone:
         _st = "在庫なし"
-        title = f"{art} {_brand_fam} 在庫なし｜GEOPORT" if _brand_fam else f"{art} 在庫なし｜GEOPORT"
-        metad = (f"{brand}{fam_paren}{art} は現在在庫がありません。再入荷されましたら掲載します。"
-                 f"同じシリーズの在庫品はページ内でご覧いただけます。｜GEOPORT")
-        ogd = f"{brand}{fam_paren}{art} は現在在庫がありません。同じシリーズの在庫品をご案内しています。"
+        title = fit_title(art, brand, fam,
+                          [" 在庫なし｜同シリーズに在庫｜GEOPORT", " 在庫なし｜GEOPORT"] if _sib
+                          else " 在庫なし｜GEOPORT")
+        if _sib:
+            # ⚠️`{fam}シリーズ` と書くと「1606-seriesシリーズ」のように重なる。「同じ◯◯の在庫」に統一する。
+            metad = (f"{art}（{brand}{' ' + fam if fam else ''}）は在庫切れです。"
+                     f"同じ{_fam_label}の在庫{_sib:,}点を掲載中。"
+                     f"型番をお知らせいただければ最新の在庫状況をご連絡します。")
+            ogd = f"{art}（{brand}）は在庫切れです。同じ{_fam_label}の在庫{_sib:,}点を掲載しています。"
+        else:
+            metad = (f"{art}（{brand}）は現在在庫がありません。"
+                     f"型番をお知らせいただければ最新の在庫状況をご連絡します。")
+            ogd = f"{art}（{brand}）は現在在庫がありません。"
     else:
-        title = f"{art} {_brand_fam} 在庫あり｜GEOPORT" if _brand_fam else f"{art} 在庫あり｜GEOPORT"
-        metad = (f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}、初期不良は納品後{wy}年以内保証。"
-                 f"生産終了品・旧型品の在庫も掲載。型番から在庫確認・お見積りをご依頼いただけます。｜GEOPORT")
-        ogd = f"{brand}{fam_paren}{art} の在庫・お見積り。{_cond_txt}・初期不良{wy}年保証。"
+        title = fit_title(art, brand, fam, [f" 在庫あり・{wy}年保証｜GEOPORT", " 在庫あり｜GEOPORT"])
+        metad = (f"在庫あり・通常10〜14日でお届け。{_cond_txt}、初期不良は納品後{wy}年以内保証。"
+                 f"{art}（{brand}{' ' + fam if fam else ''}）の在庫確認・お見積りを承ります。")
+        ogd = f"{art}（{brand}）在庫あり・{_cond_txt}・{wy}年保証。通常10〜14日でお届け。"
     ogt = f"{art} {brand}｜GEOPORT" if brand else title
     # 商品(Product)の構造化データは掲載しない：価格(offers)/レビュー/評価が無く
     # Search Consoleで「商品スニペット」不備の警告になるため（見積制で価格非公開）。パンくずのみ残す。
